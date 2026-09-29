@@ -5,34 +5,42 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject StudentNoticeInbox Inbox
 
 <div class="sp-page sp-report">
-    <h1>@Locale.T("stu.report")</h1>
-    <p class="sp-report-note no-print">@Locale.T("report.faultHint")</p>
-
-    <div class="sp-report-filters no-print">
-        <label>
-            <span>@Locale.T("stu.fromDate")</span>
-            <input type="date" @bind="fromDate" />
-        </label>
-        <label>
-            <span>@Locale.T("stu.toDate")</span>
-            <input type="date" @bind="toDate" />
-        </label>
-        <button type="button" class="sp-report-go" disabled="@loading" @onclick="LoadAsync">
-            @(loading ? Locale.T("stu.loading") : Locale.T("stu.submit"))
+    <div class="sp-page-h">
+        <h1>@Locale.T("stu.report")</h1>
+        <button type="button" class="sp-mark-all no-print" disabled="@(!HasUnread)" @onclick="MarkAllAsync">
+            @Locale.T("stu.markAllRead")
         </button>
-        <div class="sp-report-view">
-            <button type="button" class="@(viewMode == "daily" ? "is-on" : null)" @onclick='() => viewMode = "daily"'>
-                @Locale.T("report.viewDaily")
-            </button>
-            <button type="button" class="@(viewMode == "detail" ? "is-on" : null)" @onclick='() => viewMode = "detail"'>
-                @Locale.T("report.viewDetail")
+    </div>
+    <div class="sp-report-filters no-print">
+        <div class="sp-report-dates">
+            <label>
+                <span>@Locale.T("stu.fromDate")</span>
+                <input type="date" @bind="fromDate" />
+            </label>
+            <label>
+                <span>@Locale.T("stu.toDate")</span>
+                <input type="date" @bind="toDate" />
+            </label>
+            <button type="button" class="sp-report-go-ico" disabled="@loading" @onclick="LoadAsync" title="@Locale.T("stu.search")" aria-label="@Locale.T("stu.search")">
+                @SearchIco
             </button>
         </div>
-        <button type="button" class="sp-report-print" @onclick="PrintAsync" disabled="@(rows.Count == 0)">
-            @PrintIco @Locale.T("stu.print")
-        </button>
+        <div class="sp-report-view-row">
+            <div class="sp-report-view">
+                <button type="button" class="@(viewMode == "daily" ? "is-on" : null)" @onclick='() => viewMode = "daily"'>
+                    @Locale.T("report.viewDaily")
+                </button>
+                <button type="button" class="@(viewMode == "detail" ? "is-on" : null)" @onclick='() => viewMode = "detail"'>
+                    @Locale.T("report.viewDetail")
+                </button>
+            </div>
+            <button type="button" class="sp-report-print-ico" @onclick="PrintAsync" disabled="@(rows.Count == 0)" title="@Locale.T("stu.print")" aria-label="@Locale.T("stu.print")">
+                @PrintIco
+            </button>
+        </div>
     </div>
 
     @if (loading)
@@ -56,19 +64,25 @@
             {
                 <article class="sp-report-daily-item">
                     <header>
-                        <time>@FmtDate(group.Day)</time>
+                        <button type="button" class="sp-notice-title @(group.Items.Any(x => !Inbox.IsReportRead(x)) ? "is-new" : null)" @onclick="() => MarkGroupAsync(group)">
+                            <time>@FmtDate(group.Day)</time>
+                        </button>
                         @if (!string.IsNullOrWhiteSpace(group.PostBy))
                         {
                             <span class="sp-report-by">@Locale.T("stu.postBy"): <b>@group.PostBy</b></span>
                         }
                     </header>
-                    <div class="sp-report-table-wrap">
+                    <div class="sp-report-table-wrap @(group.Items.Count > 5 ? "is-scroll" : "is-fit")" style="--n:@group.Items.Count">
                         <table class="sp-report-table">
                             <thead>
                                 <tr>
                                     @foreach (var item in group.Items)
                                     {
-                                        <th>@DisplayTitle(item.Title)</th>
+                                        <th>
+                                            <button type="button" class="sp-notice-title @(Inbox.IsReportRead(item) ? null : "is-new")" @onclick="() => MarkAsync(item)">
+                                                @DisplayTitle(item.Title)
+                                            </button>
+                                        </th>
                                     }
                                 </tr>
                             </thead>
@@ -91,9 +105,13 @@
         <div class="sp-report-list">
             @foreach (var row in rows)
             {
-                <article class="sp-report-item">
+                <article class="sp-report-item @(Inbox.IsReportRead(row) ? null : "is-unread")">
                     <div class="sp-report-item-h">
-                        <h3>@row.Title</h3>
+                        <h3>
+                            <button type="button" class="sp-notice-title @(Inbox.IsReportRead(row) ? null : "is-new")" @onclick="() => MarkAsync(row)">
+                                @row.Title
+                            </button>
+                        </h3>
                         <time>@FmtDate(row.Date)</time>
                     </div>
                     <p class="sp-report-body">@row.Body</p>
@@ -114,6 +132,7 @@
     private string viewMode = "daily";
 
     private static readonly MarkupString DocIco = Icon("M8 3h7l5 5v13H8V3Zm7 0v5h5");
+    private static readonly MarkupString SearchIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>""";
     private static readonly MarkupString PrintIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>""";
 
     private IEnumerable<DailyFaultGroup> DailyGroups =>
@@ -124,11 +143,17 @@
                 g.Key,
                 g.OrderBy(x => x.StudentFaultID).ToList()));
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
+        base.OnInitialized();
         if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
-        await LoadAsync();
+        Inbox.Changed += OnInboxChanged;
+        var today = DateTime.Today;
+        fromDate = new DateTime(today.Year, today.Month, 1);
+        toDate = fromDate.Value.AddMonths(1).AddDays(-1);
     }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -140,6 +165,32 @@
         }
         catch { rows = []; }
         loading = false;
+    }
+
+    private async Task MarkAsync(StudentPortalFaultReportDto row)
+    {
+        if (Inbox.IsReportRead(row))
+            return;
+        await Inbox.MarkReportReadAsync(row);
+    }
+
+    private bool HasUnread =>
+        Inbox.ReportUnread > 0 || rows.Any(x => !Inbox.IsReportRead(x));
+
+    private async Task MarkGroupAsync(DailyFaultGroup group)
+    {
+        foreach (var row in group.Items)
+            await MarkAsync(row);
+    }
+
+    private Task MarkAllAsync() => Inbox.MarkAllReportsAsync(rows);
+
+    private void OnInboxChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Inbox.Changed -= OnInboxChanged;
+        base.Dispose();
     }
 
     private async Task PrintAsync() => await JS.InvokeVoidAsync("sikkhaloyPrint");

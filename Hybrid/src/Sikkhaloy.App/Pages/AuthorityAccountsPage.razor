@@ -5,15 +5,21 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="card ab-page">
+<div class="card ab-page ab-page-full">
     <h1>@Locale.T("auth.m.accounts")</h1>
     <div class="ai-cards">
         <div class="ai-card is-blue"><h5>@Tk(data.Summary.Receivable)</h5><p>@Locale.T("ai.receivable")</p></div>
         <div class="ai-card is-teal"><h5>@Tk(data.Summary.PaidAmount)</h5><p>@Locale.T("ai.paidAmt")</p></div>
         <div class="ai-card is-red"><h5>@Tk(data.Summary.Due)</h5><p>@Locale.T("ai.due")</p></div>
         <div class="ai-card is-green"><h5>@data.Summary.CollectPercent.ToString("0.##")%</h5><p>@Locale.T("ai.collected")</p></div>
-        <div class="ai-card is-orange"><h5>@data.UnpaidSchools</h5><p>@Locale.T("ai.unpaidSchools")</p></div>
-        <div class="ai-card is-purple"><h5>@data.UnpaidInvoices</h5><p>@Locale.T("ai.unpaidInvoices")</p></div>
+        <a class="ai-card is-orange is-link" href="authority/unpaid-schools">
+            <h5>@data.UnpaidSchools</h5>
+            <p>@Locale.T("ai.unpaidSchools")</p>
+        </a>
+        <a class="ai-card is-purple is-link" href="authority/unpaid-invoices">
+            <h5>@data.UnpaidInvoices</h5>
+            <p>@Locale.T("ai.unpaidInvoices")</p>
+        </a>
     </div>
     <div class="ai-links no-print">
         <a class="acc-btn acc-btn-primary" href="authority/create-invoice">@Locale.T("ai.goCreate")</a>
@@ -22,33 +28,71 @@
         <a class="acc-btn" href="authority/online-payment-report">@Locale.T("ai.goOnline")</a>
         <a class="acc-btn" href="authority/payment-collection">@Locale.T("auth.m.payCollect")</a>
     </div>
+
     <h2>@Locale.T("ai.recentUnpaid")</h2>
+    <div class="filter-row no-print">
+        <input type="date" @bind="fromDate" disabled="@busy" />
+        <input type="date" @bind="toDate" disabled="@busy" />
+        <input type="number" @bind="schoolIdFilter" placeholder="@Locale.T("ab.schoolId")" disabled="@busy" />
+        <input type="search" @bind="query" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+        <select @bind="statusFilter" disabled="@busy">
+            <option value="all">@Locale.T("ai.all")</option>
+            <option value="grace">@Locale.T("ai.graceOnly")</option>
+            <option value="locked">@Locale.T("ai.lockedOnly")</option>
+        </select>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearFilters">@Locale.T("auth.clear")</button>
+        <span class="muted">@Locale.T("auth.rows", FilteredRows.Count())</span>
+    </div>
     <div class="ab-table-wrap">
         <table class="ad-table">
             <thead>
                 <tr>
-                    <th>@Locale.T("ab.schoolId")</th>
-                    <th>@Locale.T("ai.institution")</th>
-                    <th>@Locale.T("ai.category")</th>
-                    <th>@Locale.T("ai.invoiceFor")</th>
-                    <th>@Locale.T("ai.totalAmt")</th>
-                    <th>@Locale.T("ai.due")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("id")'>@Locale.T("ab.schoolId")@SortMark("id")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("name")'>@Locale.T("ai.institution")@SortMark("name")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("cat")'>@Locale.T("ai.category")@SortMark("cat")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("for")'>@Locale.T("ai.invoiceFor")@SortMark("for")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("date")'>@Locale.T("ai.issue")@SortMark("date")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("total")'>@Locale.T("ai.totalAmt")@SortMark("total")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("due")'>@Locale.T("ai.due")@SortMark("due")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("grace")'>@Locale.T("ai.graceCol")@SortMark("grace")</th>
+                    <th class="is-sortable" @onclick='() => SortBy("lock")'>@Locale.T("ai.accessLock")@SortMark("lock")</th>
                 </tr>
             </thead>
             <tbody>
-                @if (data.RecentUnpaid.Count == 0)
+                @if (!busy && !FilteredRows.Any())
                 {
-                    <tr><td colspan="6">@Locale.T("ab.empty")</td></tr>
+                    <tr><td colspan="9">@Locale.T("ab.empty")</td></tr>
                 }
-                @foreach (var row in data.RecentUnpaid)
+                @foreach (var row in FilteredRows)
                 {
-                    <tr>
+                    <tr class="@(row.AccessLocked ? "is-locked" : row.InGrace ? "is-grace" : null)">
                         <td>@row.SchoolID</td>
                         <td>@row.SchoolName</td>
                         <td>@row.Category</td>
                         <td>@row.InvoiceFor</td>
+                        <td>@row.IssueDate?.ToString("d MMM yyyy")</td>
                         <td>@Tk(row.TotalAmount)</td>
                         <td>@Tk(row.Due)</td>
+                        <td>
+                            @if (row.InGrace)
+                            {
+                                <span class="ai-badge is-grace">@Locale.T("ai.graceOn") @row.GraceUntil?.ToString("d MMM yy")</span>
+                            }
+                            else
+                            {
+                                <span class="muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            @if (row.AccessLocked)
+                            {
+                                <span class="ai-badge is-lock">@Locale.T("ai.locked")</span>
+                            }
+                            else
+                            {
+                                <span class="muted">-</span>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -63,14 +107,73 @@
 
 @code {
     private AuthAccountsPageDto data = new();
-    private bool busy, popupError;
-    private string busyTitle = "", popupText = "";
+    private bool busy, popupError, sortAsc;
+    private string busyTitle = "", popupText = "", query = "", sortKey = "date", statusFilter = "all";
+    private DateTime? fromDate, toDate;
+    private int? schoolIdFilter;
+
+    private IEnumerable<AuthInvoiceLineDto> FilteredRows
+    {
+        get
+        {
+            IEnumerable<AuthInvoiceLineDto> rows = data.RecentUnpaid;
+            if (schoolIdFilter is > 0)
+                rows = rows.Where(r => r.SchoolID == schoolIdFilter.Value);
+            if (fromDate is DateTime from)
+                rows = rows.Where(r => r.IssueDate is DateTime d && d.Date >= from.Date);
+            if (toDate is DateTime to)
+                rows = rows.Where(r => r.IssueDate is DateTime d && d.Date <= to.Date);
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var q = query.Trim();
+                rows = rows.Where(r =>
+                    r.SchoolID.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.SchoolName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.InvoiceFor.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.Category.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.InvoiceSn.Contains(q, StringComparison.OrdinalIgnoreCase));
+            }
+            rows = statusFilter switch
+            {
+                "grace" => rows.Where(r => r.InGrace),
+                "locked" => rows.Where(r => r.AccessLocked),
+                _ => rows
+            };
+
+            rows = sortKey switch
+            {
+                "id" => sortAsc ? rows.OrderBy(r => r.SchoolID) : rows.OrderByDescending(r => r.SchoolID),
+                "name" => sortAsc ? rows.OrderBy(r => r.SchoolName) : rows.OrderByDescending(r => r.SchoolName),
+                "cat" => sortAsc ? rows.OrderBy(r => r.Category) : rows.OrderByDescending(r => r.Category),
+                "for" => sortAsc ? rows.OrderBy(r => r.InvoiceFor) : rows.OrderByDescending(r => r.InvoiceFor),
+                "total" => sortAsc ? rows.OrderBy(r => r.TotalAmount) : rows.OrderByDescending(r => r.TotalAmount),
+                "due" => sortAsc ? rows.OrderBy(r => r.Due) : rows.OrderByDescending(r => r.Due),
+                "grace" => sortAsc ? rows.OrderBy(r => r.InGrace).ThenBy(r => r.GraceUntil) : rows.OrderByDescending(r => r.InGrace).ThenByDescending(r => r.GraceUntil),
+                "lock" => sortAsc ? rows.OrderBy(r => r.AccessLocked) : rows.OrderByDescending(r => r.AccessLocked),
+                _ => sortAsc ? rows.OrderBy(r => r.IssueDate) : rows.OrderByDescending(r => r.IssueDate)
+            };
+            return rows;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
         if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
         await LoadAsync();
+    }
+
+    private void SortBy(string key)
+    {
+        if (sortKey == key) sortAsc = !sortAsc;
+        else { sortKey = key; sortAsc = key is "name" or "cat" or "for"; }
+    }
+
+    private string SortMark(string key) => sortKey == key ? (sortAsc ? " ▲" : " ▼") : "";
+
+    private void ClearFilters()
+    {
+        fromDate = null; toDate = null; schoolIdFilter = null; query = ""; statusFilter = "all";
     }
 
     private async Task LoadAsync()

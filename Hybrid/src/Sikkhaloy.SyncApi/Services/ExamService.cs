@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using Sikkhaloy.Shared.Auth;
 using Sikkhaloy.Shared.Exam;
@@ -470,6 +471,15 @@ WHERE CreateClass.SchoolID = @SchoolID AND Exam_Result_of_Student.EducationYearI
 ORDER BY CreateClass.ClassID
 """, session, ct, c => c.Parameters.AddWithValue("@ExamID", examId));
             }
+        }
+        else if (kind == "merit-top")
+        {
+            dto.Exams = await QueryOptionsAsync(con, """
+SELECT DISTINCT Exam_Name.ExamID AS Id, Exam_Name.ExamName AS Name
+FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID
+WHERE Exam_Name.SchoolID = @SchoolID AND Exam_Name.EducationYearID = @EducationYearID
+ORDER BY Exam_Name.ExamID
+""", session, ct);
         }
         else
         {
@@ -988,19 +998,26 @@ WHERE SchoolID = @SchoolID AND SubjectID = @SubjectID AND ExamID = @ExamID AND C
         await using (var cmd = new SqlCommand("""
 SELECT Student.StudentsName, StudentsClass.StudentID, StudentsClass.StudentClassID, Student.ID, StudentsClass.RollNo
 FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID
-INNER JOIN StudentRecord ON StudentsClass.StudentClassID = StudentRecord.StudentClassID
-WHERE StudentsClass.ClassID = @ClassID AND StudentsClass.SectionID LIKE @SectionID
-  AND StudentsClass.SubjectGroupID LIKE @GroupID AND StudentsClass.EducationYearID = @EducationYearID
-  AND StudentRecord.SubjectID = @SubjectID AND StudentsClass.ShiftID LIKE @ShiftID
-  AND StudentsClass.SchoolID = @SchoolID AND Student.Status = N'Active'
-ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END
-""", con))
+WHERE StudentsClass.ClassID = @ClassID
+  AND StudentsClass.EducationYearID = @EducationYearID
+  AND StudentsClass.SchoolID = @SchoolID
+  AND Student.Status = N'Active'
+  AND (@SectionID IS NULL OR StudentsClass.SectionID = @SectionID)
+  AND (@GroupID IS NULL OR StudentsClass.SubjectGroupID = @GroupID)
+  AND (@ShiftID IS NULL OR StudentsClass.ShiftID = @ShiftID)
+  AND EXISTS (
+      SELECT 1 FROM StudentRecord
+      WHERE StudentRecord.StudentClassID = StudentsClass.StudentClassID
+        AND StudentRecord.SubjectID = @SubjectID
+        AND StudentRecord.SchoolID = @SchoolID
+  )
+""", con) { CommandTimeout = 20 })
         {
             AddSession(cmd, session);
             cmd.Parameters.AddWithValue("@ClassID", classId);
-            cmd.Parameters.AddWithValue("@SectionID", Like(sectionId));
-            cmd.Parameters.AddWithValue("@GroupID", Like(groupId));
-            cmd.Parameters.AddWithValue("@ShiftID", Like(shiftId));
+            cmd.Parameters.AddWithValue("@SectionID", SqlId(sectionId));
+            cmd.Parameters.AddWithValue("@GroupID", SqlId(groupId));
+            cmd.Parameters.AddWithValue("@ShiftID", SqlId(shiftId));
             cmd.Parameters.AddWithValue("@SubjectID", subjectId);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
@@ -1023,20 +1040,18 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE
                 });
             }
         }
-        foreach (var student in dto.Students)
+        dto.Students.Sort((a, b) => RollSort(a.RollNo).CompareTo(RollSort(b.RollNo)));
+        await FillObtainedBatchAsync(con, session, dto, examId, classId, subjectId, subExamId, ct);
+        await using (var cmd = new SqlCommand("""
+SELECT Marks_Input_Locked FROM Exam_Publish_Setting
+WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID AND ExamID = @ExamID
+""", con) { CommandTimeout = 15 })
         {
-            if (dto.HasSubExams && subExamId <= 0)
-            {
-                foreach (var sub in student.Subs)
-                    await FillObtainedAsync(con, session, student.StudentClassID, subjectId, examId, sub.SubExamID, sub, ct);
-            }
-            else
-            {
-                var box = new InputSubMarkDto();
-                await FillObtainedAsync(con, session, student.StudentClassID, subjectId, examId, subExamId, box, ct);
-                student.MarksObtained = box.MarksObtained;
-                student.Absent = box.Absent;
-            }
+            AddSession(cmd, session);
+            cmd.Parameters.AddWithValue("@ClassID", classId);
+            cmd.Parameters.AddWithValue("@ExamID", examId);
+            var locked = await cmd.ExecuteScalarAsync(ct);
+            dto.MarksLocked = locked is true or 1 or (byte)1;
         }
         return dto;
     }
@@ -1044,9 +1059,30 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE
     public async Task<ExamResult> SaveInputMarksAsync(SessionSnapshot session, SaveInputMarksRequest? request, CancellationToken ct)
     {
         if (request is null || request.ClassID <= 0 || request.ExamID <= 0 || request.SubjectID <= 0) return Fail("exam.select");
-        var saved = 0;
+        var rows = new List<MarkSaveRow>();
+        double full = 0, pass = 0, pct = 0;
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
+        if (!request.AllSubExams)
+        {
+            await using var cmd = new SqlCommand("""
+SELECT FullMarks, Sub_PassMarks, ROUND(Sub_PassMarks * 100 / NULLIF(FullMarks, 0), 2, 0) AS PassPercentage
+FROM Exam_Full_Marks WHERE SchoolID = @SchoolID AND SubjectID = @SubjectID AND ExamID = @ExamID AND ClassID = @ClassID
+  AND (SubExamID = @SubExamID OR (@SubExamID = 0 AND SubExamID IS NULL)) AND EducationYearID = @EducationYearID
+""", con);
+            AddSession(cmd, session);
+            cmd.Parameters.AddWithValue("@SubjectID", request.SubjectID);
+            cmd.Parameters.AddWithValue("@ExamID", request.ExamID);
+            cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
+            cmd.Parameters.AddWithValue("@SubExamID", request.SubExamID);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (await reader.ReadAsync(ct))
+            {
+                full = ToDbl(reader["FullMarks"]);
+                pass = ToDbl(reader["Sub_PassMarks"]);
+                pct = ToDbl(reader["PassPercentage"]);
+            }
+        }
         foreach (var student in request.Students)
         {
             if (request.AllSubExams && student.Subs.Count > 0)
@@ -1055,38 +1091,17 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE
                 {
                     if (!sub.Absent && sub.MarksObtained is null) continue;
                     if (sub.MarksObtained is > 0 && sub.MarksObtained > sub.FullMark) return Fail("exam.overMark");
-                    await SubmitMarkAsync(con, session, request, student.StudentID, sub.SubExamID, sub.Absent ? null : sub.MarksObtained, sub.Absent, sub.FullMark, sub.PassMark, sub.PassPercentage, ct);
-                    saved++;
+                    rows.Add(new MarkSaveRow(student.StudentID, sub.SubExamID, sub.Absent ? null : sub.MarksObtained, sub.Absent, sub.FullMark, sub.PassMark, sub.PassPercentage));
                 }
                 continue;
             }
             if (!student.Absent && student.MarksObtained is null) continue;
-            var full = 0d; var pass = 0d; var pct = 0d;
-            await using (var cmd = new SqlCommand("""
-SELECT FullMarks, Sub_PassMarks, ROUND(Sub_PassMarks * 100 / NULLIF(FullMarks, 0), 2, 0) AS PassPercentage
-FROM Exam_Full_Marks WHERE SchoolID = @SchoolID AND SubjectID = @SubjectID AND ExamID = @ExamID AND ClassID = @ClassID
-  AND (SubExamID = @SubExamID OR (@SubExamID = 0 AND SubExamID IS NULL)) AND EducationYearID = @EducationYearID
-""", con))
-            {
-                AddSession(cmd, session);
-                cmd.Parameters.AddWithValue("@SubjectID", request.SubjectID);
-                cmd.Parameters.AddWithValue("@ExamID", request.ExamID);
-                cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
-                cmd.Parameters.AddWithValue("@SubExamID", request.SubExamID);
-                await using var reader = await cmd.ExecuteReaderAsync(ct);
-                if (await reader.ReadAsync(ct))
-                {
-                    full = ToDbl(reader["FullMarks"]);
-                    pass = ToDbl(reader["Sub_PassMarks"]);
-                    pct = ToDbl(reader["PassPercentage"]);
-                }
-            }
             if (student.MarksObtained is > 0 && student.MarksObtained > full) return Fail("exam.overMark");
-            await SubmitMarkAsync(con, session, request, student.StudentID, request.SubExamID, student.Absent ? null : student.MarksObtained, student.Absent, full, pass, pct, ct);
-            saved++;
+            rows.Add(new MarkSaveRow(student.StudentID, request.SubExamID, student.Absent ? null : student.MarksObtained, student.Absent, full, pass, pct));
         }
-        if (saved == 0) return Fail("exam.needMark");
-        return Ok(saved, saved);
+        if (rows.Count == 0) return Fail("exam.needMark");
+        await SaveMarksBatchAsync(con, session, request, rows, ct);
+        return Ok(rows.Count, rows.Count);
     }
 
     public async Task<IReadOnlyList<MarksCheckRowDto>> GetMarksCheckAsync(SessionSnapshot session, int classId, int examId, CancellationToken ct)
@@ -1244,6 +1259,49 @@ VALUES (@SchoolID, @RegistrationID, @SubjectID, @ExamID, @ClassID, @SubExamID, @
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    private static async Task FillObtainedBatchAsync(
+        SqlConnection con, SessionSnapshot session, InputSheetDto dto, int examId, int classId, int subjectId, int subExamId, CancellationToken ct)
+    {
+        if (dto.Students.Count == 0)
+            return;
+        var byClass = new Dictionary<int, InputStudentDto>();
+        foreach (var student in dto.Students)
+            byClass.TryAdd(student.StudentClassID, student);
+
+        await using var cmd = new SqlCommand("""
+SELECT StudentClassID, ISNULL(SubExamID, 0) AS SubExamID, MarksObtained, AbsenceStatus
+FROM Exam_Obtain_Marks
+WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
+  AND SubjectID = @SubjectID AND ExamID = @ExamID AND ClassID = @ClassID
+""", con) { CommandTimeout = 20 };
+        AddSession(cmd, session);
+        cmd.Parameters.AddWithValue("@SubjectID", subjectId);
+        cmd.Parameters.AddWithValue("@ExamID", examId);
+        cmd.Parameters.AddWithValue("@ClassID", classId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            if (!byClass.TryGetValue(ToInt(reader["StudentClassID"]), out var student))
+                continue;
+            var sid = ToInt(reader["SubExamID"]);
+            var marks = reader["MarksObtained"] is DBNull ? (double?)null : ToDbl(reader["MarksObtained"]);
+            var absent = string.Equals(Text(reader["AbsenceStatus"]), "Absent", StringComparison.OrdinalIgnoreCase);
+            if (dto.HasSubExams && subExamId <= 0)
+            {
+                var sub = student.Subs.FirstOrDefault(s => s.SubExamID == sid);
+                if (sub is null)
+                    continue;
+                sub.MarksObtained = marks;
+                sub.Absent = absent;
+            }
+            else if (sid == subExamId || (subExamId <= 0 && sid == 0))
+            {
+                student.MarksObtained = marks;
+                student.Absent = absent;
+            }
+        }
+    }
+
     private static async Task FillObtainedAsync(SqlConnection con, SessionSnapshot session, int studentClassId, int subjectId, int examId, int subExamId, InputSubMarkDto target, CancellationToken ct)
     {
         await using var cmd = new SqlCommand("""
@@ -1261,6 +1319,148 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
         if (!await reader.ReadAsync(ct)) return;
         target.MarksObtained = reader["MarksObtained"] is DBNull ? null : ToDbl(reader["MarksObtained"]);
         target.Absent = string.Equals(Text(reader["AbsenceStatus"]), "Absent", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private readonly record struct MarkSaveRow(int StudentId, int SubExamId, double? Marks, bool Absent, double Full, double Pass, double Pct);
+
+    private static async Task SaveMarksBatchAsync(
+        SqlConnection con, SessionSnapshot session, SaveInputMarksRequest request, List<MarkSaveRow> rows, CancellationToken ct)
+    {
+        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(ct);
+        await using var cmd = new SqlCommand("""
+SET NOCOUNT ON;
+DECLARE @xml xml = @MarksXml;
+
+SELECT
+    T.N.value('@i','int') AS StudentID,
+    NULLIF(T.N.value('@s','int'), 0) AS SubExamID,
+    T.N.value('@k','float') AS MarksObtained,
+    T.N.value('@a','nvarchar(50)') AS AbsenceStatus,
+    T.N.value('@f','float') AS FullMark,
+    T.N.value('@c','float') AS PassPercentage,
+    T.N.value('@p','float') AS PassMark
+INTO #M
+FROM @xml.nodes('/r/m') AS T(N);
+
+SELECT
+    m.StudentID, m.SubExamID, m.MarksObtained, m.AbsenceStatus, m.FullMark, m.PassPercentage, m.PassMark,
+    sc.StudentClassID, sr.StudentRecordID,
+    CAST(ISNULL(m.MarksObtained, 0) * 100 / NULLIF(m.FullMark, 0) AS float) AS ObtainedPercentage
+INTO #R
+FROM #M m
+INNER JOIN StudentsClass sc
+    ON sc.StudentID = m.StudentID AND sc.EducationYearID = @EducationYearID
+   AND sc.ClassID = @ClassID AND sc.SchoolID = @SchoolID
+LEFT JOIN StudentRecord sr
+    ON sr.StudentClassID = sc.StudentClassID AND sr.SubjectID = @SubjectID
+   AND sr.EducationYearID = @EducationYearID AND sr.SchoolID = @SchoolID;
+
+INSERT INTO Exam_Result_of_Student (SchoolID, RegistrationID, EducationYearID, StudentID, StudentClassID, ClassID, ExamID, Date)
+SELECT DISTINCT @SchoolID, @RegistrationID, @EducationYearID, r.StudentID, r.StudentClassID, @ClassID, @ExamID, GETDATE()
+FROM #R r
+WHERE NOT EXISTS (
+    SELECT 1 FROM Exam_Result_of_Student x
+    WHERE x.SchoolID = @SchoolID AND x.EducationYearID = @EducationYearID
+      AND x.StudentClassID = r.StudentClassID AND x.ExamID = @ExamID
+);
+
+INSERT INTO Exam_Result_of_Subject
+    (SchoolID, RegistrationID, EducationYearID, StudentID, StudentClassID, ClassID, ExamID, StudentRecordID, SubjectID, StudentResultID, Date)
+SELECT DISTINCT @SchoolID, @RegistrationID, @EducationYearID, r.StudentID, r.StudentClassID, @ClassID, @ExamID, r.StudentRecordID, @SubjectID, st.StudentResultID, GETDATE()
+FROM #R r
+INNER JOIN Exam_Result_of_Student st
+    ON st.SchoolID = @SchoolID AND st.EducationYearID = @EducationYearID
+   AND st.StudentClassID = r.StudentClassID AND st.ExamID = @ExamID
+WHERE NOT EXISTS (
+    SELECT 1 FROM Exam_Result_of_Subject x
+    WHERE x.SchoolID = @SchoolID AND x.EducationYearID = @EducationYearID
+      AND x.StudentClassID = r.StudentClassID AND x.ExamID = @ExamID
+      AND x.SubjectID = @SubjectID AND x.StudentResultID = st.StudentResultID
+);
+
+SELECT
+    r.*, st.StudentResultID, g.GradingID, g.Grades, g.Point
+INTO #W
+FROM #R r
+INNER JOIN Exam_Result_of_Student st
+    ON st.SchoolID = @SchoolID AND st.EducationYearID = @EducationYearID
+   AND st.StudentClassID = r.StudentClassID AND st.ExamID = @ExamID
+OUTER APPLY (
+    SELECT TOP (1) gs.GradingID, gs.Grades, gs.Point
+    FROM Exam_Grading_Assign ga
+    INNER JOIN Exam_Grading_System gs ON gs.GradeNameID = ga.GradeNameID
+    WHERE ga.SchoolID = @SchoolID AND ga.EducationYearID = @EducationYearID
+      AND ga.ClassID = @ClassID AND ga.ExamID = @ExamID
+      AND gs.MinPercentage <= ISNULL(r.ObtainedPercentage, 0)
+    ORDER BY gs.Point DESC
+) g;
+
+UPDATE om
+SET MarksObtained = w.MarksObtained,
+    SubExamID = w.SubExamID,
+    AbsenceStatus = w.AbsenceStatus,
+    FullMark = w.FullMark,
+    ObtainedPercentage = w.ObtainedPercentage,
+    PassPercentage = w.PassPercentage,
+    GradingID = w.GradingID,
+    ObtainedGrades = w.Grades,
+    ObtainedPoint = w.Point,
+    PassMark = w.PassMark
+FROM Exam_Obtain_Marks om
+INNER JOIN #W w
+    ON om.StudentClassID = w.StudentClassID
+   AND om.SubjectID = @SubjectID
+   AND om.ExamID = @ExamID
+   AND om.SchoolID = @SchoolID
+   AND ((w.SubExamID IS NULL AND om.SubExamID IS NULL) OR om.SubExamID = w.SubExamID);
+
+INSERT INTO Exam_Obtain_Marks
+    (SchoolID, RegistrationID, StudentID, SubjectID, ClassID, ExamID, SubExamID, StudentClassID, EducationYearID,
+     StudentRecordID, StudentResultID, MarksObtained, AbsenceStatus, FullMark, ObtainedPercentage, PassPercentage,
+     Date, GradingID, ObtainedGrades, ObtainedPoint, PassMark)
+SELECT
+    @SchoolID, @RegistrationID, w.StudentID, @SubjectID, @ClassID, @ExamID, w.SubExamID, w.StudentClassID, @EducationYearID,
+    w.StudentRecordID, w.StudentResultID, w.MarksObtained, w.AbsenceStatus, w.FullMark, w.ObtainedPercentage, w.PassPercentage,
+    GETDATE(), w.GradingID, w.Grades, w.Point, w.PassMark
+FROM #W w
+WHERE NOT EXISTS (
+    SELECT 1 FROM Exam_Obtain_Marks om
+    WHERE om.SchoolID = @SchoolID AND om.EducationYearID = @EducationYearID
+      AND om.StudentClassID = w.StudentClassID AND om.ExamID = @ExamID
+      AND om.SubjectID = @SubjectID AND om.StudentResultID = w.StudentResultID
+      AND ((w.SubExamID IS NULL AND om.SubExamID IS NULL) OR om.SubExamID = w.SubExamID)
+);
+""", con, tx) { CommandTimeout = 60 };
+        AddSession(cmd, session);
+        cmd.Parameters.AddWithValue("@SubjectID", request.SubjectID);
+        cmd.Parameters.AddWithValue("@ExamID", request.ExamID);
+        cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
+        cmd.Parameters.Add("@MarksXml", SqlDbType.Xml).Value = MarksXml(rows);
+        await cmd.ExecuteNonQueryAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
+    private static string MarksXml(List<MarkSaveRow> rows)
+    {
+        var sb = new StringBuilder("<r>");
+        foreach (var row in rows)
+        {
+            sb.Append("<m i=\"").Append(row.StudentId).Append("\" s=\"");
+            if (row.SubExamId > 0)
+                sb.Append(row.SubExamId);
+            sb.Append("\" k=\"");
+            if (!row.Absent && row.Marks is { } marks)
+                sb.Append(marks.ToString(CultureInfo.InvariantCulture));
+            else if (!row.Absent)
+                sb.Append('0');
+            sb.Append("\" a=\"").Append(row.Absent ? "Absent" : "Present")
+                .Append("\" f=\"").Append(row.Full.ToString(CultureInfo.InvariantCulture))
+                .Append("\" p=\"").Append(row.Pass.ToString(CultureInfo.InvariantCulture))
+                .Append("\" c=\"").Append(row.Pct.ToString(CultureInfo.InvariantCulture))
+                .Append("\"/>");
+        }
+        sb.Append("</r>");
+        return sb.ToString();
     }
 
     private static async Task SubmitMarkAsync(SqlConnection con, SessionSnapshot session, SaveInputMarksRequest request, int studentId, int subExamId, double? marks, bool absent, double full, double pass, double pct, CancellationToken ct)
@@ -1689,6 +1889,7 @@ ORDER BY Position_InExam_Class, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 TH
                 var row = new ExamMeritRowDto
                 {
                     StudentResultID = id,
+                    StudentID = ToInt(reader["StudentID"]),
                     ID = Text(reader["ID"]),
                     Name = Text(reader["StudentsName"]),
                     Phone = Text(reader["SMSPhoneNo"]),
@@ -2465,6 +2666,20 @@ GROUP BY StudentClassID, Attendance
     }
 
     private static string Like(string? value) => string.IsNullOrWhiteSpace(value) || value == "0" ? "%" : value.Trim();
+    private static object SqlId(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "0")
+            return DBNull.Value;
+        var text = value.Trim();
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : text;
+    }
+    private static int RollSort(string? roll)
+    {
+        if (string.IsNullOrWhiteSpace(roll))
+            return int.MaxValue;
+        var text = roll.Replace("$", "", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : int.MaxValue;
+    }
     private static int ToInt(object? value) => value is null or DBNull ? 0 : Convert.ToInt32(value);
     private static double ToDbl(object? value) => value is null or DBNull ? 0 : Convert.ToDouble(value);
     private static string Text(object? value) => value is null or DBNull ? "" : Convert.ToString(value) ?? "";

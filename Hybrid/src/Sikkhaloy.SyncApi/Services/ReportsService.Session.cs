@@ -469,9 +469,10 @@ GROUP BY sc.StudentClassID, r.Role, s.InvoiceNo
         DateTime? from, DateTime? to, CancellationToken ct)
     {
         yearId = Year(session, yearId);
-        var section = Like(sectionId);
-        var role = Like(roleId);
-        var forLike = Like(payFor);
+        var hasSection = int.TryParse(sectionId, out var sectionNum) && sectionNum > 0;
+        var hasRole = int.TryParse(roleId, out var roleNum) && roleNum > 0;
+        var hasPayFor = kind is "paid" or "due"
+            && !string.IsNullOrWhiteSpace(payFor) && payFor != "%" && payFor != "0";
         var extra = kind switch
         {
             "paid" => "AND Income_PayOrder.PaidAmount <> 0",
@@ -479,67 +480,17 @@ GROUP BY sc.StudentClassID, r.Role, s.InvoiceNo
             "concession" => "AND (Income_PayOrder.LateFeeCountable + ISNULL(Income_PayOrder.Discount, 0)) <> 0",
             _ => ""
         };
-        var payForSql = kind is "paid" or "due" ? "AND Income_PayOrder.PayFor LIKE @PayFor" : "";
-        await using var con = _connections.Create();
-        await con.OpenAsync(ct);
-        var dto = new SessionStudentReportDto();
-
-        var totalSql = kind switch
-        {
-            "paid" => """
-SELECT COUNT(DISTINCT Income_PayOrder.StudentID) AS Total_Stu, 0 AS PayCount, 0 AS TotalFee, 0 AS TotalLateFee, 0 AS TotalDiscount,
-       SUM(Income_PayOrder.PaidAmount) AS TotalPaid, 0 AS Unpaid,
-       ROUND((SUM(Income_PayOrder.PaidAmount) * 100) / NULLIF(SUM(Income_PayOrder.PaidAmount) + SUM(Income_PayOrder.Receivable_Amount), 0), 2) AS Percentage
-""",
-            "due" => """
-SELECT COUNT(DISTINCT Income_PayOrder.StudentID) AS Total_Stu, COUNT(DISTINCT Income_PayOrder.PayOrderID) AS PayCount,
-       0 AS TotalFee, 0 AS TotalLateFee, 0 AS TotalDiscount, 0 AS TotalPaid, SUM(Income_PayOrder.Receivable_Amount) AS Unpaid, 0 AS Percentage
-""",
-            "concession" => """
-SELECT COUNT(DISTINCT Income_PayOrder.StudentID) AS Total_Stu, 0 AS PayCount, SUM(Income_PayOrder.Amount) AS TotalFee, 0 AS TotalLateFee,
-       SUM(Income_PayOrder.LateFeeCountable + ISNULL(Income_PayOrder.Discount, 0)) AS TotalDiscount, 0 AS TotalPaid, 0 AS Unpaid,
-       ROUND(SUM(Income_PayOrder.Total_Discount) * 100 / NULLIF(SUM(Income_PayOrder.Amount), 0), 2) AS Percentage
-""",
-            _ => """
-SELECT COUNT(DISTINCT Income_PayOrder.StudentID) AS Total_Stu, 0 AS PayCount, SUM(Income_PayOrder.Amount) AS TotalFee,
-       SUM(Income_PayOrder.LateFeeCountable) AS TotalLateFee,
-       SUM(Income_PayOrder.LateFeeCountable + ISNULL(Income_PayOrder.Discount, 0)) AS TotalDiscount,
-       SUM(ISNULL(Income_PayOrder.PaidAmount, 0)) AS TotalPaid, SUM(Income_PayOrder.Receivable_Amount) AS Unpaid, 0 AS Percentage
-"""
-        };
-
-        await using (var cmd = new SqlCommand($"""
-{totalSql}
-FROM Income_PayOrder INNER JOIN StudentsClass ON Income_PayOrder.StudentClassID = StudentsClass.StudentClassID
-WHERE Income_PayOrder.SchoolID = @SchoolID AND Income_PayOrder.EducationYearID = @EducationYearID
-  AND Income_PayOrder.Is_Active = 1
-  AND Income_PayOrder.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
-  AND Income_PayOrder.RoleID LIKE @RoleID
-  AND (Income_PayOrder.ClassID = @ClassID OR @ClassID = 0)
-  AND ISNULL(CAST(StudentsClass.SectionID AS nvarchar(20)), N'0') LIKE @SectionID
-  {payForSql} {extra}
-""", con))
-        {
-            BindStudent(cmd, session, yearId, classId, section, role, forLike, from, to, kind is "paid" or "due");
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            if (await reader.ReadAsync(ct))
-            {
-                dto.Students = ToInt(reader["Total_Stu"]);
-                dto.PayorderCount = ToInt(reader["PayCount"]);
-                dto.Payorder = ToDec(reader["TotalFee"]);
-                dto.LateFee = ToDec(reader["TotalLateFee"]);
-                dto.Concession = ToDec(reader["TotalDiscount"]);
-                dto.Paid = ToDec(reader["TotalPaid"]);
-                dto.Unpaid = ToDec(reader["Unpaid"]);
-                dto.Percentage = ToDec(reader["Percentage"]);
-            }
-        }
-
+        var classSql = classId > 0 ? "AND Income_PayOrder.ClassID = @ClassID" : "";
+        var roleSql = hasRole ? "AND Income_PayOrder.RoleID = @RoleID" : "";
+        var sectionSql = hasSection ? "AND StudentsClass.SectionID = @SectionID" : "";
+        var payForSql = hasPayFor ? "AND Income_PayOrder.PayFor = @PayFor" : "";
+        var dateSql = SqlDateRange("Income_PayOrder.EndDate");
         var rowSql = kind switch
         {
             "paid" => """
 SELECT Student.ID, Student.StudentsName, CreateClass.Class, StudentsClass.RollNo, 0 AS PayCount,
-       0 AS TotalFee, 0 AS TotalLateFee, 0 AS TotalDiscount, SUM(Income_PayOrder.PaidAmount) AS TotalPaid, 0 AS Unpaid,
+       0 AS TotalFee, 0 AS TotalLateFee, 0 AS TotalDiscount, SUM(Income_PayOrder.PaidAmount) AS TotalPaid,
+       SUM(Income_PayOrder.Receivable_Amount) AS Unpaid,
        ROUND((SUM(Income_PayOrder.PaidAmount) * 100) / NULLIF(SUM(Income_PayOrder.PaidAmount) + SUM(Income_PayOrder.Receivable_Amount), 0), 2) AS Percentage,
        Income_PayOrder.ClassID
 """,
@@ -564,24 +515,32 @@ SELECT Student.ID, Student.StudentsName, CreateClass.Class, StudentsClass.RollNo
 """
         };
 
+        await using var con = _connections.Create();
+        await con.OpenAsync(ct);
+        var dto = new SessionStudentReportDto();
         await using (var cmd = new SqlCommand($"""
 {rowSql}
 FROM Income_PayOrder
 INNER JOIN StudentsClass ON Income_PayOrder.StudentClassID = StudentsClass.StudentClassID
 INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID
-INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID
-WHERE Income_PayOrder.SchoolID = @SchoolID AND Income_PayOrder.EducationYearID = @EducationYearID
+INNER JOIN CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID
+WHERE Income_PayOrder.SchoolID = @SchoolID
+  AND Income_PayOrder.EducationYearID = @EducationYearID
   AND Income_PayOrder.Is_Active = 1
-  AND Income_PayOrder.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
-  AND Income_PayOrder.RoleID LIKE @RoleID {payForSql}
-  AND (Income_PayOrder.ClassID = @ClassID OR @ClassID = 0)
-  AND ISNULL(CAST(StudentsClass.SectionID AS nvarchar(20)), N'0') LIKE @SectionID
-  {extra}
+  {dateSql}
+  {classSql} {roleSql} {sectionSql} {payForSql} {extra}
 GROUP BY CreateClass.Class, Student.StudentsName, Student.ID, Income_PayOrder.StudentID, Income_PayOrder.ClassID, StudentsClass.RollNo
 ORDER BY Income_PayOrder.ClassID, StudentsClass.RollNo
 """, con))
         {
-            BindStudent(cmd, session, yearId, classId, section, role, forLike, from, to, kind is "paid" or "due");
+            SetReportTimeout(cmd);
+            AddSchool(cmd, session);
+            BindYear(cmd, yearId);
+            AddDates(cmd, from, to);
+            if (classId > 0) cmd.Parameters.AddWithValue("@ClassID", classId);
+            if (hasRole) cmd.Parameters.AddWithValue("@RoleID", roleNum);
+            if (hasSection) cmd.Parameters.AddWithValue("@SectionID", sectionNum);
+            if (hasPayFor) cmd.Parameters.AddWithValue("@PayFor", payFor!.Trim());
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
             {
@@ -602,6 +561,19 @@ ORDER BY Income_PayOrder.ClassID, StudentsClass.RollNo
             }
         }
 
+        dto.Students = dto.Rows.Select(x => x.ID).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        dto.PayorderCount = dto.Rows.Sum(x => x.PayorderCount);
+        dto.Payorder = dto.Rows.Sum(x => x.Fee);
+        dto.LateFee = dto.Rows.Sum(x => x.LateFee);
+        dto.Concession = dto.Rows.Sum(x => x.Concession);
+        dto.Paid = dto.Rows.Sum(x => x.Paid);
+        dto.Unpaid = dto.Rows.Sum(x => x.Unpaid);
+        dto.Percentage = kind switch
+        {
+            "paid" when dto.Paid + dto.Unpaid != 0 => Math.Round(dto.Paid * 100m / (dto.Paid + dto.Unpaid), 2),
+            "concession" when dto.Payorder != 0 => Math.Round(dto.Concession * 100m / dto.Payorder, 2),
+            _ => 0
+        };
         return dto;
     }
 
@@ -785,18 +757,6 @@ GROUP BY s.InvoiceNo, r.RoleID
         public int RoleId { get; set; }
         public decimal Amount { get; set; }
         public int ExtraStudents { get; set; }
-    }
-
-    private void BindStudent(SqlCommand cmd, SessionSnapshot session, int yearId, int classId, string section, string role, string payFor, DateTime? from, DateTime? to, bool withPayFor)
-    {
-        AddSchool(cmd, session);
-        BindYear(cmd, yearId);
-        AddDates(cmd, from, to);
-        cmd.Parameters.AddWithValue("@ClassID", classId);
-        cmd.Parameters.AddWithValue("@SectionID", section);
-        cmd.Parameters.AddWithValue("@RoleID", role);
-        if (withPayFor)
-            cmd.Parameters.AddWithValue("@PayFor", payFor);
     }
 
     private static int Year(SessionSnapshot session, int yearId) => yearId > 0 ? yearId : session.EducationYearID;

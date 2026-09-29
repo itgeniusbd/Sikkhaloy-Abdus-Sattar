@@ -1,0 +1,48 @@
+@page "/payment/callback"
+@inherits LocaleAwareComponent
+@inject NavigationManager Nav
+
+<div class="pay-result">
+    <div class="pay-result-card">
+        <h1>@Locale.T("pay.checking")</h1>
+        <p class="pay-result-lead">@Locale.T("pay.waitHint")</p>
+    </div>
+</div>
+<ExamBusyOverlay Busy="true" Title="@Locale.T("pay.checking")" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "order_id")] public string? OrderId { get; set; }
+    [SupplyParameterFromQuery(Name = "orderId")] public string? OrderIdAlt { get; set; }
+    [SupplyParameterFromQuery(Name = "sp_order_id")] public string? SpOrderId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var id = (OrderId ?? OrderIdAlt ?? SpOrderId ?? "").Trim();
+        if (id.Length == 0)
+        {
+            // Fallback: parse query manually
+            var q = new Uri(Nav.Uri).Query.TrimStart('?');
+            foreach (var part in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = part.Split('=', 2);
+                if (kv.Length != 2) continue;
+                var key = Uri.UnescapeDataString(kv[0]);
+                if (key.Equals("order_id", StringComparison.OrdinalIgnoreCase)
+                    || key.Equals("orderId", StringComparison.OrdinalIgnoreCase)
+                    || key.Equals("sp_order_id", StringComparison.OrdinalIgnoreCase))
+                {
+                    id = Uri.UnescapeDataString(kv[1]).Trim();
+                    break;
+                }
+            }
+        }
+
+        string dest;
+        if (id.Length > 0)
+            dest = "https://hybridapi.sikkhaloy.com/api/pay/shurjopay/callback?order_id=" + Uri.EscapeDataString(id);
+        else
+            dest = "/payment-result?status=failed&msg=" + Uri.EscapeDataString("Order id missing");
+
+        Nav.NavigateTo(dest, forceLoad: true);
+    }
+}

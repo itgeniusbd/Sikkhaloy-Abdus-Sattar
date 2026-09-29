@@ -281,33 +281,6 @@
         schoolPhone = header.Phone ?? "";
         schoolEmail = header.Email ?? "";
         nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
-        _ = LoadNameLogoAsync();
-    }
-
-    private async Task LoadNameLogoAsync()
-    {
-        if (!string.IsNullOrWhiteSpace(nameLogoUrl) || string.IsNullOrWhiteSpace(Session.AccessToken) || Session.Current is null)
-            return;
-        try
-        {
-            var inst = await Api.GetInstitutionAsync(Session.AccessToken);
-            if (string.IsNullOrWhiteSpace(inst.NameLogoDataUrl))
-                return;
-            nameLogoUrl = inst.NameLogoDataUrl;
-            Sync.RefreshSchoolHeader(new OfficeProfileDto
-            {
-                SchoolID = Session.Current.SchoolID,
-                SchoolName = schoolName,
-                Address = schoolAddr,
-                Phone = schoolPhone,
-                Email = schoolEmail,
-                NameLogoBase64 = inst.NameLogoDataUrl
-            });
-            await InvokeAsync(StateHasChanged);
-        }
-        catch
-        {
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -352,10 +325,7 @@
         await SetBusyAsync("acc.openReceipt");
         try
         {
-            var receiptTask = Api.GetMoneyReceiptAsync(Session.AccessToken!, query.Trim());
-            var smsTask = LoadSmsBalanceAsync();
-            await Task.WhenAll(receiptTask, smsTask);
-            detail = await receiptTask;
+            detail = await Api.GetMoneyReceiptAsync(Session.AccessToken!, query.Trim());
             if (detail is null)
                 Show(Locale.T("acc.empty"), true);
             else
@@ -366,6 +336,7 @@
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
+        _ = LoadSmsBalanceAsync();
     }
 
     private async Task SavePrintedAsync()
@@ -446,6 +417,7 @@
         {
             var sms = await Api.GetPaymentSmsSettingAsync(Session.AccessToken!);
             smsBalance = sms.Balance;
+            await InvokeAsync(StateHasChanged);
         }
         catch
         {

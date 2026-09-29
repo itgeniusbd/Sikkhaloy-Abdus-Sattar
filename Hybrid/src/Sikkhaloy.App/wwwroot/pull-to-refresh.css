@@ -1,0 +1,49 @@
+/* Pull-to-refresh (mobile Hybrid) */
+.ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  transform: translate(-50%, -48px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.ptr-indicator.is-visible {
+  opacity: 1;
+}
+.ptr-indicator.is-ready {
+  background: #0f766e;
+}
+.ptr-indicator.is-refreshing {
+  background: #1d4f91;
+}
+.ptr-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(248, 250, 252, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+}
+.ptr-indicator.is-refreshing .ptr-spinner {
+  animation: ptr-spin 0.7s linear infinite;
+}
+.ptr-indicator.is-ready .ptr-spinner {
+  border-color: rgba(255, 255, 255, 0.85);
+  border-top-color: transparent;
+  transform: rotate(180deg);
+}
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}

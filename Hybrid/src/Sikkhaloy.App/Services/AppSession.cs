@@ -11,10 +11,11 @@ public sealed class AppSession
     public bool IsAuthenticated => Current is not null;
     public bool IsAuthority => Current?.IsAuthority == true;
     public bool IsStudent => Current?.IsStudent == true;
+    public bool IsTeacher => Current?.IsTeacher == true;
     public bool IsImpersonating => AuthorityReturn is not null;
     public LoginResponse? AuthorityReturn { get; private set; }
-    public string HomePath => IsAuthority ? "/authority" : IsStudent ? "/student" : "/dashboard";
-    public string HomeHref => IsAuthority ? "authority" : IsStudent ? "student" : "dashboard";
+    public string HomePath => IsAuthority ? "/authority" : IsStudent ? "/student" : IsTeacher ? "/teacher" : "/dashboard";
+    public string HomeHref => IsAuthority ? "authority" : IsStudent ? "student" : IsTeacher ? "teacher" : "dashboard";
 
     public event Action? Changed;
     public event Action? Mutated;
@@ -27,7 +28,7 @@ public sealed class AppSession
         Current = response.Session;
         AccessToken = response.AccessToken ?? "";
         TokenExpiresAt = response.ExpiresAt;
-        AwaitInitialSync = Current is not null && !IsAuthority && !IsStudent;
+        AwaitInitialSync = Current is not null && !IsAuthority && !IsStudent && !IsTeacher;
         _initialSyncFinished = false;
         _syncOverlaySeen = false;
         Mutated?.Invoke();
@@ -119,7 +120,9 @@ public sealed class AppSession
         ClassID = source.ClassID,
         StudentCode = source.StudentCode,
         ClassName = source.ClassName,
-        SectionName = source.SectionName
+        SectionName = source.SectionName,
+        TeacherID = source.TeacherID,
+        EmployeeID = source.EmployeeID
     };
 
     public void UpdateYear(int educationYearId, bool notify = true)

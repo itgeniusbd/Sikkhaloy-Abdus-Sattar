@@ -58,7 +58,7 @@ public sealed class AuthService
             return Fail("login.badPassword");
 
         var role = await ReadRoleAsync(con, userName, cancellationToken);
-        if (role is null || (!OfficeRoles.Contains(role) && !AuthorityRoles.Contains(role) && !IsStudentRole(role)))
+        if (role is null || (!OfficeRoles.Contains(role) && !AuthorityRoles.Contains(role) && !IsStudentRole(role) && !IsTeacherRole(role)))
             return Fail("login.role");
 
         var deviceId = string.IsNullOrWhiteSpace(request.DeviceId)
@@ -117,6 +117,33 @@ public sealed class AuthService
                     StudentCode = student.Value.StudentCode,
                     ClassName = student.Value.ClassName,
                     SectionName = student.Value.SectionName
+                }
+            };
+        }
+
+        if (IsTeacherRole(role))
+        {
+            var teacher = await ReadTeacherProfileAsync(con, userName, cancellationToken);
+            if (teacher is null)
+                return Fail("login.noYear");
+
+            return new LoginResponse
+            {
+                Succeeded = true,
+                Session = new SessionSnapshot
+                {
+                    UserName = userName,
+                    Role = role,
+                    SchoolID = teacher.Value.SchoolID,
+                    SchoolName = teacher.Value.SchoolName,
+                    RegistrationID = teacher.Value.RegistrationID,
+                    EducationYearID = teacher.Value.EducationYearID,
+                    DeviceId = deviceId,
+                    DisplayName = string.IsNullOrWhiteSpace(teacher.Value.DisplayName)
+                        ? userName
+                        : teacher.Value.DisplayName,
+                    TeacherID = teacher.Value.TeacherID,
+                    EmployeeID = teacher.Value.EmployeeID
                 }
             };
         }
@@ -210,12 +237,16 @@ WHERE u.LoweredUserName = LOWER(@UserName)";
         if (string.Equals(name, "Sub-Authority", StringComparison.OrdinalIgnoreCase)) return 1;
         if (string.Equals(name, "Admin", StringComparison.OrdinalIgnoreCase)) return 2;
         if (string.Equals(name, "Sub-Admin", StringComparison.OrdinalIgnoreCase)) return 3;
+        if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase)) return 4;
         if (string.Equals(name, "Student", StringComparison.OrdinalIgnoreCase)) return 8;
         return 99;
     }
 
     private static bool IsStudentRole(string role) =>
         string.Equals(role, "Student", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTeacherRole(string role) =>
+        string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase);
 
     private static async Task<(int SchoolID, string SchoolName, int RegistrationID, int EducationYearID, string DisplayName, int StudentID, int StudentClassID, int ClassID, string StudentCode, string ClassName, string SectionName)?> ReadStudentProfileAsync(
         SqlConnection con, string userName, CancellationToken cancellationToken)
@@ -297,6 +328,58 @@ ORDER BY StudentsClass.StudentClassID DESC
 
         var row = ReadStudentRow(reader);
         return row.EducationYearID <= 0 ? null : row;
+    }
+
+    private static async Task<(int SchoolID, string SchoolName, int RegistrationID, int EducationYearID, string DisplayName, int TeacherID, int EmployeeID)?> ReadTeacherProfileAsync(
+        SqlConnection con, string userName, CancellationToken cancellationToken)
+    {
+        const string sql = """
+SELECT TOP 1
+    Registration.SchoolID,
+    SchoolInfo.SchoolName,
+    Registration.RegistrationID,
+    COALESCE(Education_Year_User.EducationYearID, CurrentYear.EducationYearID) AS EducationYearID,
+    LTRIM(RTRIM(ISNULL(Teacher.FirstName, N'') + N' ' + ISNULL(Teacher.LastName, N''))) AS DisplayName,
+    Teacher.TeacherID,
+    ISNULL(Teacher.EmployeeID, 0) AS EmployeeID
+FROM dbo.Registration
+INNER JOIN dbo.SchoolInfo ON Registration.SchoolID = SchoolInfo.SchoolID
+INNER JOIN dbo.Teacher ON Teacher.SchoolID = Registration.SchoolID
+    AND (
+        Teacher.TeacherRegistrationID = Registration.RegistrationID
+        OR Teacher.RegistrationID = Registration.RegistrationID
+    )
+LEFT JOIN dbo.Education_Year_User ON Registration.RegistrationID = Education_Year_User.RegistrationID
+    AND Education_Year_User.SchoolID = Registration.SchoolID
+OUTER APPLY (
+    SELECT TOP 1 EducationYearID
+    FROM dbo.Education_Year
+    WHERE SchoolID = Registration.SchoolID
+    ORDER BY CASE WHEN Status IN (N'True', N'Active', N'Current') THEN 0 ELSE 1 END,
+             ISNULL(SN, EducationYearID) DESC, EducationYearID DESC
+) AS CurrentYear
+WHERE Registration.UserName = @UserName
+  AND Registration.Validation = N'Valid'
+ORDER BY CASE WHEN Education_Year_User.EducationYearID IS NULL THEN 1 ELSE 0 END
+""";
+        await using var cmd = new SqlCommand(sql, con);
+        cmd.Parameters.AddWithValue("@UserName", userName);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            return null;
+
+        var yearId = Int(reader, "EducationYearID");
+        if (yearId <= 0)
+            return null;
+
+        return (
+            Int(reader, "SchoolID"),
+            Str(reader, "SchoolName"),
+            Int(reader, "RegistrationID"),
+            yearId,
+            Str(reader, "DisplayName"),
+            Int(reader, "TeacherID"),
+            Int(reader, "EmployeeID"));
     }
 
     private static async Task SaveYearUserAsync(
@@ -536,6 +619,34 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID";
                     StudentCode = student.Value.StudentCode,
                     ClassName = student.Value.ClassName,
                     SectionName = student.Value.SectionName
+                }
+            };
+        }
+
+        if (session.IsTeacher)
+        {
+            await SaveYearUserAsync(con, session.SchoolID, session.RegistrationID, educationYearId, cancellationToken);
+            var teacher = await ReadTeacherProfileAsync(con, session.UserName, cancellationToken);
+            if (teacher is null)
+                return Fail("login.noYear");
+
+            return new LoginResponse
+            {
+                Succeeded = true,
+                Session = new SessionSnapshot
+                {
+                    UserName = session.UserName,
+                    Role = session.Role,
+                    SchoolID = teacher.Value.SchoolID,
+                    SchoolName = teacher.Value.SchoolName,
+                    RegistrationID = teacher.Value.RegistrationID,
+                    EducationYearID = educationYearId,
+                    DeviceId = session.DeviceId,
+                    DisplayName = string.IsNullOrWhiteSpace(teacher.Value.DisplayName)
+                        ? session.UserName
+                        : teacher.Value.DisplayName,
+                    TeacherID = teacher.Value.TeacherID,
+                    EmployeeID = teacher.Value.EmployeeID
                 }
             };
         }

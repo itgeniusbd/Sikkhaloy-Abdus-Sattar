@@ -7,7 +7,7 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card edit-page adm-page">
+<div class="card edit-page adm-page @(isNew ? "is-new" : null)">
     <header class="adm-hero">
         <div class="adm-hero-copy">
             <span class="adm-hero-ico" aria-hidden="true">
@@ -23,9 +23,20 @@
                 <p>@Locale.T("edit.hint")</p>
             </div>
         </div>
-        <span class="adm-last-id @(string.IsNullOrWhiteSpace(lastEntryId) ? "is-empty" : null)">
-            @Locale.T("edit.lastId", string.IsNullOrWhiteSpace(lastEntryId) ? "—" : lastEntryId)
-        </span>
+        @if (isNew)
+        {
+            <button type="button"
+                    class="adm-last-id @(string.IsNullOrWhiteSpace(lastEntryId) ? "is-empty" : null)"
+                    title="@Locale.T("edit.lastIdHint")"
+                    @onclick="ApplyNextId">
+                <span>@Locale.T("edit.lastId", string.IsNullOrWhiteSpace(lastEntryId) ? "—" : lastEntryId)</span>
+                <small>@Locale.T("edit.lastIdHint")</small>
+            </button>
+        }
+        else if (!string.IsNullOrWhiteSpace(lastEntryId))
+        {
+            <span class="adm-last-id">@Locale.T("edit.lastId", lastEntryId)</span>
+        }
     </header>
     <EditForm Model="model" OnValidSubmit="CompleteAsync">
         <section class="edit-section required-sec open">
@@ -34,9 +45,6 @@
                 <span class="edit-badge req">@Locale.T("edit.badgeReq")</span>
             </div>
             <div class="edit-body">
-                <div class="adm-last-inline">
-                    <strong>@Locale.T("edit.lastId", string.IsNullOrWhiteSpace(lastEntryId) ? "—" : lastEntryId)</strong>
-                </div>
                 <div class="edit-grid">
                     <label>
                         @Locale.T("edit.id")
@@ -45,6 +53,7 @@
                                    autocomplete="off"
                                    spellcheck="false"
                                    placeholder="@Locale.T("edit.idPh")"
+                                   readonly="@idLocked"
                                    @oninput="OnIdInput"
                                    @onkeydown="OnIdKeyDown" />
                             @if (idState == "valid")
@@ -75,6 +84,12 @@
                         {
                             <span class="id-msg">@Locale.T("edit.id.exists")</span>
                         }
+                        @if (isNew)
+                        {
+                            <button type="button" class="adm-next-id" @onclick="ApplyNextId">
+                                @Locale.T("edit.nextId", string.IsNullOrWhiteSpace(lastEntryId) ? "—" : lastEntryId)
+                            </button>
+                        }
                     </label>
                     <label>@Locale.T("edit.mobile")
                         <input value="@model.SMSPhoneNo"
@@ -90,7 +105,23 @@
                         }
                     </label>
                     <label>@Locale.T("edit.session")
-                        <input value="@sessionName" disabled />
+                        <InputSelect @bind-Value="selectedYearId" @bind-Value:after="OnYearChanged">
+                            @if (years.Count == 0)
+                            {
+                                <option value="@selectedYearId">@(selectedYearId > 0 ? selectedYearId.ToString() : Locale.T("edit.session"))</option>
+                            }
+                            else
+                            {
+                                @if (selectedYearId > 0 && years.All(x => x.EducationYearID != selectedYearId))
+                                {
+                                    <option value="@selectedYearId">@selectedYearId</option>
+                                }
+                                @foreach (var year in years)
+                                {
+                                    <option value="@year.EducationYearID">@(string.IsNullOrWhiteSpace(year.Name) ? year.EducationYearID.ToString() : year.Name)</option>
+                                }
+                            }
+                        </InputSelect>
                     </label>
                     <label>@Locale.T("edit.name")
                         <InputText @bind-Value="model.StudentsName" placeholder="@Locale.T("edit.namePh")" />
@@ -191,62 +222,6 @@
             </div>
         </section>
 
-        <section class="edit-section optional-sec open">
-            <div class="edit-sec-head optional" style="cursor: default;">
-                <h2>@Locale.T("edit.secPhotos")</h2>
-                <span class="edit-badge opt">@Locale.T("edit.badgeOpt")</span>
-            </div>
-            <div class="edit-body">
-                <p class="adm-photo-hint">@Locale.T("edit.photoHint")</p>
-                <div class="adm-photos">
-                    <div class="adm-photo-card">
-                        <span>@Locale.T("edit.stuPhoto")</span>
-                        <label class="sm-photo adm-photo">
-                            @if (!string.IsNullOrWhiteSpace(studentPhoto))
-                            {
-                                <img src="@studentPhoto" alt="" />
-                            }
-                            else
-                            {
-                                <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
-                            }
-                            <span class="sm-photo-edit" title="@Locale.T("sm.photo")">✎</span>
-                            <InputFile class="sm-photo-file"
-                                       accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                       OnChange="e => OnPhotoAsync(e, false)"
-                                       disabled="@busy" />
-                        </label>
-                        @if (!string.IsNullOrWhiteSpace(studentPhoto))
-                        {
-                            <button type="button" class="adm-photo-clear" @onclick="() => studentPhoto = null">@Locale.T("edit.photoClear")</button>
-                        }
-                    </div>
-                    <div class="adm-photo-card">
-                        <span>@Locale.T("edit.guardPhoto")</span>
-                        <label class="sm-photo adm-photo">
-                            @if (!string.IsNullOrWhiteSpace(guardianPhoto))
-                            {
-                                <img src="@guardianPhoto" alt="" />
-                            }
-                            else
-                            {
-                                <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
-                            }
-                            <span class="sm-photo-edit" title="@Locale.T("sm.guardianPhoto")">✎</span>
-                            <InputFile class="sm-photo-file"
-                                       accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                       OnChange="e => OnPhotoAsync(e, true)"
-                                       disabled="@busy" />
-                        </label>
-                        @if (!string.IsNullOrWhiteSpace(guardianPhoto))
-                        {
-                            <button type="button" class="adm-photo-clear" @onclick="() => guardianPhoto = null">@Locale.T("edit.photoClear")</button>
-                        }
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section class="edit-section optional-sec @(openExtra ? "open" : null)">
             <button type="button" class="edit-sec-head optional" @onclick="() => openExtra = !openExtra">
                 <h2>@Locale.T("edit.secExtra")</h2>
@@ -256,6 +231,7 @@
             @if (openExtra)
             {
                 <div class="edit-body">
+                    <div class="adm-with-photo">
                     <div class="edit-grid">
                         <label>@Locale.T("edit.dob")
                             <InputDate @bind-Value="model.DateofBirth" />
@@ -297,6 +273,33 @@
                             </span>
                             <InputTextArea @bind-Value="model.StudentsLocalAddress" />
                         </label>
+                    </div>
+                    <div class="adm-photo-card">
+                        <span>@Locale.T("edit.stuPhoto")</span>
+                        <label class="sm-photo adm-photo">
+                            @if (!string.IsNullOrWhiteSpace(studentPhoto))
+                            {
+                                <img src="@studentPhoto" alt="" />
+                            }
+                            else
+                            {
+                                <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
+                            }
+                            <span class="sm-photo-edit" title="@Locale.T("sm.photo")">✎</span>
+                            <InputFile class="sm-photo-file"
+                                       accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                       OnChange="e => OnPhotoAsync(e, false)"
+                                       disabled="@busy" />
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(studentPhoto))
+                        {
+                            <button type="button" class="adm-photo-clear" @onclick="() => studentPhoto = null">@Locale.T("edit.photoClear")</button>
+                        }
+                        else
+                        {
+                            <span class="adm-photo-hint-mini">@Locale.T("edit.photoHint")</span>
+                        }
+                    </div>
                     </div>
                 </div>
             }
@@ -341,6 +344,7 @@
             @if (openGuardian)
             {
                 <div class="edit-body">
+                    <div class="adm-with-photo">
                     <div class="edit-grid">
                         <label>@Locale.T("edit.guardianName")
                             <InputText @bind-Value="model.GuardianName" />
@@ -351,6 +355,33 @@
                         <label>@Locale.T("edit.guardianPhone")
                             <InputText @bind-Value="model.GuardianPhoneNumber" maxlength="13" />
                         </label>
+                    </div>
+                    <div class="adm-photo-card">
+                        <span>@Locale.T("edit.guardPhoto")</span>
+                        <label class="sm-photo adm-photo">
+                            @if (!string.IsNullOrWhiteSpace(guardianPhoto))
+                            {
+                                <img src="@guardianPhoto" alt="" />
+                            }
+                            else
+                            {
+                                <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
+                            }
+                            <span class="sm-photo-edit" title="@Locale.T("sm.guardianPhoto")">✎</span>
+                            <InputFile class="sm-photo-file"
+                                       accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                       OnChange="e => OnPhotoAsync(e, true)"
+                                       disabled="@busy" />
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(guardianPhoto))
+                        {
+                            <button type="button" class="adm-photo-clear" @onclick="() => guardianPhoto = null">@Locale.T("edit.photoClear")</button>
+                        }
+                        else
+                        {
+                            <span class="adm-photo-hint-mini">@Locale.T("edit.photoHint")</span>
+                        }
+                    </div>
                     </div>
                 </div>
             }
@@ -423,12 +454,12 @@
                 </div>
             }
             <div class="adm-btns">
-                <button class="adm-btn is-save" type="submit" disabled="@(busy || idState == "invalid" || idState == "checking")">
+                <button class="adm-btn is-save" type="submit" disabled="@SaveDisabled">
                     @(isNew ? Locale.T("edit.complete") : Locale.T("edit.update"))
                 </button>
                 @if (isNew)
                 {
-                    <button class="adm-btn is-pay" type="button" disabled="@(busy || idState == "invalid" || idState == "checking")" @onclick="() => SaveAsync(true)">
+                    <button class="adm-btn is-pay" type="button" disabled="@SaveDisabled" @onclick="() => SaveAsync(true)">
                         @Locale.T("edit.goPayOrder")
                     </button>
                 }
@@ -440,11 +471,12 @@
     {
         <NetBanner Text="@error" />
     }
-    @if (!string.IsNullOrWhiteSpace(okMessage))
-    {
-        <div class="ok">@okMessage</div>
-    }
 </div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("edit.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="edit.failed" OnClose="ClosePopup" />
+}
 
 @code {
     [Parameter] public Guid LocalId { get; set; }
@@ -459,11 +491,13 @@
     private int selectedSectionId;
     private int selectedShiftId;
     private int selectedGroupId;
-    private string sessionName = "";
+    private int selectedYearId;
+    private IReadOnlyList<EducationYearDto> years = [];
     private bool isNew = true;
-    private bool busy;
+    private bool busy, popupError;
+    private string busyTitle = "";
     private string? error;
-    private string? okMessage;
+    private string? popupText;
     private string idState = "";
     private string? lastEntryId;
     private bool phoneInvalid;
@@ -486,8 +520,15 @@
     private bool lookupsReady;
     private string? loadedKey;
 
+    private string originalStudentCode = "";
+
+    private bool idLocked => !isNew && !string.IsNullOrWhiteSpace(originalStudentCode);
+
+    private bool SaveDisabled =>
+        busy || (!idLocked && (idState == "invalid" || idState == "checking"));
+
     private bool showSuggestions =>
-        idSuggestOpen && (suggestions.Count > 0 || idState == "invalid");
+        !idLocked && idSuggestOpen && (suggestions.Count > 0 || idState == "invalid");
 
     protected override void OnInitialized()
     {
@@ -533,9 +574,10 @@
 
             classes = await Sync.ListClassesAsync(Session.Current.SchoolID);
             structure = await Sync.GetClassStructureAsync(Session.Current.SchoolID);
-            var years = await Sync.ListYearsAsync(Session.Current.SchoolID);
-            sessionName = years.FirstOrDefault(x => x.EducationYearID == Session.Current.EducationYearID)?.Name
-                          ?? Session.Current.SchoolName;
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                await Sync.RefreshOfficeAsync(Session.Current, Session.AccessToken);
+            years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+            selectedYearId = DefaultYearId();
             lookupsReady = true;
         }
 
@@ -554,17 +596,20 @@
     private async Task ResetNewAsync()
     {
         isNew = true;
+        originalStudentCode = "";
         model = new StudentDto { Gender = "Male", Religion = "Islam" };
         selectedClassId = 0;
         selectedSectionId = 0;
         selectedShiftId = 0;
         selectedGroupId = 0;
+        selectedYearId = DefaultYearId();
         idState = "";
         suggestions = [];
         highlightId = null;
         idSuggestOpen = false;
         error = null;
-        okMessage = null;
+        popupText = null;
+        popupError = false;
         phoneInvalid = false;
         classInvalid = false;
         fatherInvalid = false;
@@ -594,6 +639,7 @@
         }
 
         model = existing;
+        originalStudentCode = (model.StudentCode ?? "").Trim();
         if (string.IsNullOrWhiteSpace(model.Gender))
             model.Gender = "Male";
         model.BloodGroup ??= "";
@@ -604,12 +650,14 @@
         selectedSectionId = model.SectionID ?? 0;
         selectedShiftId = model.ShiftID ?? 0;
         selectedGroupId = model.SubjectGroupID ?? 0;
+        selectedYearId = model.EducationYearID > 0 ? model.EducationYearID : DefaultYearId();
         idState = "";
         suggestions = [];
         highlightId = null;
         idSuggestOpen = false;
         error = null;
-        okMessage = null;
+        popupText = null;
+        popupError = false;
         phoneInvalid = false;
         classInvalid = false;
         fatherInvalid = false;
@@ -629,7 +677,8 @@
         openNotes = false;
         await LoadPartsAsync();
         await LoadLastIdAsync();
-        if (!string.IsNullOrWhiteSpace(model.StudentCode))
+        idState = "";
+        if (!idLocked && !string.IsNullOrWhiteSpace(model.StudentCode))
             await CheckIdAsync();
     }
 
@@ -769,11 +818,82 @@
         shifts = parts.Shifts;
     }
 
+    private async Task OnYearChanged()
+    {
+        if (isNew)
+            await LoadLastIdAsync();
+    }
+
+    private int DefaultYearId()
+    {
+        var current = Session.Current?.EducationYearID ?? 0;
+        if (current > 0 && years.Any(x => x.EducationYearID == current))
+            return current;
+        return years.FirstOrDefault(x => x.IsCurrent)?.EducationYearID
+               ?? years.FirstOrDefault()?.EducationYearID
+               ?? current;
+    }
+
+    private SessionSnapshot AdmissionSession()
+    {
+        var source = Session.Current!;
+        var yearId = selectedYearId > 0 ? selectedYearId : source.EducationYearID;
+        return new SessionSnapshot
+        {
+            UserName = source.UserName,
+            Role = source.Role,
+            SchoolID = source.SchoolID,
+            SchoolName = source.SchoolName,
+            RegistrationID = source.RegistrationID,
+            EducationYearID = yearId,
+            DeviceId = source.DeviceId,
+            DisplayName = source.DisplayName,
+            StudentID = source.StudentID,
+            StudentClassID = source.StudentClassID,
+            ClassID = source.ClassID,
+            StudentCode = source.StudentCode,
+            ClassName = source.ClassName,
+            SectionName = source.SectionName,
+            TeacherID = source.TeacherID,
+            EmployeeID = source.EmployeeID
+        };
+    }
+
     private void CopyAddress() =>
         model.StudentsLocalAddress = model.StudentPermanentAddress;
 
+    private async Task ApplyNextId()
+    {
+        if (idLocked)
+            return;
+        model.StudentCode = NextStudentId(lastEntryId);
+        idSuggestOpen = false;
+        suggestions = [];
+        highlightId = null;
+        await CheckIdAsync();
+    }
+
+    private static string NextStudentId(string? last)
+    {
+        var value = (last ?? "").Trim();
+        if (value.Length == 0)
+            return "1";
+        var i = value.Length;
+        while (i > 0 && char.IsDigit(value[i - 1]))
+            i--;
+        if (i == value.Length)
+            return value + "1";
+        var prefix = value[..i];
+        var digits = value[i..];
+        if (!long.TryParse(digits, out var n) || n == long.MaxValue)
+            return value + "1";
+        return prefix + (n + 1).ToString().PadLeft(digits.Length, '0');
+    }
+
     private async Task OnIdInput(ChangeEventArgs e)
     {
+        if (idLocked)
+            return;
         model.StudentCode = (e.Value?.ToString() ?? "").Replace(" ", "");
         idSuggestOpen = true;
         await CheckIdAsync();
@@ -830,7 +950,7 @@
 
     private async Task CheckIdAsync()
     {
-        if (Session.Current is null)
+        if (Session.Current is null || idLocked)
             return;
 
         idCheckCts?.Cancel();
@@ -873,6 +993,36 @@
 
     private Task CompleteAsync() => SaveAsync(false);
 
+    private async Task SetBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        error = null;
+        popupText = null;
+        popupError = false;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool err)
+    {
+        popupText = text;
+        popupError = err;
+    }
+
+    private async Task ClosePopup()
+    {
+        popupText = null;
+        popupError = false;
+        await ScrollToTopAsync();
+    }
+
+    private async Task ScrollToTopAsync()
+    {
+        try { await JS.InvokeVoidAsync("sikkhaloyGoTop.scroll"); }
+        catch { }
+    }
+
     private async Task SaveAsync(bool goPayOrder)
     {
         if (Session.Current is null)
@@ -887,64 +1037,71 @@
             || phoneInvalid
             || classInvalid)
         {
-            error = fatherInvalid && !phoneInvalid && !classInvalid && !string.IsNullOrWhiteSpace(model.StudentCode) && !string.IsNullOrWhiteSpace(model.StudentsName)
+            var need = fatherInvalid && !phoneInvalid && !classInvalid && !string.IsNullOrWhiteSpace(model.StudentCode) && !string.IsNullOrWhiteSpace(model.StudentsName)
                 ? Locale.T("edit.fatherNeed")
                 : classInvalid && IsBdMobile(model.SMSPhoneNo) && !string.IsNullOrWhiteSpace(model.StudentCode) && !string.IsNullOrWhiteSpace(model.StudentsName)
                     ? Locale.T("edit.classNeed")
                     : phoneInvalid && !string.IsNullOrWhiteSpace(model.StudentCode) && !string.IsNullOrWhiteSpace(model.StudentsName)
                         ? Locale.T("edit.mobileInvalid")
                         : Locale.T("edit.required");
+            Show(need, true);
             return;
         }
 
-        var check = await Sync.CheckStudentIdAsync(
-            Session.Current.SchoolID,
-            model.StudentCode,
-            isNew ? null : model.LocalId,
-            isNew ? null : model.ServerId,
-            Session.AccessToken);
-        lastEntryId = check.LastEntryId ?? lastEntryId;
-        if (check.Exists)
-        {
-            idState = "invalid";
-            error = Locale.T("edit.id.exists");
-            return;
-        }
-        idState = "valid";
-
-        model.SMSPhoneNo = NormalizeBdMobile(model.SMSPhoneNo ?? "");
-        model.ClassID = selectedClassId;
-        model.ClassName = classes.FirstOrDefault(x => x.ClassID == model.ClassID)?.Name;
-        model.SectionID = sections.Count == 0 || selectedSectionId == 0 ? null : selectedSectionId;
-        model.SectionName = sections.FirstOrDefault(x => x.ServerId == selectedSectionId)?.Name;
-        model.ShiftID = shifts.Count == 0 || selectedShiftId == 0 ? null : selectedShiftId;
-        model.ShiftName = shifts.FirstOrDefault(x => x.ServerId == selectedShiftId)?.Name;
-        model.SubjectGroupID = groups.Count == 0 || selectedGroupId == 0 ? null : selectedGroupId;
-        model.GroupName = groups.FirstOrDefault(x => x.ServerId == selectedGroupId)?.Name;
-        if (string.IsNullOrWhiteSpace(model.Religion))
-            model.Religion = "Islam";
-
-        if (!IsNewRoute() && LocalId != Guid.Empty)
-        {
-            isNew = false;
-            if (model.LocalId == Guid.Empty)
-                model.LocalId = LocalId;
-            var current = await Sync.GetStudentAsync(model.LocalId);
-            if (current?.ServerId is > 0)
-                model.ServerId = current.ServerId;
-            if (current?.StudentClassServerId is > 0)
-                model.StudentClassServerId = current.StudentClassServerId;
-        }
-
-        busy = true;
-        error = null;
-        okMessage = null;
+        await SetBusyAsync(Locale.T(isNew ? "edit.saving" : "edit.updating"));
         var wasNew = isNew;
         try
         {
-            await Sync.SaveStudentAsync(model, Session.Current);
+            var codeUnchanged = !isNew
+                && string.Equals((model.StudentCode ?? "").Trim(), originalStudentCode, StringComparison.OrdinalIgnoreCase);
+            if (!codeUnchanged)
+            {
+                var check = await Sync.CheckStudentIdAsync(
+                    Session.Current.SchoolID,
+                    model.StudentCode,
+                    isNew ? null : model.LocalId,
+                    isNew ? null : model.ServerId,
+                    Session.AccessToken);
+                lastEntryId = check.LastEntryId ?? lastEntryId;
+                if (check.Exists)
+                {
+                    idState = "invalid";
+                    Show(Locale.T("edit.id.exists"), true);
+                    return;
+                }
+            }
+            idState = "valid";
+
+            model.SMSPhoneNo = NormalizeBdMobile(model.SMSPhoneNo ?? "");
+            model.ClassID = selectedClassId;
+            model.ClassName = classes.FirstOrDefault(x => x.ClassID == model.ClassID)?.Name;
+            model.SectionID = sections.Count == 0 || selectedSectionId == 0 ? null : selectedSectionId;
+            model.SectionName = sections.FirstOrDefault(x => x.ServerId == selectedSectionId)?.Name;
+            model.ShiftID = shifts.Count == 0 || selectedShiftId == 0 ? null : selectedShiftId;
+            model.ShiftName = shifts.FirstOrDefault(x => x.ServerId == selectedShiftId)?.Name;
+            model.SubjectGroupID = groups.Count == 0 || selectedGroupId == 0 ? null : selectedGroupId;
+            model.GroupName = groups.FirstOrDefault(x => x.ServerId == selectedGroupId)?.Name;
+            if (string.IsNullOrWhiteSpace(model.Religion))
+                model.Religion = "Islam";
+
+            var saveSession = AdmissionSession();
+            model.EducationYearID = saveSession.EducationYearID;
+
+            if (!IsNewRoute() && LocalId != Guid.Empty)
+            {
+                isNew = false;
+                if (model.LocalId == Guid.Empty)
+                    model.LocalId = LocalId;
+                var current = await Sync.GetStudentAsync(model.LocalId);
+                if (current?.ServerId is > 0)
+                    model.ServerId = current.ServerId;
+                if (current?.StudentClassServerId is > 0)
+                    model.StudentClassServerId = current.StudentClassServerId;
+            }
+
+            await Sync.SaveStudentAsync(model, saveSession);
             if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-                await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
+                await Sync.RunOnceAsync(saveSession, Session.AccessToken, force: true);
 
             var savedId = model.StudentCode ?? "";
             await TrySavePhotosAsync();
@@ -967,20 +1124,20 @@
                 await ResetNewAsync();
                 loadedKey = "new";
                 lastEntryId = string.IsNullOrWhiteSpace(lastEntryId) ? savedId : lastEntryId;
-                okMessage = string.IsNullOrWhiteSpace(smsNote)
+                Show(string.IsNullOrWhiteSpace(smsNote)
                     ? Locale.T("edit.saved", lastEntryId ?? savedId)
-                    : $"{Locale.T("edit.saved", lastEntryId ?? savedId)} {smsNote}";
+                    : $"{Locale.T("edit.saved", lastEntryId ?? savedId)} {smsNote}", false);
             }
             else
             {
-                okMessage = Locale.T("edit.updated", savedId);
+                Show(Locale.T("edit.updated", savedId), false);
             }
         }
         catch (Exception ex)
         {
-            error = ex.Message.StartsWith("edit.", StringComparison.OrdinalIgnoreCase)
+            Show(ex.Message.StartsWith("edit.", StringComparison.OrdinalIgnoreCase)
                 ? Locale.T(ex.Message)
-                : ex.Message;
+                : ex.Message, true);
         }
         finally
         {

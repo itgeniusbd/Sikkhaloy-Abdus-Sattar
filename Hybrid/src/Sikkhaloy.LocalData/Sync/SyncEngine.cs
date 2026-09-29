@@ -216,6 +216,8 @@ public sealed partial class SyncEngine
             .GroupBy(x => x.ServerId!.Value)
             .ToDictionary(g => g.Key, g => g.First());
 
+        CacheStudentPhotos(schoolId, items);
+
         var changed = false;
         foreach (var item in items)
         {
@@ -653,7 +655,7 @@ public sealed partial class SyncEngine
 
         try
         {
-            var json = File.ReadAllText(path);
+            var json = ReadTextShared(path);
             return JsonSerializer.Deserialize<OfficeProfileDto>(json, JsonOptions)
                    ?? new OfficeProfileDto { SchoolID = schoolId };
         }
@@ -754,6 +756,8 @@ public sealed partial class SyncEngine
     private static string SchoolHeaderPath(int schoolId) =>
         Path.Combine(HybridFolder(), $"school-{schoolId}.json");
 
+    private static readonly object HeaderFileGate = new();
+
     private static string HybridFolder()
     {
         var folder = Path.Combine(
@@ -762,6 +766,54 @@ public sealed partial class SyncEngine
             "Hybrid");
         Directory.CreateDirectory(folder);
         return folder;
+    }
+
+    private static string ReadTextShared(string path)
+    {
+        for (var i = 0; i < 8; i++)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+            catch (IOException) when (i < 7)
+            {
+                Thread.Sleep(30 * (i + 1));
+            }
+        }
+
+        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var reader = new StreamReader(stream))
+            return reader.ReadToEnd();
+    }
+
+    private static void WriteTextShared(string path, string contents)
+    {
+        lock (HeaderFileGate)
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                try
+                {
+                    var temp = path + ".tmp";
+                    using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    using (var writer = new StreamWriter(stream))
+                        writer.Write(contents);
+
+                    if (File.Exists(path))
+                        File.Replace(temp, path, null);
+                    else
+                        File.Move(temp, path);
+                    return;
+                }
+                catch (IOException) when (i < 7)
+                {
+                    Thread.Sleep(40 * (i + 1));
+                }
+            }
+        }
     }
 
     public void RefreshSchoolHeader(OfficeProfileDto profile)
@@ -775,9 +827,15 @@ public sealed partial class SyncEngine
     {
         if (schoolId <= 0)
             return;
-        var header = GetSchoolHeader(schoolId);
-        header.HeaderColor = color;
-        File.WriteAllText(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
+        try
+        {
+            var header = GetSchoolHeader(schoolId);
+            header.HeaderColor = color;
+            WriteTextShared(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
+        }
+        catch (IOException)
+        {
+        }
     }
 
     private static void SaveSchoolHeader(int schoolId, OfficeProfileDto profile)
@@ -792,7 +850,13 @@ public sealed partial class SyncEngine
             Email = profile.Email ?? "",
             HeaderColor = string.IsNullOrWhiteSpace(profile.HeaderColor) ? existingColor : profile.HeaderColor
         };
-        File.WriteAllText(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
+        try
+        {
+            WriteTextShared(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
+        }
+        catch (IOException)
+        {
+        }
 
         if (!string.IsNullOrWhiteSpace(profile.LogoBase64))
         {

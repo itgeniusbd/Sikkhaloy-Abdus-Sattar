@@ -541,6 +541,7 @@ window.sikkhaloyPrintReceipt = function (opts) {
 
     var finish = function () {
         document.body.classList.remove("print-receipt");
+        sikkhaloyClearPrintPage();
         window.removeEventListener("afterprint", finish);
     };
     window.addEventListener("afterprint", finish);
@@ -592,6 +593,11 @@ window.sikkhaloyPrintReceipt = function (opts) {
     window.print();
 };
 
+function sikkhaloyClearPrintPage() {
+    var el = document.getElementById("sikkhaloy-print-page");
+    if (el) el.textContent = "";
+}
+
 window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
     var id = "sikkhaloy-print-page";
     var el = document.getElementById(id);
@@ -605,12 +611,18 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
     if (landscapeHint)
         landscapeHint.textContent = "";
 
-    var isLandscape = String(orientation || "").toLowerCase() === "landscape";
-    var size = isLandscape ? "A4 landscape" : "A4 portrait";
+    var orient = String(orientation || "").toLowerCase();
     var margin = marginOverride || (compact ? "6mm 8mm" : "10mm");
+    var isLandscape = orient === "landscape";
+    var pageRule = isLandscape
+        ? "@page { size: A4 landscape; margin: " + margin + "; }"
+        : orient === "portrait"
+            ? "@page { size: A4 portrait; margin: " + margin + "; }"
+            : "@page { margin: " + margin + "; }";
     el.textContent =
-        "@page { size: " + size + "; margin: " + margin + "; }" +
+        pageRule +
         "@media print {" +
+        pageRule +
         "html, body, #app, .ad-shell, .ad-main, .ad-content, .app-shell, .app-main, .app-content, .card, .ai-print {" +
         " background: #fff !important; height: auto !important; overflow: visible !important;" +
         " box-shadow: none !important; padding: 0 !important; margin: 0 !important; border: 0 !important; }" +
@@ -618,12 +630,16 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
         ".ad-shell, .app-shell { display: block !important; grid-template-columns: none !important; }" +
         "}";
     document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
-    document.body.classList.add(isLandscape ? "print-landscape" : "print-portrait");
+    if (isLandscape)
+        document.body.classList.add("print-landscape");
+    else if (orient === "portrait")
+        document.body.classList.add("print-portrait");
     if (compact)
         document.body.classList.add("print-compact");
 
     var restore = function () {
         document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        sikkhaloyClearPrintPage();
         window.removeEventListener("afterprint", restore);
     };
     window.addEventListener("afterprint", restore);
@@ -659,7 +675,7 @@ window.sikkhaloyPrintTc = function (opts) {
 
     var topPx = Math.max(0, Number(opts.topSpace) || 0);
     var hideIns = !!opts.hideIns;
-    var margin = topPx > 0 ? (topPx + "px 8mm 8mm 8mm") : "8mm";
+    var margin = hideIns && topPx > 0 ? (topPx + "px 8mm 8mm 8mm") : "8mm";
     var hideCss = hideIns
         ? ".sm-tc-page.hide-ins .cert-sheet .page-print-header, .sm-tc-page.hide-ins .cert-sheet .print-header, .sm-tc-page.hide-ins .cert-sheet .print-header-banner { display:none !important; }"
         : "";
@@ -684,6 +700,7 @@ window.sikkhaloyPrintTc = function (opts) {
     document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
     var restore = function () {
         document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        sikkhaloyClearPrintPage();
         window.removeEventListener("afterprint", restore);
     };
     window.addEventListener("afterprint", restore);
@@ -721,6 +738,7 @@ window.sikkhaloyPrintCert = function () {
     document.body.classList.add("print-portrait");
     var restore = function () {
         document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        sikkhaloyClearPrintPage();
         window.removeEventListener("afterprint", restore);
     };
     window.addEventListener("afterprint", restore);
@@ -770,7 +788,9 @@ window.sikkhaloyApplyLeavePrint = function (opts) {
         ".gp-page-wrap {" +
         " width: " + width + " !important; max-width: " + width + " !important;" +
         " margin: 0 auto !important; padding-top: 0 !important;" +
-        " font-size: " + fontPx + "px !important; }" +
+        " font-size: " + fontPx + "px !important; box-shadow: none !important; border-radius: 0 !important; }" +
+        ".gp-footer { display: grid !important; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) !important; gap: 4px 6px !important; }" +
+        ".gp-footer .approval, .gp-footer .approval-text { white-space: nowrap !important; }" +
         ".gp-name-logo { max-height: " + logoH + " !important; width: 100% !important; object-fit: contain !important; display: block !important; margin: 0 auto !important; }" +
         ".print-leave .print-header, .print-leave .print-only," +
         ".print-leave .layout-print-header, .print-leave .app-header, .print-leave .app-sidebar { display: none !important; }" +
@@ -784,7 +804,7 @@ window.sikkhaloyGoTop = (function () {
     var el = null;
     var handler = null;
     function target() {
-        return document.querySelector(".app-content") || document.querySelector("#app");
+        return document.querySelector(".sp-main") || document.querySelector(".app-content") || document.querySelector("#app");
     }
     return {
         bind: function (dotNet) {
@@ -806,6 +826,50 @@ window.sikkhaloyGoTop = (function () {
             var box = target();
             if (box) box.scrollTo({ top: 0, behavior: "smooth" });
         }
+    };
+})();
+
+window.sikkhaloyMarkNav = (function () {
+    var last = null;
+    function fields() {
+        return Array.prototype.slice.call(document.querySelectorAll(".tm-table input.tm-mark-in:not([disabled])"));
+    }
+    function isMark(el) {
+        return !!(el && el.classList && el.classList.contains("tm-mark-in"));
+    }
+    function focusAt(el) {
+        if (!el) return;
+        last = el;
+        el.focus();
+        try { el.select(); } catch (e) { }
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    function nextFrom(current) {
+        var list = fields();
+        if (!list.length) return false;
+        var start = isMark(current) ? current : last;
+        if (start && list.indexOf(start) < 0) start = null;
+        var i = start ? list.indexOf(start) : -1;
+        var next = i < 0 ? list[0] : list[i + 1];
+        if (!next) {
+            if (start) start.blur();
+            return false;
+        }
+        focusAt(next);
+        return true;
+    }
+    document.addEventListener("focusin", function (e) {
+        if (isMark(e.target)) last = e.target;
+    }, true);
+    document.addEventListener("keydown", function (e) {
+        var enter = e.key === "Enter" || e.key === "Go" || e.keyCode === 13;
+        if (!enter || !isMark(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        nextFrom(e.target);
+    }, true);
+    return {
+        next: function () { return nextFrom(document.activeElement); }
     };
 })();
 
@@ -935,8 +999,63 @@ document.addEventListener("keydown", function (e) {
     if (typeof next.select === "function") next.select();
 }, true);
 
+window.sikkhaloyPrintMerit = function () {
+    window.sikkhaloyPrint("", false, "4mm 3mm");
+};
+
+window.sikkhaloyPrintResultCard = function () {
+    sikkhaloyClearPrintPage();
+    var id = "sikkhaloy-print-page";
+    var el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("style");
+        el.id = id;
+        document.head.appendChild(el);
+    }
+    el.textContent =
+        "@media print {" +
+        "@page { margin: 6mm 8mm; }" +
+        ".app-sidebar, .app-header, .go-top, .nav-back, .no-print { display: none !important; }" +
+        ".app-shell { display: block !important; grid-template-columns: none !important; }" +
+        "}";
+    document.body.classList.remove("print-portrait", "print-landscape", "print-compact", "print-receipt", "print-leave");
+    var restore = function () {
+        document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        sikkhaloyClearPrintPage();
+        window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+};
+
+window.sikkhaloyPrintExamRoutine = function () {
+    var id = "sikkhaloy-print-page";
+    var el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("style");
+        el.id = id;
+        document.head.appendChild(el);
+    }
+    var landscapeHint = document.getElementById("sikkhaloy-print-landscape");
+    if (landscapeHint)
+        landscapeHint.textContent = "";
+    el.textContent =
+        "@media print {" +
+        "@page { margin: 6mm 5mm; }" +
+        ".ad-sidebar, .ad-header, .app-sidebar, .app-header, .go-top, .nav-back, .no-print { display: none !important; }" +
+        ".ad-shell, .app-shell { display: block !important; grid-template-columns: none !important; background: #fff !important; }" +
+        "}";
+    document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+    var restore = function () {
+        sikkhaloyClearPrintPage();
+        window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+};
+
 window.sikkhaloyPrintLandscape = function () {
-    window.sikkhaloyPrint(null, false, "4mm");
+    window.sikkhaloyPrint("landscape", false, "4mm 3mm");
 };
 
 window.sikkhaloyPrintAdmit = function () {
@@ -944,20 +1063,48 @@ window.sikkhaloyPrintAdmit = function () {
 };
 
 window.sikkhaloyOpenUrl = function (url) {
-    if (!url) return;
-    window.open(url, "_blank");
+    if (!url) return false;
+    try {
+        var w = window.open(url, "_blank");
+        if (w) {
+            try { w.focus(); } catch (e) { }
+            return true;
+        }
+    } catch (e) { }
+    // Mobile WebView / popup blockers: same-tab navigation always works
+    try {
+        window.location.assign(url);
+        return true;
+    } catch (e2) {
+        try { window.location.href = url; return true; } catch (e3) { return false; }
+    }
 };
 
 window.sikkhaloySessionSave = function (json) {
-    try { localStorage.setItem("sikkhaloy.session", json || ""); } catch (e) { }
+    try {
+        localStorage.setItem("sikkhaloy.session", json || "");
+        document.cookie = "sikkhaloy.alive=1; path=/; SameSite=Lax";
+    } catch (e) { }
 };
 
 window.sikkhaloySessionLoad = function () {
-    try { return localStorage.getItem("sikkhaloy.session") || ""; } catch (e) { return ""; }
+    try {
+        var alive = document.cookie.split(";").some(function (part) {
+            return part.trim().indexOf("sikkhaloy.alive=") === 0;
+        });
+        if (!alive) {
+            localStorage.removeItem("sikkhaloy.session");
+            return "";
+        }
+        return localStorage.getItem("sikkhaloy.session") || "";
+    } catch (e) { return ""; }
 };
 
 window.sikkhaloySessionClear = function () {
-    try { localStorage.removeItem("sikkhaloy.session"); } catch (e) { }
+    try {
+        localStorage.removeItem("sikkhaloy.session");
+        document.cookie = "sikkhaloy.alive=; path=/; max-age=0; SameSite=Lax";
+    } catch (e) { }
 };
 
 window.sikkhaloyFormValues = function (ids) {
@@ -984,4 +1131,246 @@ window.sikkhaloyFaultBulkSave = function (userKey, data) {
     try {
         localStorage.setItem("sikkhaloy-fault-bulk-" + (userKey || "0"), JSON.stringify(data || {}));
     } catch (e) { }
+};
+
+window.sikkhaloyLoginFx = (function () {
+    var canvas = null, ctx = null, nodes = [], raf = 0, w = 0, h = 0, onResize = null;
+    function size() {
+        if (!canvas) return;
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = canvas.clientWidth || window.innerWidth;
+        h = canvas.clientHeight || window.innerHeight;
+        canvas.width = Math.max(1, Math.floor(w * dpr));
+        canvas.height = Math.max(1, Math.floor(h * dpr));
+        ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var n = w < 640 ? 24 : 44;
+        nodes = [];
+        for (var i = 0; i < n; i++) {
+            nodes.push({
+                x: Math.random() * w,
+                y: Math.random() * h,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3
+            });
+        }
+    }
+    function tick() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, w, h);
+        var max = w < 640 ? 86 : 124;
+        for (var i = 0; i < nodes.length; i++) {
+            var a = nodes[i];
+            a.x += a.vx;
+            a.y += a.vy;
+            if (a.x < 0 || a.x > w) a.vx *= -1;
+            if (a.y < 0 || a.y > h) a.vy *= -1;
+            ctx.fillStyle = "rgba(110,231,183,0.78)";
+            ctx.beginPath();
+            ctx.arc(a.x, a.y, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            for (var j = i + 1; j < nodes.length; j++) {
+                var b = nodes[j];
+                var dx = a.x - b.x, dy = a.y - b.y;
+                var d = Math.sqrt(dx * dx + dy * dy);
+                if (d < max) {
+                    ctx.strokeStyle = "rgba(52,211,153," + (0.18 * (1 - d / max)) + ")";
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.stroke();
+                }
+            }
+        }
+        raf = requestAnimationFrame(tick);
+    }
+    return {
+        bind: function (el) {
+            this.unbind();
+            canvas = el;
+            if (!canvas) return;
+            size();
+            if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+                return;
+            onResize = function () { size(); };
+            window.addEventListener("resize", onResize);
+            raf = requestAnimationFrame(tick);
+        },
+        unbind: function () {
+            if (raf) cancelAnimationFrame(raf);
+            raf = 0;
+            if (onResize) window.removeEventListener("resize", onResize);
+            onResize = null;
+            canvas = null;
+            ctx = null;
+            nodes = [];
+        }
+    };
+})();
+
+window.sikkhaloyLanding = (function () {
+    var app = null, nav = null, progress = null, toTop = null, ring = null, mock = null;
+    var onScroll = null, onMove = null, onLeave = null, io = null;
+    function scroller() {
+        return document.querySelector("#app") || document.scrollingElement || document.documentElement;
+    }
+    function paint() {
+        if (!app) return;
+        var st = app.scrollTop || 0;
+        var h = Math.max(1, (app.scrollHeight || 0) - (app.clientHeight || 0));
+        var pct = Math.min(1, Math.max(0, st / h));
+        if (progress) progress.style.width = (pct * 100) + "%";
+        if (nav) nav.classList.toggle("scrolled", st > 10);
+        if (toTop) toTop.classList.toggle("show", st > 500);
+        if (ring) ring.style.strokeDashoffset = String(100 - pct * 100);
+        var ids = ["home", "features", "solutions", "customers", "contact"];
+        var current = "home";
+        for (var i = 0; i < ids.length; i++) {
+            var sec = document.getElementById(ids[i]);
+            if (!sec) continue;
+            var top = sec.getBoundingClientRect().top;
+            if (top < 140) current = ids[i];
+        }
+        document.querySelectorAll(".dc-shell .nav-links a").forEach(function (a) {
+            var href = (a.getAttribute("href") || "").replace("/", "");
+            var on = href === "#" + current || (current === "home" && (href === "/" || href === "#" || href === "#home"));
+            a.classList.toggle("on", on);
+        });
+    }
+    return {
+        bind: function (navEl, progressEl, topEl, ringEl, mockEl) {
+            this.unbind();
+            app = scroller();
+            nav = navEl;
+            progress = progressEl;
+            toTop = topEl;
+            ring = ringEl;
+            mock = mockEl;
+            if (!app) return;
+            onScroll = paint;
+            app.addEventListener("scroll", onScroll, { passive: true });
+            paint();
+            document.querySelectorAll(".dc-shell [data-reveal]").forEach(function (el) {
+                var d = el.getAttribute("data-delay");
+                if (d) el.classList.add("dl" + d);
+            });
+            document.querySelectorAll(".dc-shell .dc-hero [data-reveal], .dc-shell .hero [data-reveal]").forEach(function (el) {
+                el.classList.add("in");
+            });
+            if ("IntersectionObserver" in window) {
+                io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        if (e.isIntersecting) {
+                            e.target.classList.add("in");
+                            io.unobserve(e.target);
+                        }
+                    });
+                }, { threshold: 0.14 });
+                document.querySelectorAll(".dc-shell [data-reveal]").forEach(function (el) { io.observe(el); });
+            } else {
+                document.querySelectorAll(".dc-shell [data-reveal]").forEach(function (el) { el.classList.add("in"); });
+            }
+            this.bindMock(mockEl);
+        },
+        bindMock: function (mockEl) {
+            if (mock && onMove) mock.removeEventListener("mousemove", onMove);
+            if (mock && onLeave) mock.removeEventListener("mouseleave", onLeave);
+            mock = mockEl;
+            onMove = onLeave = null;
+            if (mock && window.matchMedia && window.matchMedia("(pointer:fine)").matches) {
+                onMove = function (e) {
+                    var r = mock.getBoundingClientRect();
+                    var x = (e.clientX - r.left) / r.width - 0.5;
+                    var y = (e.clientY - r.top) / r.height - 0.5;
+                    mock.style.transform = "perspective(900px) rotateY(" + (x * 9) + "deg) rotateX(" + (-y * 7) + "deg)";
+                };
+                onLeave = function () { mock.style.transform = "perspective(900px)"; };
+                mock.addEventListener("mousemove", onMove);
+                mock.addEventListener("mouseleave", onLeave);
+            }
+        },
+        unbind: function () {
+            if (app && onScroll) app.removeEventListener("scroll", onScroll);
+            if (mock && onMove) mock.removeEventListener("mousemove", onMove);
+            if (mock && onLeave) mock.removeEventListener("mouseleave", onLeave);
+            if (io) io.disconnect();
+            app = nav = progress = toTop = ring = mock = onScroll = onMove = onLeave = io = null;
+        },
+        top: function () {
+            var box = scroller();
+            if (box) box.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    };
+})();
+
+window.sikkhaloyLoginCard = (function () {
+    var card = null, onMove = null;
+    return {
+        bind: function (el) {
+            this.unbind();
+            card = el;
+            if (!card || !window.matchMedia || !window.matchMedia("(pointer:fine)").matches) return;
+            onMove = function (e) {
+                var r = card.getBoundingClientRect();
+                card.style.setProperty("--mx", (e.clientX - r.left) + "px");
+                card.style.setProperty("--my", (e.clientY - r.top) + "px");
+            };
+            card.addEventListener("mousemove", onMove);
+        },
+        unbind: function () {
+            if (card && onMove) card.removeEventListener("mousemove", onMove);
+            card = null;
+            onMove = null;
+        }
+    };
+})();
+
+window.sikkhaloyRtp = {
+  show: function (el) {
+    if (!el) return;
+    if (typeof el.showModal === "function") {
+      if (!el.open) el.showModal();
+      return;
+    }
+    el.setAttribute("open", "");
+    el.style.display = "grid";
+  },
+  close: function (el) {
+    if (!el) return;
+    if (typeof el.close === "function") {
+      if (el.open) el.close();
+      return;
+    }
+    el.removeAttribute("open");
+    el.style.display = "none";
+  }
+};
+
+window.sikkhaloySavePendingPay = function (kind, spOrderId) {
+  try {
+    if (!spOrderId) return;
+    localStorage.setItem("sikkhaloy_pending_pay", JSON.stringify({
+      kind: kind || "sms",
+      spOrderId: String(spOrderId),
+      at: Date.now()
+    }));
+  } catch (e) { }
+};
+window.sikkhaloyReadPendingPay = function () {
+  try {
+    var raw = localStorage.getItem("sikkhaloy_pending_pay");
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    if (!o || !o.spOrderId) return null;
+    // expire after 6 hours
+    if (o.at && (Date.now() - o.at) > 6 * 60 * 60 * 1000) {
+      localStorage.removeItem("sikkhaloy_pending_pay");
+      return null;
+    }
+    return o;
+  } catch (e) { return null; }
+};
+window.sikkhaloyClearPendingPay = function () {
+  try { localStorage.removeItem("sikkhaloy_pending_pay"); } catch (e) { }
 };

@@ -6,6 +6,7 @@ public sealed class InvoiceResult
     public string? Error { get; set; }
     public string? Message { get; set; }
     public string? CheckoutUrl { get; set; }
+    public string? SpOrderId { get; set; }
     public bool LocalMode { get; set; }
 }
 
@@ -46,6 +47,7 @@ public sealed class DueInvoiceDto
     public decimal GatewayCharge { get; set; }
     public decimal TotalPayable { get; set; }
     public bool IsBlocked { get; set; }
+    public bool InGrace { get; set; }
     public int DaysUntilExpiry { get; set; }
     public bool ShowDiscount { get; set; }
     public bool ShowPaid { get; set; }

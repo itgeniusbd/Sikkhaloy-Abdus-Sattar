@@ -7,43 +7,100 @@
 
 <div class="sp-page">
     <h1>@Locale.T("stu.individual")</h1>
-    <article class="sp-card">
-        @if (loading)
+    @if (loading)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
+    }
+    else if (rows.Count == 0)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+    }
+    else
+    {
+        <div class="sp-tabs">
+            <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("stu.tabSummary")</button>
+            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("stu.tabDetails")</button>
+        </div>
+
+        @if (tab == 0)
         {
-            <p class="sp-empty">@Locale.T("stu.loading")</p>
-        }
-        else if (rows.Count == 0)
-        {
-            <p class="sp-empty">@Locale.T("stu.empty")</p>
+            @foreach (var row in rows)
+            {
+                <article class="sp-card sp-exam-card">
+                    <button type="button" class="sp-exam-title" @onclick="() => OpenDetails(row.ExamID)">@row.Name</button>
+                    @SummaryGrid(row)
+                </article>
+            }
         }
         else
         {
-            <table class="sp-table">
-                <thead>
-                    <tr>
-                        <th>@Locale.T("stu.exam")</th>
-                        <th>@Locale.T("stu.point")</th>
-                        <th>@Locale.T("stu.grade")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in rows)
-                    {
-                        <tr>
-                            <td>@row.Name</td>
-                            <td>@row.Point.ToString("0.##")</td>
-                            <td><span class="sp-grade">@row.Grade</span></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <article class="sp-card sp-exam-card">
+                <label class="sp-exam-pick">
+                    <span>@Locale.T("stu.exam")</span>
+                    <select @bind="selectedExamId">
+                        @foreach (var row in rows)
+                        {
+                            <option value="@row.ExamID">@row.Name</option>
+                        }
+                    </select>
+                </label>
+                @if (SelectedExam is not null)
+                {
+                    @SummaryGrid(SelectedExam)
+                }
+                @if (SelectedSubjects.Count == 0)
+                {
+                    <p class="sp-empty">@Locale.T("stu.empty")</p>
+                }
+                else
+                {
+                    <div class="sp-table-wrap" style="margin-top:0.85rem">
+                        <table class="sp-table sp-table-fit sp-exam-subs">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("stu.subject")</th>
+                                    <th>@Locale.T("stu.obtained")</th>
+                                    <th>@Locale.T("stu.grade")</th>
+                                    <th>@Locale.T("stu.point")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sub in SelectedSubjects)
+                                {
+                                    <tr>
+                                        <td>
+                                            @sub.Subject
+                                            @if (IsOptional(sub.SubjectType))
+                                            {
+                                                <small class="sp-opt">@Locale.T("stu.optional")</small>
+                                            }
+                                        </td>
+                                        <td>@MarksText(sub.ObtainedMarks, sub.TotalMarks)</td>
+                                        <td><span class="sp-grade">@(string.IsNullOrWhiteSpace(sub.Grade) ? "—" : sub.Grade)</span></td>
+                                        <td>@sub.Point.ToString("0.##")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </article>
         }
-    </article>
+    }
 </div>
 
 @code {
     private IReadOnlyList<StudentPortalExamDto> rows = [];
+    private IReadOnlyList<StudentPortalExamSubjectDto> subjects = [];
     private bool loading = true;
+    private int tab;
+    private int selectedExamId;
+
+    private StudentPortalExamDto? SelectedExam =>
+        rows.FirstOrDefault(x => x.ExamID == selectedExamId) ?? rows.FirstOrDefault();
+
+    private IReadOnlyList<StudentPortalExamSubjectDto> SelectedSubjects =>
+        subjects.Where(x => x.ExamID == (SelectedExam?.ExamID ?? 0)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -51,9 +108,64 @@
         try
         {
             if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-                rows = await Api.GetStudentPortalExamsAsync(Session.AccessToken);
+            {
+                var examTask = Api.GetStudentPortalExamsAsync(Session.AccessToken);
+                var subTask = Api.GetStudentPortalExamSubjectsAsync(Session.AccessToken);
+                rows = await examTask;
+                try { subjects = await subTask; } catch { subjects = []; }
+                selectedExamId = rows.FirstOrDefault()?.ExamID ?? 0;
+            }
         }
         catch { }
         loading = false;
+    }
+
+    private void OpenDetails(int examId)
+    {
+        selectedExamId = examId;
+        tab = 1;
+    }
+
+    private RenderFragment SummaryGrid(StudentPortalExamDto row) => __builder =>
+    {
+        <div class="sp-exam-sum">
+            <div class="is-obt"><span>@Locale.T("stu.obtained")</span><strong>@MarksText(row.ObtainedMarks, row.TotalMarks)</strong></div>
+            <div class="is-pct"><span>@Locale.T("stu.percentage")</span><strong>@row.Percentage.ToString("0.##")%</strong></div>
+            <div class="is-avg"><span>@Locale.T("stu.average")</span><strong>@row.Average.ToString("0.##")</strong></div>
+            <div class="is-grd"><span>@Locale.T("stu.grade")</span><strong>@(string.IsNullOrWhiteSpace(row.Grade) ? "—" : row.Grade)</strong></div>
+            <div class="is-gpa"><span>@Locale.T("stu.gpaShort")</span><strong>@row.Point.ToString("0.00")</strong></div>
+            <div class="is-pc"><span>@Locale.T("stu.pc")</span><strong>@Dash(row.PositionClass)</strong></div>
+            <div class="is-ps"><span>@Locale.T("stu.ps")</span><strong>@Dash(row.PositionSection)</strong></div>
+            <div class="is-cmt"><span>@Locale.T("stu.comment")</span><strong>@CommentOf(row)</strong></div>
+        </div>
+    };
+
+    private static bool IsOptional(string? type) =>
+        (type ?? "").Contains("opt", StringComparison.OrdinalIgnoreCase);
+
+    private static string MarksText(decimal obtained, decimal total) =>
+        $"{FmtMark(obtained)}/{FmtMark(total)}";
+
+    private static string FmtMark(decimal value) =>
+        value % 1m == 0 ? value.ToString("0") : value.ToString("0.##");
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+
+    private static string CommentOf(StudentPortalExamDto row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.Comment))
+            return row.Comment.Trim();
+        return (row.Grade ?? "").Trim().ToUpperInvariant() switch
+        {
+            "A+" => "Outstanding",
+            "A" => "Excellent",
+            "A-" => "Very Good",
+            "B" => "Good",
+            "C" => "Satisfactory",
+            "D" => "Acceptable",
+            "F" => "Fail",
+            _ => row.Point >= 4m ? "Outstanding" : "Good"
+        };
     }
 }

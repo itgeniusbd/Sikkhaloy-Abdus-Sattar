@@ -1,0 +1,223 @@
+@page "/teacher"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@implements IDisposable
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject TeacherFeedbackInbox FeedbackInbox
+
+<div class="sp-dash">
+    @if (dash is null && loading)
+    {
+        <p class="sp-empty">@Locale.T("stu.loading")</p>
+    }
+    else if (dash is not null)
+    {
+        <section class="sp-hero">
+            <div class="sp-hero-photo">
+                @if (!string.IsNullOrWhiteSpace(dash.PhotoDataUrl))
+                {
+                    <img src="@dash.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    @Initials(dash.Name)
+                }
+            </div>
+            <div class="sp-hero-info">
+                <small class="sp-hero-hi">@Locale.T("stu.welcome", FirstName(dash.Name))</small>
+                <p class="sp-hero-name">@dash.Name</p>
+                <p class="sp-hero-meta">@(string.IsNullOrWhiteSpace(dash.Designation) ? Locale.T("tch.teacher") : dash.Designation)</p>
+                @if (!string.IsNullOrWhiteSpace(dash.Phone))
+                {
+                    <p class="sp-hero-motto">@dash.Phone</p>
+                }
+            </div>
+            <span class="sp-hero-badge">@Locale.T("tch.teacher")</span>
+        </section>
+
+        <article class="sp-card tch-att-split">
+            <div class="tch-att-today">
+                <h3>@Locale.T("tch.todayAtt")</h3>
+                <span class="tch-att-st @TodayCss">@TodayLabel</span>
+                <div class="tch-att-times">
+                    <div><span>@Locale.T("stu.entryTime")</span><b>@(dash.TodayEntry ?? "—")</b></div>
+                    <div><span>@Locale.T("stu.exitTime")</span><b>@(dash.TodayExit ?? "—")</b></div>
+                </div>
+                <a class="sp-card-go" href="teacher/attendance">@Locale.T("stu.viewAll") →</a>
+            </div>
+            <div class="tch-att-month">
+                <h3>@Locale.T("tch.thisMonth")</h3>
+                <div class="sp-donut-wrap">
+                    <div class="sp-donut" style="--pct:@dash.MonthPct.ToString("0.##")%">
+                        <span>
+                            <strong>@dash.MonthPct.ToString("0.##")%</strong>
+                            <small>@Locale.T("stu.present")</small>
+                        </span>
+                    </div>
+                </div>
+                <div class="sp-legend">
+                    <span><i class="is-pre"></i>@Locale.T("stu.present") (@MonthAttended)</span>
+                    <span><i class="is-abs"></i>@Locale.T("stu.absent") (@dash.MonthAbsent)</span>
+                </div>
+            </div>
+        </article>
+
+        <div class="sp-actions">
+            <a class="sp-act" href="teacher/student-attendance"><i class="is-slate">@GroupIco</i><span>@Locale.T("tch.studentAtt")</span></a>
+            <a class="sp-act" href="teacher/notice"><i class="is-orange">@BellIco</i><span>@Locale.T("stu.hwNotice")</span></a>
+            <a class="sp-act" href="teacher/report"><i class="is-purple">@ReportIco</i><span>@Locale.T("tch.report")</span></a>
+            <a class="sp-act" href="teacher/feedback">
+                <span class="sp-act-ico">
+                    <i class="is-orange">@FbIco</i>
+                    @if (FeedbackInbox.UnreadCount > 0)
+                    {
+                        <em class="sp-nbadge">@FeedbackInbox.BadgeText</em>
+                    }
+                </span>
+                <span>@Locale.T("fb.title")</span>
+            </a>
+            <a class="sp-act" href="teacher/marks"><i class="is-pink">@ExamIco</i><span>@Locale.T("tch.marks")</span></a>
+        </div>
+
+        <article class="sp-card" style="margin-top:0.85rem">
+            <div class="sp-card-h">
+                <h3>@Locale.T("stu.routine")</h3>
+                <a href="teacher/routine">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.TodayRoutine.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                @for (var i = 0; i < dash.TodayRoutine.Count; i++)
+                {
+                    var period = dash.TodayRoutine[i];
+                    <div class="sp-period">
+                        <span class="sp-num">@(i + 1)</span>
+                        <div class="sp-period-txt">
+                            <b>@period.Period @period.Subject</b>
+                            <small>@ClassLine(period)</small>
+                        </div>
+                        <span>@period.Time</span>
+                    </div>
+                }
+            }
+        </article>
+    }
+    else
+    {
+        <p class="sp-empty">@Locale.T("stu.empty")</p>
+    }
+</div>
+
+@code {
+    private TeacherPortalDashboardDto? dash;
+    private bool loading = true;
+
+    private static readonly MarkupString GroupIco = Ico("""<circle cx="9" cy="8" r="2.6"/><circle cx="16" cy="8.6" r="2.2"/><path d="M4.2 19c.4-3.2 2.6-5 4.8-5s4.4 1.8 4.8 5M13.4 14.4c1.7-.3 3.6 1 4.2 4.6"/>""");
+    private static readonly MarkupString BellIco = Ico("""<path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6Z"/><path d="M10.2 19.2a2 2 0 0 0 3.6 0"/>""");
+    private static readonly MarkupString ReportIco = Ico("""<path d="M4 19.2A2.4 2.4 0 0 1 6.4 16.8H20"/><path d="M6.4 3h13.6v18H6.4A2.4 2.4 0 0 1 4 18.6V5.4A2.4 2.4 0 0 1 6.4 3Z"/>""");
+    private static readonly MarkupString FbIco = Ico("""<path d="M4.5 6.2h15A1.5 1.5 0 0 1 21 7.7v8.6a1.5 1.5 0 0 1-1.5 1.5H9.2L4 21v-3.2H4.5A1.5 1.5 0 0 1 3 16.3V7.7A1.5 1.5 0 0 1 4.5 6.2Z"/>""");
+    private static readonly MarkupString ExamIco = Ico("""<rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M9 3.5v2.6h6V3.5M8.4 11h7.2M8.4 14.6h5"/>""");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        FeedbackInbox.Changed += OnInbox;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                dash = await Api.GetTeacherPortalDashboardAsync(Session.AccessToken);
+                await FeedbackInbox.RefreshAsync();
+            }
+        }
+        catch { }
+        loading = false;
+    }
+
+    private void OnInbox() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        FeedbackInbox.Changed -= OnInbox;
+        base.Dispose();
+    }
+
+    private int MonthAttended => dash is null ? 0 : dash.MonthPresent + dash.MonthLate;
+
+    private string TodayLabel
+    {
+        get
+        {
+            if (dash is null) return Locale.T("tch.attNone");
+            if (!string.IsNullOrWhiteSpace(dash.TodayHoliday) && string.IsNullOrWhiteSpace(dash.TodayStatus))
+                return string.IsNullOrWhiteSpace(dash.TodayHoliday) ? Locale.T("stu.holidays") : dash.TodayHoliday;
+            var key = (dash.TodayStatus ?? "").Trim();
+            if (key.Length == 0) return Locale.T("tch.attNone");
+            if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase) || key.Equals("Present", StringComparison.OrdinalIgnoreCase))
+                return Locale.T("stu.present");
+            if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase) || key.Equals("Absent", StringComparison.OrdinalIgnoreCase))
+                return Locale.T("stu.absent");
+            if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                return Locale.T("stu.late");
+            if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase))
+                return Locale.T("stu.leave");
+            if (key.Contains("Late", StringComparison.OrdinalIgnoreCase))
+                return Locale.T("stu.lateAbs");
+            return key;
+        }
+    }
+
+    private string TodayCss
+    {
+        get
+        {
+            if (dash is null) return "is-none";
+            if (!string.IsNullOrWhiteSpace(dash.TodayHoliday) && string.IsNullOrWhiteSpace(dash.TodayStatus))
+                return "is-hol";
+            var key = (dash.TodayStatus ?? "").Trim();
+            if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase) || key.Equals("Present", StringComparison.OrdinalIgnoreCase))
+                return "is-pre";
+            if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase) || key.Equals("Absent", StringComparison.OrdinalIgnoreCase))
+                return "is-abs";
+            if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                return "is-late";
+            if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase))
+                return "is-leave";
+            if (key.Contains("Late", StringComparison.OrdinalIgnoreCase))
+                return "is-lateabs";
+            return "is-none";
+        }
+    }
+
+    private static string FirstName(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "";
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts[0];
+    }
+
+    private static string ClassLine(TeacherPortalPeriodDto period)
+    {
+        var bits = new[] { period.ClassName, period.Section, period.Group, period.Shift }
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+        return string.Join(" · ", bits);
+    }
+
+    private static string Initials(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "T";
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+
+    private static MarkupString Ico(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
+}

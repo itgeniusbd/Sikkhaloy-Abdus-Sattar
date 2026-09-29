@@ -102,6 +102,7 @@
         </div>
         <div class="sess-section is-stu">
             <div class="sess-section-head">@Locale.T("rpt.result")</div>
+            <div class="rpt-table-wrap">
             <table class="mgrid sess-table">
             <thead>
                 <tr>
@@ -140,7 +141,7 @@
             {
                 <tr><td colspan="9">@Locale.T("rpt.empty")</td></tr>
             }
-            @foreach (var row in data.Rows)
+            @foreach (var row in VisibleRows)
             {
                 <tr>
                     <td>@row.ID</td>
@@ -175,6 +176,15 @@
             }
             </tbody>
             </table>
+            </div>
+            @if (data.Rows.Count > shown)
+            {
+                <div class="sess-more no-print">
+                    <button type="button" class="acc-btn" @onclick="ShowMore">
+                        @Locale.T("rpt.showMore") (@(data.Rows.Count - shown))
+                    </button>
+                </div>
+            }
         </div>
     }
 </div>
@@ -205,6 +215,11 @@
 
     private string loadedKey = "";
     private int loadSeq;
+    private const int PageTake = 80;
+    private int shown = PageTake;
+
+    private IEnumerable<SessionStudentRowDto> VisibleRows =>
+        data is null || shown >= data.Rows.Count ? data?.Rows ?? [] : data.Rows.Take(shown);
 
     private string Kind
     {
@@ -341,10 +356,15 @@
         await PaintAsync();
         try
         {
-            await LoadFiltersAsync();
+            var filterTask = Api.GetSessionFiltersAsync(Session.AccessToken, YearId, classId, roleId, Kind, Parse(fromText), Parse(toText));
+            var coreTask = LoadCoreAsync();
+            await Task.WhenAll(filterTask, coreTask);
             if (seq != loadSeq) return;
-            await LoadCoreAsync();
-            if (seq != loadSeq) return;
+            var filters = await filterTask;
+            classes = filters.Classes;
+            sections = filters.Sections;
+            roles = filters.Roles;
+            payFors = filters.PayFors;
         }
         catch (Exception ex) { if (seq == loadSeq) error = ex.Message; }
         finally { if (seq == loadSeq) busy = false; }
@@ -367,6 +387,7 @@
 
     private async Task LoadCoreAsync()
     {
+        shown = PageTake;
         data = Kind switch
         {
             "paid" => await Api.GetSessionPaidAsync(Session.AccessToken, YearId, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText)),
@@ -388,7 +409,13 @@
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private void ShowMore() => shown = data?.Rows.Count ?? shown;
+    private async Task PrintAsync()
+    {
+        shown = data?.Rows.Count ?? shown;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "", false);
+    }
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
     private static string Tk(decimal n) => n.ToString("N0");

@@ -45,18 +45,71 @@
         }
         <select @bind="routineInfoId" @bind:after="LoadGridAsync" disabled="@busy">
             <option value="0">@Locale.T("rt.selectName")</option>
-            @foreach (var item in routines)
+            @foreach (var item in ReadyRoutines)
             {
-                <option value="@item.RoutineInfoID">@item.Name</option>
+                <option value="@item.RoutineInfoID">@item.Name (@item.PeriodCount)</option>
             }
         </select>
     </div>
     <p class="muted no-print"><a href="staff/teachers/subjects">@Locale.T("rt.assignTeacherHint")</a></p>
 
+    @if (ReadyRoutines.Count == 0)
+    {
+        <p class="rt-hint">@Locale.T("rt.needCreateFirst") <a href="/routine/create">@Locale.T("rt.goCreate")</a></p>
+    }
+    else if (ClassId <= 0 || routineInfoId <= 0)
+    {
+        <p class="rt-hint">@Locale.T("rt.needClassRoutine")</p>
+    }
+    else if (sheet.Periods.Count == 0)
+    {
+        <p class="rt-hint">@Locale.T("rt.needCreateFirst") <a href="/routine/create">@Locale.T("rt.goCreate")</a></p>
+    }
+    else if (saved.Days.Count > 0)
+    {
+        <p class="rt-hint">@Locale.T("rt.alreadyHint") <a href="/routine/edit">@Locale.T("rt.goEdit")</a> · <a href="/routine/class">@Locale.T("rt.goView")</a></p>
+        <div class="rt-wrap">
+            <table class="rt-grid rt-view">
+                <thead>
+                    <tr>
+                        <th></th>
+                        @foreach (var period in saved.Periods)
+                        {
+                            <th>
+                                <span class="rt-period">@period.Period</span>
+                                <span class="rt-dur">@period.Duration</span>
+                                <span class="rt-time">@period.TimeRange</span>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var day in saved.Days)
+                {
+                    <tr>
+                        <th class="rt-day">@day.Day</th>
+                        @foreach (var cell in day.Cells)
+                        {
+                            <td>
+                                <div class="rt-sub">@cell.SubjectName</div>
+                                <div>@cell.TeacherName</div>
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (sheet.Days.Count == 0)
+    {
+        <p class="rt-hint">@Locale.T("rt.alreadyHint") <a href="/routine/edit">@Locale.T("rt.goEdit")</a> · <a href="/routine/class">@Locale.T("rt.goView")</a></p>
+    }
+
     @if (sheet.Days.Count > 0)
     {
         <div class="rt-wrap">
-            <table class="rt-grid">
+            <table class="rt-grid rt-assign">
                 <thead>
                     <tr>
                         <th></th>
@@ -85,7 +138,7 @@
                                         <option value="@item.Id">@item.Name</option>
                                     }
                                 </select>
-                                <select @bind="cell.TeacherID" disabled="@busy">
+                                <select value="@cell.TeacherID" disabled="@busy" @onchange="e => OnTeacher(day, cell, e)">
                                     <option value="0">@Locale.T("rt.selectTeacher")</option>
                                     @foreach (var item in cell.Teachers)
                                     {
@@ -116,7 +169,7 @@
     private readonly List<ClassPartDto> groups = [], sections = [], shifts = [];
     private readonly List<RoutineNameDto> routines = [];
     private ClassStructureDto? structure;
-    private ClassRoutineSheetDto sheet = new();
+    private ClassRoutineSheetDto sheet = new(), saved = new();
     private string classInput = "0", groupInput = "0", sectionInput = "0", shiftInput = "0";
     private int routineInfoId;
     private bool busy, popupError;
@@ -126,6 +179,8 @@
     private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
     private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
     private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private List<RoutineNameDto> ReadyRoutines =>
+        routines.Where(x => x.Used || x.PeriodCount > 0).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,12 +212,15 @@
 
     private async Task LoadGridAsync()
     {
-        if (ClassId <= 0 || routineInfoId <= 0) { sheet = new(); return; }
+        if (ClassId <= 0 || routineInfoId <= 0) { sheet = new(); saved = new(); return; }
         await SetBusyAsync(Locale.T("sms.loading"));
         try
         {
             if (!await OnlineAsync()) return;
             sheet = await Api.GetRoutineAssignAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, routineInfoId);
+            saved = sheet.Days.Count == 0
+                ? await Api.GetRoutineViewAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, routineInfoId, false)
+                : new();
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
@@ -177,10 +235,46 @@
         await SetBusyAsync(Locale.T("sms.loading"));
         try
         {
-            cell.Teachers.AddRange(await Api.GetRoutineTeachersAsync(Session.AccessToken!, ClassId, cell.SubjectID, day.Day, cell.StartTime, cell.EndTime, 0));
+            var taken = TakenTeachers(day, cell);
+            cell.Teachers.AddRange((await Api.GetRoutineTeachersAsync(Session.AccessToken!, ClassId, cell.SubjectID, day.Day, cell.StartTime, cell.EndTime, 0))
+                .Where(x => !taken.Contains(x.Id)));
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
+    }
+
+    private void OnTeacher(RoutineDayRowDto day, RoutineCellDto cell, ChangeEventArgs e)
+    {
+        var next = int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+        if (next > 0 && TakenTeachers(day, cell).Contains(next))
+        {
+            cell.TeacherID = 0;
+            Show(Locale.T("rt.teacherBusy"), true);
+            return;
+        }
+        cell.TeacherID = next;
+    }
+
+    private HashSet<int> TakenTeachers(RoutineDayRowDto day, RoutineCellDto cell)
+    {
+        var taken = new HashSet<int>();
+        foreach (var other in day.Cells)
+        {
+            if (other == cell || other.TeacherID <= 0)
+                continue;
+            if (TimesOverlap(cell.StartTime, cell.EndTime, other.StartTime, other.EndTime))
+                taken.Add(other.TeacherID);
+        }
+        return taken;
+    }
+
+    private static bool TimesOverlap(string? startA, string? endA, string? startB, string? endB)
+    {
+        if (!DateTime.TryParse(startA, out var a) || !DateTime.TryParse(endA, out var b)
+            || !DateTime.TryParse(startB, out var c) || !DateTime.TryParse(endB, out var d))
+            return string.Equals(startA, startB, StringComparison.OrdinalIgnoreCase);
+        return DateTime.Today.Add(a.TimeOfDay) < DateTime.Today.Add(d.TimeOfDay)
+            && DateTime.Today.Add(c.TimeOfDay) < DateTime.Today.Add(b.TimeOfDay);
     }
 
     private async Task SaveAsync()

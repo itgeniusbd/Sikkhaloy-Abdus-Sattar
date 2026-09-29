@@ -5,30 +5,23 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="sp-page">
+<div class="sp-page sp-att-page">
     <h1>@Locale.T("stu.attendance")</h1>
-    <article class="sp-card">
-        @if (loading)
-        {
-            <p class="sp-empty">@Locale.T("stu.loading")</p>
-        }
-        else
-        {
-            <div class="sp-att-sum">
-                <span><b class="is-pre">@data.Present</b> @Locale.T("stu.present")</span>
-                <span><b class="is-abs">@data.Absent</b> @Locale.T("stu.absent")</span>
-                <span><b class="is-late">@data.Late</b> @Locale.T("stu.late")</span>
-                <span><b class="is-lateabs">@data.LateAbsent</b> @Locale.T("stu.lateAbs")</span>
-                <span><b class="is-leave">@data.Leave</b> @Locale.T("stu.leave")</span>
-            </div>
-            <div class="sp-cal-legend">
-                <span><i class="is-pre"></i>@Locale.T("stu.present")</span>
-                <span><i class="is-abs"></i>@Locale.T("stu.absent")</span>
-                <span><i class="is-late"></i>@Locale.T("stu.late")</span>
-                <span><i class="is-lateabs"></i>@Locale.T("stu.lateAbs")</span>
-                <span><i class="is-leave"></i>@Locale.T("stu.leave")</span>
-                <span><i class="is-hol"></i>@Locale.T("stu.holidays")</span>
-            </div>
+    @if (loading)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
+    }
+    else
+    {
+        <div class="sp-att-cards">
+            <div class="sp-att-chip is-pre"><i></i><div><span>@Locale.T("stu.present")</span><strong>@data.Present</strong></div></div>
+            <div class="sp-att-chip is-abs"><i></i><div><span>@Locale.T("stu.absent")</span><strong>@data.Absent</strong></div></div>
+            <div class="sp-att-chip is-late"><i></i><div><span>@Locale.T("stu.late")</span><strong>@data.Late</strong></div></div>
+            <div class="sp-att-chip is-lateabs"><i></i><div><span>@Locale.T("stu.lateAbs")</span><strong>@data.LateAbsent</strong></div></div>
+            <div class="sp-att-chip is-leave"><i></i><div><span>@Locale.T("stu.leave")</span><strong>@data.Leave</strong></div></div>
+            <div class="sp-att-chip is-hol"><i></i><div><span>@Locale.T("stu.holidays")</span><strong>@HolidayCount</strong></div></div>
+        </div>
+        <article class="sp-card sp-cal-card">
             <div class="sp-cal-nav">
                 <button type="button" @onclick="PrevMonth" aria-label="@Locale.T("stu.prevMonth")">‹</button>
                 <strong>@MonthTitle</strong>
@@ -50,37 +43,81 @@
                         }
                         else
                         {
-                            <div class="sp-cal-cell @cell.Css" title="@cell.Title">
+                            <button type="button" class="sp-cal-cell @cell.Css" title="@cell.Title" @onclick="() => OpenDay(cell)">
                                 <span class="sp-cal-num">@cell.Date.Value.Day</span>
                                 @if (!string.IsNullOrWhiteSpace(cell.Status))
                                 {
                                     <span class="sp-cal-st">@cell.Status</span>
                                 }
-                                @if (!string.IsNullOrWhiteSpace(cell.Entry))
+                                @if (!string.IsNullOrWhiteSpace(cell.Entry) || !string.IsNullOrWhiteSpace(cell.Exit))
                                 {
-                                    <small>@cell.Entry</small>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(cell.Exit))
-                                {
-                                    <small>@cell.Exit</small>
+                                    <div class="sp-cal-times">
+                                        @if (!string.IsNullOrWhiteSpace(cell.Entry))
+                                        {
+                                            <small>@cell.Entry</small>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(cell.Exit))
+                                        {
+                                            <small>@cell.Exit</small>
+                                        }
+                                    </div>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(cell.Note))
                                 {
-                                    <small>@cell.Note</small>
+                                    <small class="sp-cal-note">@cell.Note</small>
                                 }
-                            </div>
+                            </button>
                         }
                     }
                 </div>
             </div>
-        }
-    </article>
+        </article>
+    }
 </div>
+
+@if (selected is { Date: not null })
+{
+    <div class="sp-day-back" @onclick="CloseDay">
+        <div class="sp-day-pop @selected.Css" @onclick:stopPropagation="true">
+            <header class="sp-day-head">
+                <div>
+                    <small>@Locale.T("stu.dayDetails")</small>
+                    <h3>@DayTitle(selected)</h3>
+                </div>
+                <button type="button" class="sp-day-x" @onclick="CloseDay" aria-label="@Locale.T("stu.close")">×</button>
+            </header>
+            <dl class="sp-day-rows">
+                <div>
+                    <dt>@Locale.T("stu.status")</dt>
+                    <dd><span class="sp-day-st">@(StatusLabel(selected.Status)
+                        ?? (selected.Css.Contains("is-hol") ? Locale.T("stu.holidays") : Locale.T("stu.empty")))</span></dd>
+                </div>
+                <div>
+                    <dt>@Locale.T("stu.entryTime")</dt>
+                    <dd>@(selected.Entry ?? "—")</dd>
+                </div>
+                <div>
+                    <dt>@Locale.T("stu.exitTime")</dt>
+                    <dd>@(selected.Exit ?? "—")</dd>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(selected.Note))
+                {
+                    <div>
+                        <dt>@NoteLabel(selected)</dt>
+                        <dd>@selected.Note</dd>
+                    </div>
+                }
+            </dl>
+            <button type="button" class="sp-day-ok" @onclick="CloseDay">@Locale.T("stu.close")</button>
+        </div>
+    </div>
+}
 
 @code {
     private StudentPortalAttendanceDto data = new();
     private bool loading = true;
     private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private CalCell? selected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,8 +137,43 @@
         loading = false;
     }
 
+    private int HolidayCount => data.Holidays
+        .Where(x => x.Date > DateTime.MinValue)
+        .Select(x => x.Date.Date)
+        .Distinct()
+        .Count();
+
     private void PrevMonth() => calMonth = calMonth.AddMonths(-1);
     private void NextMonth() => calMonth = calMonth.AddMonths(1);
+    private void OpenDay(CalCell cell) => selected = cell;
+    private void CloseDay() => selected = null;
+
+    private string DayTitle(CalCell cell) =>
+        cell.Date?.ToString("dddd, d MMMM yyyy", Locale.IsBengali
+            ? new System.Globalization.CultureInfo("bn-BD")
+            : System.Globalization.CultureInfo.InvariantCulture) ?? "";
+
+    private string? StatusLabel(string? status)
+    {
+        var key = (status ?? "").Trim();
+        if (key.Length == 0) return null;
+        if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase) || key.Equals("Present", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("stu.present");
+        if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("stu.absent");
+        if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("stu.late");
+        if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase) || key == Locale.T("stu.leave"))
+            return Locale.T("stu.leave");
+        if (key.Contains("Late", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("stu.lateAbs");
+        return key;
+    }
+
+    private string NoteLabel(CalCell cell) =>
+        cell.Css.Contains("is-hol") ? Locale.T("stu.holidays")
+        : cell.Css.Contains("is-leave") ? Locale.T("stu.leave")
+        : Locale.T("stu.notice");
 
     private string MonthTitle =>
         calMonth.ToString("MMMM yyyy", Locale.IsBengali
@@ -122,7 +194,7 @@
             var att = data.Days
                 .Where(x => x.Date > DateTime.MinValue)
                 .GroupBy(x => x.Date.Date)
-                .ToDictionary(g => g.Key, g => g.Last());
+                .ToDictionary(g => g.Key, MergeDay);
             var hol = data.Holidays
                 .Where(x => x.Date > DateTime.MinValue)
                 .GroupBy(x => x.Date.Date)
@@ -154,10 +226,9 @@
                     if (lv is not null)
                     {
                         css = $"{(date.Date == DateTime.Today ? "is-today " : "")}is-leave";
-                        var note = Locale.T("stu.leave");
+                        cell.Status = Locale.T("stu.leave");
                         if (!string.IsNullOrWhiteSpace(lv.LeaveType))
-                            note += ": " + lv.LeaveType;
-                        cell.Note = note;
+                            cell.Note = lv.LeaveType;
                     }
                 }
                 if (date.DayOfWeek == DayOfWeek.Friday)
@@ -200,9 +271,31 @@
         public string Title { get; set; } = "";
     }
 
+    private static StudentPortalAttendanceDayDto MergeDay(IGrouping<DateTime, StudentPortalAttendanceDayDto> rows)
+    {
+        var list = rows.ToList();
+        var pick = list.Last();
+        var entries = list.Select(x => CompactTime(x.EntryTime)).OfType<string>().ToList();
+        var exits = list.Select(x => CompactTime(x.ExitTime)).OfType<string>().ToList();
+        pick.EntryTime = entries.FirstOrDefault();
+        pick.ExitTime = exits.LastOrDefault();
+        if (string.IsNullOrWhiteSpace(pick.Status))
+            pick.Status = list.Select(x => x.Status).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "";
+        return pick;
+    }
+
     private static string? CompactTime(string? value)
     {
         var text = (value ?? "").Trim();
-        return text.Length == 0 ? null : text;
+        if (text.Length == 0) return null;
+        if (!DateTime.TryParse(text, out var time) &&
+            !DateTime.TryParseExact(text, ["HH:mm:ss", "HH:mm", "h:mm tt", "hh:mm tt"],
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out time))
+            return text;
+
+        if (time.TimeOfDay == TimeSpan.Zero)
+            return null;
+        return time.ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture);
     }
 }

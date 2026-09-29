@@ -78,7 +78,7 @@
                 }
                 <div class="gp-title-band">
                     <div class="band-left">@Locale.T("att.passNo") : @slip.StudentLeaveID</div>
-                    <div class="band-title">@Locale.T("att.gatePass")</div>
+                    <div class="band-title"><span>@Locale.T("att.gatePass")</span></div>
                     <div class="band-right">@Locale.T("att.studentCopy")</div>
                 </div>
                 <div class="gp-info">
@@ -123,7 +123,10 @@
                 </div>
                 <div class="gp-footer">
                     <div class="guardian"><strong>@Locale.T("att.guardian")</strong> : @(slip.GuardianName ?? Locale.T("si.father"))</div>
-                    <div class="approval">✔ @Locale.T("att.permissionGranted")</div>
+                    <div class="approval">
+                        <span class="approval-ico" aria-hidden="true">✔</span>
+                        <span class="approval-text">@Locale.T("att.permissionGranted")</span>
+                    </div>
                     <div class="issue-date">
                         @if (!string.IsNullOrWhiteSpace(Approver))
                         {
@@ -134,7 +137,7 @@
                 </div>
             </div>
 
-            <div class="scissor-divider">✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="scissor-divider" aria-hidden="true">✂</div>
 
             <div class="gp-office">
                 <div class="gp-office-header">@Locale.T("att.officeCopy")</div>

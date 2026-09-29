@@ -165,6 +165,7 @@ public sealed class InputStudentDto
 public sealed class InputSheetDto
 {
     public bool HasSubExams { get; set; }
+    public bool MarksLocked { get; set; }
     public double FullMark { get; set; }
     public double PassMark { get; set; }
     public double PassPercentage { get; set; }
@@ -299,6 +300,7 @@ public sealed class ExamMeritSubjectMarkDto
 public sealed class ExamMeritRowDto
 {
     public int StudentResultID { get; set; }
+    public int StudentID { get; set; }
     public int SubjectID { get; set; }
     public string ID { get; set; } = "";
     public string Name { get; set; } = "";
@@ -319,6 +321,41 @@ public sealed class ExamMeritListDto
 {
     public string Title { get; set; } = "";
     public List<ExamMeritRowDto> Rows { get; set; } = [];
+}
+
+public sealed class ExamMeritSmsRequest
+{
+    public int ExamID { get; set; }
+    public List<int> StudentResultIDs { get; set; } = [];
+}
+
+public sealed class ExamTopMeritStudentDto
+{
+    public int Position { get; set; }
+    public string ID { get; set; } = "";
+    public string RollNo { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string FatherName { get; set; } = "";
+    public string Total { get; set; } = "";
+    public string Average { get; set; } = "";
+    public string Grade { get; set; } = "";
+    public string Point { get; set; } = "";
+}
+
+public sealed class ExamTopMeritGroupDto
+{
+    public string ClassName { get; set; } = "";
+    public string SectionName { get; set; } = "";
+    public string GroupName { get; set; } = "";
+    public List<ExamTopMeritStudentDto> Students { get; set; } = [];
+}
+
+public sealed class ExamTopMeritSheetDto
+{
+    public string ExamName { get; set; } = "";
+    public string EducationYear { get; set; } = "";
+    public string Mode { get; set; } = "class";
+    public List<ExamTopMeritGroupDto> Groups { get; set; } = [];
 }
 
 public sealed class ExamGradeBandViewDto

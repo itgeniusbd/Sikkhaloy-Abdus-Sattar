@@ -463,7 +463,7 @@
         finally { busy = false; }
     }
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintResultCard").AsTask();
     private void PrevPrintPage() { if (printPage > 0) printPage--; }
     private void NextPrintPage() { if (printPage < PrintPageCount - 1) printPage++; }
     private string PhotoOf(ExamCardStudentDto student)

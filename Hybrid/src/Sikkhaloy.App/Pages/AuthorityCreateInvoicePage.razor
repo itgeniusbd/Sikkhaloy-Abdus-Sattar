@@ -167,7 +167,7 @@
             <div class="ci-form-top">
                 <label>
                     <span>@Locale.T("ai.category")</span>
-                    <select @bind="other.CategoryId" disabled="@busy">
+                    <select @bind="other.CategoryId" @bind:after="OnOtherCategoryChanged" disabled="@busy">
                         <option value="0">@Locale.T("ai.selectCat")</option>
                         @foreach (var cat in data.Categories)
                         {
@@ -217,23 +217,23 @@
             </div>
             <label class="ci-for">
                 @Locale.T("ai.invoiceFor")
-                <textarea rows="3" @bind="other.InvoiceFor" disabled="@busy"></textarea>
+                <textarea rows="3" @bind="other.InvoiceFor" placeholder="@Locale.T("ai.invoiceForPh")" disabled="@busy"></textarea>
             </label>
             <div class="ci-amts">
                 <label>
                     @Locale.T("ai.unit")
                     <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.Unit)" disabled="@busy"
-                           @onchange="e => other.Unit = ParseAmt(e)" @onwheel:preventDefault />
+                           @onchange="OnOtherUnitChanged" @onwheel:preventDefault />
                 </label>
                 <label>
                     @Locale.T("ai.unitPrice")
                     <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.UnitPrice)" disabled="@busy"
-                           @onchange="e => other.UnitPrice = ParseAmt(e)" @onwheel:preventDefault />
+                           @onchange="OnOtherUnitPriceChanged" @onwheel:preventDefault />
                 </label>
                 <label>
                     @Locale.T("ai.totalAmt")
                     <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.TotalAmount)" disabled="@busy"
-                           @onchange="e => other.TotalAmount = ParseAmt(e)" @onwheel:preventDefault />
+                           @onchange="OnOtherTotalChanged" @onwheel:preventDefault />
                 </label>
                 <label>
                     @Locale.T("ai.discount")
@@ -662,18 +662,87 @@
 
     private void AskCancelGrace(int schoolId) => cancelGraceId = schoolId;
 
+    private void OnOtherUnitChanged(ChangeEventArgs e)
+    {
+        other.Unit = ParseAmt(e);
+        RecalcOtherTotal(force: true);
+    }
+
+    private void OnOtherUnitPriceChanged(ChangeEventArgs e)
+    {
+        other.UnitPrice = ParseAmt(e);
+        RecalcOtherTotal(force: true);
+    }
+
+    private void OnOtherTotalChanged(ChangeEventArgs e)
+    {
+        other.TotalAmount = ParseAmt(e);
+        _otherTotalManual = true;
+    }
+
+    private bool _otherTotalManual;
+
+    private void RecalcOtherTotal(bool force = false)
+    {
+        if (!force && _otherTotalManual)
+            return;
+        if (other.Unit > 0 && other.UnitPrice > 0)
+        {
+            other.TotalAmount = Math.Round(other.Unit * other.UnitPrice, 2);
+            _otherTotalManual = false;
+        }
+    }
+
+    private void OnOtherCategoryChanged()
+    {
+        if (string.IsNullOrWhiteSpace(other.InvoiceFor))
+            EnsureOtherInvoiceFor();
+    }
+
+    private void EnsureOtherInvoiceFor()
+    {
+        if (!string.IsNullOrWhiteSpace(other.InvoiceFor))
+            return;
+        var cat = data.Categories.FirstOrDefault(x => x.Id == other.CategoryId);
+        if (cat is not null && !string.IsNullOrWhiteSpace(cat.Name))
+            other.InvoiceFor = cat.Name.Trim();
+    }
+
     private async Task CreateOtherAsync()
     {
         other.MonthName = otherMonth.ToString("yyyy-MM-dd");
         other.IssueDate = otherIssue.ToString("yyyy-MM-dd");
         other.EndDate = otherEnd.ToString("yyyy-MM-dd");
+        RecalcOtherTotal(force: !_otherTotalManual || other.TotalAmount <= 0);
+        EnsureOtherInvoiceFor();
+
+        if (string.IsNullOrWhiteSpace(other.InvoiceFor))
+        {
+            Show(Locale.T("ai.needInvoiceFor"), true);
+            return;
+        }
+        if (other.TotalAmount <= 0)
+        {
+            Show(Locale.T("ai.needTotalAmount"), true);
+            return;
+        }
+
         await SetBusyAsync(Locale.T("ab.saving"));
         try
         {
             if (!await OnlineAsync()) return;
             var result = await Api.CreateAuthorityOtherInvoiceAsync(Session.AccessToken!, other);
             Show(Msg(result), !result.Succeeded);
-            if (result.Succeeded) await LoadAsync();
+            if (result.Succeeded)
+            {
+                other.InvoiceFor = "";
+                other.Unit = 0;
+                other.UnitPrice = 0;
+                other.TotalAmount = 0;
+                other.Discount = 0;
+                _otherTotalManual = false;
+                await LoadAsync();
+            }
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }

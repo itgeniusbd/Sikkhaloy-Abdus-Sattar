@@ -1,0 +1,92 @@
+@page "/teacher/routine"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page sp-routine">
+    <h1>@Locale.T("stu.classRoutine")</h1>
+    @if (!loading && days.Count > 0)
+    {
+        <div class="sp-days" role="tablist">
+            @foreach (var day in days)
+            {
+                <button type="button" class="@(day == selected ? "is-on" : null) @(day == today ? "is-today" : null)"
+                        @onclick="() => selected = day">@Locale.T("stu.day." + day)</button>
+            }
+        </div>
+    }
+    <article class="sp-card">
+        @if (loading)
+        {
+            <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else if (days.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            @for (var i = 0; i < rows.Count; i++)
+            {
+                var period = rows[i];
+                <div class="sp-period">
+                    <span class="sp-num">@(i + 1)</span>
+                    <div class="sp-period-txt">
+                        <b>@period.Period @period.Subject</b>
+                        <small>@ClassLine(period)</small>
+                    </div>
+                    <span>@period.Time</span>
+                </div>
+            }
+        }
+    </article>
+</div>
+
+@code {
+    private static readonly string[] Week = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+    private readonly List<TeacherPortalPeriodDto> all = [];
+    private readonly List<string> days = [];
+    private string selected = "";
+    private readonly string today = TodayKey();
+    private bool loading = true;
+
+    private List<TeacherPortalPeriodDto> rows =>
+        all.Where(x => string.Equals(x.Day, selected, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                all.AddRange(await Api.GetTeacherPortalRoutineAsync(Session.AccessToken));
+                days.AddRange(Week.Where(d => all.Any(x => string.Equals(x.Day, d, StringComparison.OrdinalIgnoreCase))));
+                if (days.Count == 0)
+                    days.AddRange(all.Select(x => x.Day).Where(x => x.Length > 0).Distinct());
+                selected = days.Contains(today) ? today : days.FirstOrDefault() ?? "";
+            }
+        }
+        catch { }
+        loading = false;
+    }
+
+    private static string ClassLine(TeacherPortalPeriodDto period)
+    {
+        var bits = new[] { period.ClassName, period.Section, period.Group, period.Shift }
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+        return string.Join(" · ", bits);
+    }
+
+    private static string TodayKey()
+    {
+        var text = DateTime.Today.DayOfWeek.ToString();
+        return text.Length >= 3 ? text[..3] : text;
+    }
+}

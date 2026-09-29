@@ -52,6 +52,11 @@
         </select>
     </div>
 
+    @if (ClassId > 0 && sheet.Days.Count == 0)
+    {
+        <p class="rt-hint">@(routineInfoId <= 0 ? Locale.T("rt.pickRoutine") : Locale.T("rt.editEmpty"))</p>
+    }
+
     @if (sheet.Days.Count > 0)
     {
         <div class="rt-wrap">
@@ -161,8 +166,11 @@
         {
             if (!await OnlineAsync()) return;
             sheet = await Api.GetRoutineViewAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, routineInfoId, true);
-            if (routineInfoId == 0 && sheet.Routines.Count == 1)
+            if (routineInfoId == 0 && sheet.Routines.Count > 0)
+            {
                 routineInfoId = sheet.Routines[0].RoutineInfoID;
+                sheet = await Api.GetRoutineViewAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, routineInfoId, true);
+            }
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }

@@ -2,153 +2,229 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject ISyncApiClient Api
+@inject IJSRuntime Js
 
-<div class="card structure-page emp-page acc-page exam-page exam-input-page">
-    <h1>@Locale.T("exam.inputTitle") @Locale.T("exam.totalStudent", sheet.Students.Count)</h1>
-    <div class="filter-row no-print">
-        <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy">
-            <option value="0">@Locale.T("exam.selectExamName")</option>
-            @foreach (var item in filters.Exams)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </select>
-        <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in filters.Classes)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </select>
-        @if (filters.Groups.Count > 0)
-        {
-            <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">@Locale.T("exam.selectGroup")</option>
-                @foreach (var item in filters.Groups)
-                {
-                    <option value="@item.Id">@item.Name</option>
-                }
-            </select>
-        }
-        @if (filters.Sections.Count > 0)
-        {
-            <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">@Locale.T("exam.allSection")</option>
-                @foreach (var item in filters.Sections)
-                {
-                    <option value="@item.Id">@item.Name</option>
-                }
-            </select>
-        }
-        @if (filters.Shifts.Count > 0)
-        {
-            <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">@Locale.T("exam.allShift")</option>
-                @foreach (var item in filters.Shifts)
-                {
-                    <option value="@item.Id">@item.Name</option>
-                }
-            </select>
-        }
-        <select @bind="subjectId" @bind:after="OnSubjectAsync" disabled="@busy">
-            <option value="0">@Locale.T("exam.selectSubject")</option>
-            @foreach (var item in filters.Subjects)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </select>
-        @if (filters.SubExams.Count > 0)
-        {
-            <select @bind="subExamId" disabled="@busy">
-                <option value="0">@Locale.T("exam.selectSub")</option>
-                @foreach (var item in filters.SubExams)
-                {
-                    <option value="@item.Id">@item.Name</option>
-                }
-            </select>
-        }
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="ShowStudentsAsync">@Locale.T("exam.showStudent")</button>
-    </div>
+<div class="card structure-page emp-page acc-page exam-page exam-input-page tch-marks-page" id="tm-top">
+    <section class="tm-hero">
+        <span class="tm-hero-ico" aria-hidden="true">@DocIco</span>
+        <div class="tm-hero-txt">
+            <h1>@Locale.T("exam.inputTitle")</h1>
+            <p>
+                @Locale.T("tch.totalStudentLbl")
+                <b>@sheet.Students.Count</b>
+            </p>
+        </div>
+        <span class="tm-hero-cap" aria-hidden="true">@CapIco</span>
+    </section>
 
-    @if (shown && sheet.Students.Count > 0)
+    @if (!string.IsNullOrWhiteSpace(toastText))
     {
-        @if (!AllSubs)
+        <p class="tm-msg @(toastError ? "is-err" : "is-ok")">@toastText</p>
+    }
+
+    <article class="tm-filters">
+        <label class="tm-field">
+            <span class="tm-ico" aria-hidden="true">@CalIco</span>
+            <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy" aria-label="@Locale.T("tch.exam")">
+                <option value="0">@Locale.T("exam.selectExamName")</option>
+                @foreach (var item in filters.Exams)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        </label>
+        <div class="tm-row @ClassRowClass">
+            <label class="tm-field">
+                <span class="tm-ico" aria-hidden="true">@CapIco</span>
+                <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy" aria-label="@Locale.T("stu.class")">
+                    <option value="0">@Locale.T("si.selectClass")</option>
+                    @foreach (var item in filters.Classes)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            </label>
+            @if (classId > 0 && filters.Sections.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@UserIco</span>
+                    <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy" aria-label="@Locale.T("si.section")">
+                        <option value="0">@Locale.T("exam.allSection")</option>
+                        @foreach (var item in filters.Sections)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (classId > 0 && filters.Groups.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@UsersIco</span>
+                    <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy" aria-label="@Locale.T("si.group")">
+                        <option value="0">@Locale.T("exam.selectGroup")</option>
+                        @foreach (var item in filters.Groups)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (classId > 0 && filters.Shifts.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@ClockIco</span>
+                    <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy" aria-label="@Locale.T("si.shift")">
+                        <option value="0">@Locale.T("exam.allShift")</option>
+                        @foreach (var item in filters.Shifts)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+        <div class="tm-row @(filters.SubExams.Count > 0 ? "is-2" : "is-1")">
+            <label class="tm-field">
+                <span class="tm-ico" aria-hidden="true">@LeafIco</span>
+                <select @bind="subjectId" @bind:after="OnSubjectAsync" disabled="@busy" aria-label="@Locale.T("tch.subject")">
+                    <option value="0">@Locale.T("exam.selectSubject")</option>
+                    @foreach (var item in filters.Subjects)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            </label>
+            @if (filters.SubExams.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@LayersIco</span>
+                    <select @bind="subExamId" @bind:after="OnSubExamAsync" disabled="@busy" aria-label="@Locale.T("tch.subExam")">
+                        <option value="0">@Locale.T("exam.selectSub")</option>
+                        @foreach (var item in filters.SubExams)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+    </article>
+
+    @if (shown)
+    {
+        @if (!AllSubs && sheet.Students.Count > 0)
         {
-            <div class="exam-fm-row">
-                <div class="exam-fm">@Locale.T("exam.fullMarkLbl", sheet.FullMark)</div>
-                <div class="exam-pm">@Locale.T("exam.passMarkLbl", sheet.PassMark)</div>
-                <div class="exam-pp">@Locale.T("exam.passPctLbl", sheet.PassPercentage)</div>
+            <div class="tm-stats">
+                <div class="is-fm">
+                    <span aria-hidden="true">@TargetIco</span>
+                    <p>@Locale.T("exam.fullMarkLbl", sheet.FullMark)</p>
+                </div>
+                <div class="is-pm">
+                    <span aria-hidden="true">@CheckIco</span>
+                    <p>@Locale.T("exam.passMarkLbl", sheet.PassMark)</p>
+                </div>
+                <div class="is-pp">
+                    <span aria-hidden="true">@StarIco</span>
+                    <p>@Locale.T("exam.passPctLbl", sheet.PassPercentage)</p>
+                </div>
             </div>
         }
-        <label class="choice-inline no-print">
-            <input type="checkbox" @bind="hideName" />
-            <span>@Locale.T("exam.hideName")</span>
-        </label>
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th class="col-id">@Locale.T("exam.id")</th>
-                    @if (!hideName) { <th class="col-name">@Locale.T("exam.name")</th> }
-                    <th class="col-roll">@Locale.T("exam.roll")</th>
-                    <th class="col-obtain">@Locale.T("exam.obtain")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @for (var r = 0; r < sheet.Students.Count; r++)
-            {
-                var row = sheet.Students[r];
-                <tr>
-                    <td class="col-id">@row.ID</td>
-                    @if (!hideName) { <td class="col-name">@row.Name</td> }
-                    <td class="col-roll">@row.RollNo</td>
-                    <td class="col-obtain">
-                        @if (AllSubs)
-                        {
-                            <div class="exam-subs">
-                                @for (var s = 0; s < row.Subs.Count; s++)
+
+        @if (sheet.Students.Count == 0)
+        {
+            <article class="tm-empty"><p>@Locale.T("stu.empty")</p></article>
+        }
+        else
+        {
+            <div class="tm-toolbar">
+                <label class="tm-check">
+                    <input type="checkbox" @bind="hideName" />
+                    <span>@Locale.T("exam.hideName")</span>
+                </label>
+            </div>
+            <div class="tm-table-wrap">
+                <table class="tm-table">
+                    <thead>
+                        <tr>
+                            <th class="is-id"><button type="button" @onclick='() => SortBy("id")'>@Locale.T("exam.id") @SortMark("id")</button></th>
+                            @if (!hideName)
+                            {
+                                <th class="is-name"><button type="button" @onclick='() => SortBy("name")'>@Locale.T("exam.name") @SortMark("name")</button></th>
+                            }
+                            <th class="is-roll"><button type="button" @onclick='() => SortBy("roll")'>@Locale.T("exam.roll") @SortMark("roll")</button></th>
+                            <th class="is-mark">@Locale.T("exam.obtain")</th>
+                            @if (!AllSubs)
+                            {
+                                <th class="is-abs">@Locale.T("exam.absence")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var student in Rows)
+                    {
+                        <tr @key="student.StudentClassID">
+                            <td class="is-id">@student.ID</td>
+                            @if (!hideName)
+                            {
+                                <td class="is-name">@student.Name</td>
+                            }
+                            <td class="is-roll">@student.RollNo</td>
+                            <td class="is-mark">
+                                @if (AllSubs)
                                 {
-                                    var sub = row.Subs[s];
-                                    <div class="exam-sub">
-                                        <div class="exam-subbox">
-                                            <b>@LocalizeSubExam(sub.SubExamName)</b>
-                                            <span>@Locale.T("exam.fmShort", sub.FullMark) @Locale.T("exam.pmShort", sub.PassMark) @Locale.T("exam.ppShort", sub.PassPercentage)</span>
-                                        </div>
-                                        <div class="inline-add exam-mark-row">
-                                            <input class="exam-mark-input" type="number" step="any"
-                                                   data-mark-col="@s" data-mark-row="@r"
-                                                   @bind="sub.MarksObtained" disabled="@(busy || sub.Absent)" />
-                                            <label class="choice-inline exam-abs">
-                                                <input type="checkbox" tabindex="-1" checked="@sub.Absent" disabled="@busy"
-                                                       @onchange="e => OnSubAbs(sub, e)" />
-                                                <span>@Locale.T("exam.abs")</span>
-                                            </label>
-                                        </div>
+                                    <div class="tm-subs">
+                                        @foreach (var sub in student.Subs)
+                                        {
+                                            <div class="tm-sub">
+                                                <small>@LocalizeSubExam(sub.SubExamName) @Locale.T("exam.fmShort", sub.FullMark)</small>
+                                                <div class="tm-sub-in">
+                                                    <input class="tm-mark-in" type="number" step="0.01" inputmode="decimal" enterkeyhint="next"
+                                                           @bind="sub.MarksObtained" disabled="@(busy || sub.Absent)" />
+                                                    <label title="@Locale.T("exam.abs")">
+                                                        <input type="checkbox" tabindex="-1" checked="@sub.Absent" disabled="@busy"
+                                                               @onchange="e => OnSubAbs(sub, e)" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 }
-                            </div>
+                                else
+                                {
+                                    <input class="tm-mark-in" type="number" step="0.01" inputmode="decimal" enterkeyhint="next"
+                                           @bind="student.MarksObtained" disabled="@(busy || student.Absent)" />
+                                }
+                            </td>
+                            @if (!AllSubs)
+                            {
+                                <td class="is-abs">
+                                    <input type="checkbox" tabindex="-1" checked="@student.Absent" disabled="@busy"
+                                           @onchange="e => OnRowAbs(student, e)" />
+                                </td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tm-save-wrap is-sticky no-print">
+                <div class="tm-save-row">
+                    <button type="button" class="tm-next" disabled="@busy" @onmousedown:preventDefault @onclick="FocusNextMark">@DownIco @Locale.T("tch.nextBox")</button>
+                    <button type="button" class="tm-save @(busy ? "is-busy" : null)" disabled="@busy" @onclick="SaveAsync">
+                        @if (busy)
+                        {
+                            <span class="tm-save-spin" aria-hidden="true"></span>
+                            @Locale.T("stu.loading")
                         }
                         else
                         {
-                            <div class="inline-add exam-mark-row">
-                                <input class="exam-mark-input" type="number" step="any"
-                                       data-mark-col="0" data-mark-row="@r"
-                                       @bind="row.MarksObtained" disabled="@(busy || row.Absent)" />
-                                <label class="choice-inline exam-abs">
-                                    <input type="checkbox" tabindex="-1" checked="@row.Absent" disabled="@busy"
-                                           @onchange="e => OnRowAbs(row, e)" />
-                                    <span>@Locale.T("exam.abs")</span>
-                                </label>
-                            </div>
+                            @PenIco @Locale.T("tch.saveMarks")
                         }
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-        <button type="button" class="acc-btn acc-btn-primary no-print" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.submit")</button>
-        @if (!string.IsNullOrWhiteSpace(toastText))
-        {
-            <label class="@(toastError ? "exam-input-err" : "exam-input-ok")">@toastText</label>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="tm-fab no-print" @onclick="ScrollTop">@PenIco @Locale.T("tch.top")</button>
         }
     }
 </div>
@@ -160,6 +236,20 @@
 }
 
 @code {
+    private static readonly RenderFragment DocIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>;
+    private static readonly RenderFragment CapIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c1.5 1.3 3.6 2 6 2s4.5-.7 6-2v-5"/></svg>;
+    private static readonly RenderFragment CalIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>;
+    private static readonly RenderFragment UserIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 14.5-4 16 0"/></svg>;
+    private static readonly RenderFragment UsersIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.8-3.2 6.2-3.2 8 0M14 19c.5-2.2 4.5-2.4 6 0"/></svg>;
+    private static readonly RenderFragment ClockIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>;
+    private static readonly RenderFragment LeafIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c8-1 14-8 14-16-8 0-15 6-16 14 3-1 6-1 9 0"/><path d="M5 19s1-6 7-10"/></svg>;
+    private static readonly RenderFragment LayersIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/></svg>;
+    private static readonly RenderFragment TargetIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>;
+    private static readonly RenderFragment CheckIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>;
+    private static readonly RenderFragment StarIco = @<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.4 6 .9-4.3 4.2 1 5.9L12 16.8 6.7 19.4l1-5.9L3.4 9.3l6-.9z"/></svg>;
+    private static readonly RenderFragment PenIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>;
+    private static readonly RenderFragment DownIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg>;
+
     private ExamFilterDto filters = new();
     private InputSheetDto sheet = new();
     private int examId, classId, subjectId, subExamId, groupId, sectionId, shiftId;
@@ -167,7 +257,38 @@
     private string? popupText, toastText;
     private string busyTitle = "";
     private string? busyMessage;
+    private string sortKey = "roll";
+    private bool sortAsc = true;
     private bool AllSubs => sheet.HasSubExams && subExamId <= 0;
+
+    private string ClassRowClass
+    {
+        get
+        {
+            if (classId <= 0)
+                return "is-1";
+            var n = 1;
+            if (filters.Sections.Count > 0) n++;
+            if (filters.Groups.Count > 0) n++;
+            if (filters.Shifts.Count > 0) n++;
+            return n switch { 4 => "is-4", 3 => "is-3", 2 => "is-2", _ => "is-1" };
+        }
+    }
+
+    private IEnumerable<InputStudentDto> Rows
+    {
+        get
+        {
+            IEnumerable<InputStudentDto> rows = sheet.Students;
+            rows = sortKey switch
+            {
+                "id" => sortAsc ? rows.OrderBy(s => s.ID) : rows.OrderByDescending(s => s.ID),
+                "name" => sortAsc ? rows.OrderBy(s => s.Name) : rows.OrderByDescending(s => s.Name),
+                _ => sortAsc ? rows.OrderBy(RollKey) : rows.OrderByDescending(RollKey)
+            };
+            return rows;
+        }
+    }
 
     [SupplyParameterFromQuery(Name = "examId")] public int QExam { get; set; }
     [SupplyParameterFromQuery(Name = "classId")] public int QClass { get; set; }
@@ -230,6 +351,7 @@
         shown = false;
         sheet = new();
         await LoadFiltersAsync();
+        await ShowStudentsIfReadyAsync();
     }
 
     private async Task OnSubjectAsync()
@@ -238,7 +360,13 @@
         shown = false;
         sheet = new();
         await LoadFiltersAsync();
+        await ShowStudentsIfReadyAsync();
     }
+
+    private Task OnSubExamAsync() => ShowStudentsIfReadyAsync();
+
+    private Task ShowStudentsIfReadyAsync() =>
+        examId > 0 && classId > 0 && subjectId > 0 ? ShowStudentsAsync() : Task.CompletedTask;
 
     private async Task ShowStudentsAsync()
     {
@@ -280,6 +408,21 @@
         finally { ClearBusy(); }
     }
 
+    private void SortBy(string key)
+    {
+        if (sortKey == key)
+            sortAsc = !sortAsc;
+        else
+        {
+            sortKey = key;
+            sortAsc = true;
+        }
+    }
+
+    private string SortMark(string key) => sortKey == key ? (sortAsc ? "▲" : "▼") : "⇅";
+    private static int RollKey(InputStudentDto row) =>
+        int.TryParse(row.RollNo?.Replace("$", "").Replace(",", ""), out var n) ? n : 0;
+
     private static string? G(int id) => id <= 0 ? null : id.ToString();
     private static bool IsChecked(ChangeEventArgs e) =>
         e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
@@ -311,6 +454,7 @@
             }
         }
     }
+
     private string LocalizeSubExam(string name)
     {
         if (!Locale.IsBengali || string.IsNullOrWhiteSpace(name))
@@ -328,6 +472,7 @@
             _ => name
         };
     }
+
     private void Show(string text, bool err = false)
     {
         popupText = text;
@@ -335,7 +480,9 @@
         toastText = text;
         toastError = err;
     }
+
     private void ClosePopup() => popupText = null;
+
     private async Task SetBusyAsync(string title, string? message = null)
     {
         busyTitle = title;
@@ -344,12 +491,14 @@
         await InvokeAsync(StateHasChanged);
         await Task.Delay(40);
     }
+
     private void ClearBusy()
     {
         busy = false;
         busyTitle = "";
         busyMessage = null;
     }
+
     private Task<bool> OnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
@@ -358,5 +507,17 @@
             return Task.FromResult(false);
         }
         return Task.FromResult(true);
+    }
+
+    private async Task ScrollTop()
+    {
+        try { await Js.InvokeVoidAsync("sikkhaloyGoTop.scroll"); }
+        catch { }
+    }
+
+    private async Task FocusNextMark()
+    {
+        try { await Js.InvokeVoidAsync("sikkhaloyMarkNav.next"); }
+        catch { }
     }
 }

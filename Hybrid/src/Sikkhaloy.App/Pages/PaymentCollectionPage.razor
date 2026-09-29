@@ -6,33 +6,28 @@
 @inject NavigationManager Nav
 @inject SyncEngine Sync
 
-<div class="card structure-page emp-page acc-page acc-mod-page pc-page" @key="_routeKey">
-    <h1>
-        @Locale.T("acc.collectFast")
-        <small>@Locale.T(ByDate ? "acc.byDateHint" : "acc.fastMode")</small>
-    </h1>
+<div class="card sa-page acc-page acc-mod-page pc-page @(ByDate ? "is-bydate" : "is-fast")" @key="_routeKey">
+    <header class="pc-hero no-print">
+        <div class="pc-hero-copy">
+            <span class="pc-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M7 7V6a5 5 0 0 1 10 0v1"/><circle cx="12" cy="13" r="1.6"/></svg>
+            </span>
+            <div>
+                <h1>@Locale.T("acc.collectFast")</h1>
+                <p>@Locale.T(ByDate ? "acc.collectLeadDate" : "acc.collectLead")</p>
+            </div>
+        </div>
+        <span class="pc-mode-pill">@Locale.T(ByDate ? "acc.byDateHint" : "acc.fastMode")</span>
+    </header>
 
-    <div class="pc-top">
-        <div class="pc-card">
-            @if (bundle?.Student is not null)
-            {
-                var stu = bundle.Student;
-                <div class="pc-photo">
-                    @if (!string.IsNullOrWhiteSpace(photoUrl))
-                    {
-                        <img src="@photoUrl" alt="" />
-                    }
-                    else
-                    {
-                        <span>@(stu.Name.Length == 0 ? "S" : stu.Name[..1])</span>
-                    }
-                    <em class="@(stu.Status == "Active" ? "is-on" : "is-off")">@StatusText(stu.Status)</em>
-                </div>
-            }
-            <div class="pc-info">
-                <div class="pc-search">
-                    <div class="acc-find">
-                        <input type="text" autocomplete="off" placeholder="@Locale.T("att.findId")"
+    <div class="pc-top @(bundle?.Student is null ? "is-find" : null)">
+        <section class="pc-card">
+            <div class="pc-search-bar no-print">
+                <label class="pc-search-field">@Locale.T("att.searchStudent")
+                    <span class="pc-search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                        <input class="si-find-input" type="text" autocomplete="off" spellcheck="false"
+                               placeholder="@Locale.T("att.findId")"
                                value="@findId" disabled="@(busy || finding)"
                                @oninput="OnFindInput" @onkeydown="OnFindKey" />
                         @if (showSuggest)
@@ -44,69 +39,97 @@
                                 }
                             </div>
                         }
-                    </div>
-                    <button type="button" class="acc-btn acc-btn-primary pc-find-btn" disabled="@(busy || finding)" @onclick="() => LoadStudentAsync(findId)">
-                        @(finding ? Locale.T("acc.loading") : Locale.T("acc.find"))
-                    </button>
-                </div>
-                @if (bundle?.Student is not null)
-                {
-                    var stu = bundle.Student;
-                    <ul>
-                        <li><strong>(@stu.ID) @stu.Name</strong></li>
-                        <li><b>@Locale.T("form.father"):</b> @(stu.FathersName ?? "")</li>
-                        <li><b>@Locale.T("students.class"):</b> @(stu.ClassName ?? "")</li>
-                        <li>
-                            @Locale.T("att.rollNo"): @(stu.RollNo ?? "")
-                            @if (!string.IsNullOrWhiteSpace(stu.Section)) { <text>, @stu.Section</text> }
-                            @if (!string.IsNullOrWhiteSpace(stu.Shift)) { <text>, @stu.Shift</text> }
-                        </li>
-                        <li><b>@Locale.T("students.phone"):</b> @(stu.Phone ?? "")</li>
-                        <li><b>@Locale.T("acc.session"):</b> @(stu.EducationYear ?? "")</li>
-                        <li>
-                            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("acc.addMorePay")</button>
-                        </li>
-                    </ul>
-                }
+                    </span>
+                </label>
+                <button type="button" class="pc-btn is-find" disabled="@(busy || finding)" @onclick="() => LoadStudentAsync(findId)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <span>@(finding ? Locale.T("acc.loading") : Locale.T("acc.find"))</span>
+                </button>
             </div>
-        </div>
+            @if (bundle?.Student is not null)
+            {
+                var stu = bundle.Student;
+                <div class="pc-photo">
+                    <div class="pc-photo-wrap">
+                        @if (!string.IsNullOrWhiteSpace(photoUrl))
+                        {
+                            <img src="@photoUrl" alt="" />
+                        }
+                        else
+                        {
+                            <span>@(stu.Name.Length == 0 ? "S" : stu.Name[..1])</span>
+                        }
+                        <button type="button" class="pc-ico-add" title="@Locale.T("acc.addMorePay")" disabled="@busy" @onclick="() => showAdd = true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>
+                        </button>
+                    </div>
+                    <em class="@(stu.Status == "Active" ? "is-on" : "is-off")">@StatusText(stu.Status)</em>
+                </div>
+                <div class="pc-who">
+                    <span class="pc-who-k">ID @stu.ID</span>
+                    <strong>@stu.Name</strong>
+                </div>
+                <div class="pc-meta">
+                    <div class="pc-meta-item"><span>@Locale.T("form.father")</span><b>@(stu.FathersName ?? "—")</b></div>
+                    <div class="pc-meta-item"><span>@Locale.T("students.class")</span><b>@(stu.ClassName ?? "—")</b></div>
+                    <div class="pc-meta-item"><span>@Locale.T("att.rollNo")</span><b>@(stu.RollNo ?? "—")</b></div>
+                    <div class="pc-meta-item"><span>@Locale.T("att.section")</span><b>@(string.IsNullOrWhiteSpace(stu.Section) ? "—" : stu.Section)</b></div>
+                    <div class="pc-meta-item"><span>@Locale.T("students.phone")</span><b>@(stu.Phone ?? "—")</b></div>
+                    <div class="pc-meta-item"><span>@Locale.T("acc.session")</span><b>@(stu.EducationYear ?? "—")</b></div>
+                </div>
+            }
+        </section>
         @if (bundle?.Student is not null)
         {
-            <div class="pc-recent">
-                <button type="button" class="pc-prev" disabled="@busy" @onclick="() => showPrev = true">@Locale.T("acc.prevYear")</button>
+            <section class="pc-recent">
+                <div class="pc-recent-h">
+                    <strong>@Locale.T("acc.recent")</strong>
+                    <button type="button" class="pc-btn is-ghost is-mini" disabled="@busy" @onclick="() => showPrev = true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.8"/></svg>
+                        <span>@Locale.T("acc.prevYear")</span>
+                    </button>
+                </div>
                 @if (bundle.Receipts.Count == 0)
                 {
-                    <p class="muted">@Locale.T("acc.noPayment")</p>
+                    <p class="pc-empty">@Locale.T("acc.noPayment")</p>
                 }
                 else
                 {
-                    <table class="pc-receipt-table">
-                        <thead>
-                            <tr>
-                                <th>@Locale.T("acc.receiptNo")</th>
-                                <th>@Locale.T("acc.paymentDate")</th>
-                                <th>@Locale.T("acc.collectionDate")</th>
-                                <th>@Locale.T("acc.paid")</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var rec in bundle.Receipts.Take(5))
-                        {
-                            <tr>
-                                <td><a href="@ReceiptUrl(rec.ReceiptNo)">@rec.ReceiptNo</a></td>
-                                <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
-                                <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
-                                <td>
-                                    @rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")<br />
-                                    <a class="pc-print" href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                    <button type="button" class="link-btn" @onclick="() => showAll = true">@Locale.T("acc.viewAll")</button>
+                    <div class="pc-recent-body">
+                        <table class="pc-receipt-table">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("acc.receiptNo")</th>
+                                    <th>@Locale.T("acc.paymentDate")</th>
+                                    <th>@Locale.T("acc.collectionDate")</th>
+                                    <th>@Locale.T("acc.paid")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var rec in bundle.Receipts.Take(3))
+                            {
+                                <tr>
+                                    <td><a href="@ReceiptUrl(rec.ReceiptNo)">@rec.ReceiptNo</a></td>
+                                    <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
+                                    <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
+                                    <td>
+                                        <span class="pc-paid">@rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")</span>
+                                        <a class="pc-btn is-ghost is-mini" href="@ReceiptUrl(rec.ReceiptNo)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+                                            <span>@Locale.T("si.print")</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="pc-btn is-ghost is-mini pc-view-all" @onclick="() => showAll = true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1.15"/><circle cx="4" cy="12" r="1.15"/><circle cx="4" cy="18" r="1.15"/></svg>
+                        <span>@Locale.T("acc.viewAll")</span>
+                    </button>
                 }
-            </div>
+            </section>
         }
     </div>
 
@@ -114,22 +137,38 @@
     {
         <div class="pc-due-banner">@Locale.T("acc.currentDueBanner", bundle.CurrentDue.ToString("0.##"), Locale.T("acc.tk"))</div>
 
-        @DueTable(bundle.CurrentDues)
+        <section class="pc-sheet">
+            @DueTable(bundle.CurrentDues)
+        </section>
         @if (bundle.InventoryDues.Count > 0)
         {
-            <div class="pc-section-title">@Locale.T("inv.otherDue")</div>
-            @DueTable(bundle.InventoryDues)
+            <section class="pc-sheet">
+                <div class="pc-sheet-h">@Locale.T("inv.otherDue")</div>
+                @DueTable(bundle.InventoryDues)
+            </section>
         }
         @if (bundle.OtherDues.Count > 0)
         {
-            <div class="pc-section-title">@Locale.T("acc.othersSession")</div>
-            @DueTable(bundle.OtherDues)
+            <section class="pc-sheet">
+                <div class="pc-sheet-h">@Locale.T("acc.othersSession")</div>
+                @DueTable(bundle.OtherDues)
+            </section>
         }
 
-        <div class="pc-total">@Locale.T("acc.totalPay"): @PayTotal.ToString("0.##") @Locale.T("acc.tk")</div>
-        <div class="sal-bar no-print pc-actions-bar">
-            <section class="sal-box is-account">
-                <span class="sal-box-h">@Locale.T("acc.account")</span>
+        <div class="no-print pc-actions-bar @(HasPicks ? "is-ready" : null)">
+            <div class="pc-dock-item is-total">
+                <span class="pc-dock-k">@Locale.T("acc.totalPay")</span>
+                <div class="pc-dock-v">@PayTotal.ToString("0.##") @Locale.T("acc.tk")</div>
+            </div>
+            <div class="pc-dock-item is-sms" title="@($"{Locale.T("acc.smsRemain")}: {smsBalance}. {Locale.T("acc.smsAfterSync")}")">
+                <span class="pc-dock-k">@Locale.T("acc.smsRemain"): @smsBalance</span>
+                <div class="pc-dock-v pc-sms-pills">
+                    <label class="acc-check"><input type="radio" name="pc-sms" checked="@smsOn" @onchange="() => SetSmsAsync(true)" /><span>@Locale.T("acc.smsActive")</span></label>
+                    <label class="acc-check"><input type="radio" name="pc-sms" checked="@(!smsOn)" @onchange="() => SetSmsAsync(false)" /><span>@Locale.T("acc.smsInactive")</span></label>
+                </div>
+            </div>
+            <label class="pc-dock-item is-account">
+                <span class="pc-dock-k">@Locale.T("acc.account")</span>
                 <select @bind="accountInput" disabled="@busy">
                     <option value="0">@Locale.T("acc.account")</option>
                     @foreach (var item in accounts)
@@ -137,25 +176,27 @@
                         <option value="@item.AccountID">@item.AccountName (@item.Balance.ToString("0.##"))</option>
                     }
                 </select>
-            </section>
+            </label>
             @if (ByDate)
             {
-                <section class="sal-box is-date">
-                    <span class="sal-box-h">@Locale.T("acc.paidDate")</span>
+                <label class="pc-dock-item is-date">
+                    <span class="pc-dock-k">@Locale.T("acc.paidDate")</span>
                     <input type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind="paidDate" @bind:after="ClampPaidDate" disabled="@busy" />
-                </section>
+                </label>
             }
-            <div class="pc-sms">
-                <label class="acc-check"><input type="radio" name="pc-sms" checked="@smsOn" @onchange="() => SetSmsAsync(true)" /><span>@Locale.T("acc.smsActive")</span></label>
-                <label class="acc-check"><input type="radio" name="pc-sms" checked="@(!smsOn)" @onchange="() => SetSmsAsync(false)" /><span>@Locale.T("acc.smsInactive")</span></label>
-                <small>@Locale.T("acc.smsRemain"): @smsBalance. @Locale.T("acc.smsAfterSync")</small>
-            </div>
-            <div class="sal-actions">
-                <button type="button" class="sal-bonus" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("acc.addMorePay")</button>
-                <button type="button" class="sal-gen pc-pay" disabled="@busy" @onclick="PayAsync">
-                    @(busy ? Locale.T("acc.paying") : Locale.T("acc.pay"))
+            <div class="pc-dock-actions">
+                <button type="button" class="pc-btn is-more" disabled="@busy" @onclick="() => showAdd = true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                    <span>@Locale.T("acc.addMorePay")</span>
                 </button>
-                <button type="button" class="pc-conc sal-del" disabled="@busy" @onclick="ConcessionAsync">@Locale.T("acc.concessionUpdate")</button>
+                <button type="button" class="pc-btn is-pay" disabled="@busy" @onclick="PayAsync">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.15"/><path d="M6 12h.01M18 12h.01"/></svg>
+                    <span>@(busy ? Locale.T("acc.paying") : Locale.T("acc.pay"))</span>
+                </button>
+                <button type="button" class="pc-btn is-conc" disabled="@busy" @onclick="ConcessionAsync">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.2" cy="8" r="2.1"/><circle cx="16.8" cy="16" r="2.1"/><path d="m16.5 7.5-9 9"/></svg>
+                    <span>@Locale.T("acc.concessionUpdate")</span>
+                </button>
             </div>
         </div>
     }
@@ -185,8 +226,14 @@
                 <input type="number" class="pc-num" min="0" step="1" @bind="moreDiscount" @bind:after="() => moreDiscount = Whole(moreDiscount)" disabled="@busy" />
             </label>
             <div class="pc-modal-btns">
-                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddMoreAsync">@Locale.T("acc.addPayment")</button>
-                <button type="button" class="acc-btn" @onclick="() => showAdd = false">@Locale.T("acc.close")</button>
+                <button type="button" class="pc-btn is-more" disabled="@busy" @onclick="AddMoreAsync">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                    <span>@Locale.T("acc.addPayment")</span>
+                </button>
+                <button type="button" class="pc-btn is-ghost" @onclick="() => showAdd = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    <span>@Locale.T("acc.close")</span>
+                </button>
             </div>
         </div>
     </div>
@@ -219,13 +266,21 @@
                             <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
                             <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
                             <td>@rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")</td>
-                            <td><a href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a></td>
+                            <td>
+                                <a class="pc-btn is-ghost is-mini" href="@ReceiptUrl(rec.ReceiptNo)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+                                    <span>@Locale.T("si.print")</span>
+                                </a>
+                            </td>
                         </tr>
                     }
                     </tbody>
                 </table>
             </div>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => showAll = false">@Locale.T("acc.close")</button>
+            <button type="button" class="pc-btn is-ghost" @onclick="() => showAll = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <span>@Locale.T("acc.close")</span>
+            </button>
         </div>
     </div>
 }
@@ -262,14 +317,22 @@
                                 <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
                                 <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
                                 <td>@rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")</td>
-                                <td><a href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a></td>
+                                <td>
+                                    <a class="pc-btn is-ghost is-mini" href="@ReceiptUrl(rec.ReceiptNo)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+                                        <span>@Locale.T("si.print")</span>
+                                    </a>
+                                </td>
                             </tr>
                         }
                         </tbody>
                     </table>
                 </div>
             }
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => showPrev = false">@Locale.T("acc.close")</button>
+            <button type="button" class="pc-btn is-ghost" @onclick="() => showPrev = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <span>@Locale.T("acc.close")</span>
+            </button>
         </div>
     </div>
 }
@@ -298,21 +361,40 @@
     private int smsBalance;
     private string? popupText, photoUrl;
     private CancellationTokenSource? suggestCts;
+    private bool lookupsStarted;
     private int AccountId => int.TryParse(accountInput, out var n) ? n : 0;
     private decimal PayTotal => bundle is null ? 0 :
         bundle.CurrentDues.Concat(bundle.OtherDues).Concat(bundle.InventoryDues).Where(x => x.Selected).Sum(x => x.PayNow);
+    private bool HasPicks => bundle is not null &&
+        bundle.CurrentDues.Concat(bundle.OtherDues).Concat(bundle.InventoryDues).Any(x => x.Selected);
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         _routeKey = RouteKey();
         Nav.LocationChanged += OnLocationChanged;
-        if (string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        var startId = Query("id");
+        if (!string.IsNullOrWhiteSpace(startId))
+            findId = startId;
+        _ = LoadLookupsAsync();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (lookupsStarted || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        lookupsStarted = true;
         try
         {
             var accTask = Api.GetCashAccountsAsync(Session.AccessToken!);
-            var roleTask = Api.GetPaymentRolesAsync(Session.AccessToken!);
             var smsTask = Api.GetPaymentSmsSettingAsync(Session.AccessToken!);
-            await Task.WhenAll(accTask, roleTask, smsTask);
+            var roleTask = Api.GetPaymentRolesAsync(Session.AccessToken!);
+            if (!string.IsNullOrWhiteSpace(findId))
+            {
+                await LoadStudentAsync(findId);
+                await InvokeAsync(StateHasChanged);
+            }
+            await Task.WhenAll(accTask, smsTask, roleTask);
             accounts.AddRange(await accTask);
             roles.AddRange(await roleTask);
             var sms = await smsTask;
@@ -320,12 +402,7 @@
             smsBalance = sms.Balance;
             var def = accounts.FirstOrDefault(x => x.IsDefault) ?? accounts.FirstOrDefault();
             if (def is not null) accountInput = def.AccountID.ToString();
-            var startId = Query("id");
-            if (!string.IsNullOrWhiteSpace(startId))
-            {
-                findId = startId;
-                await LoadStudentAsync(startId);
-            }
+            await InvokeAsync(StateHasChanged);
         }
         catch (HttpRequestException)
         {
@@ -337,6 +414,7 @@
                 || msg.Contains("actively refused", StringComparison.OrdinalIgnoreCase))
                 return;
             ShowPopup(ex.Message ?? "", true);
+            await InvokeAsync(StateHasChanged);
         }
     }
 

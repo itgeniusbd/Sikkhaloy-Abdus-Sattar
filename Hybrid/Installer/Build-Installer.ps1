@@ -42,6 +42,13 @@ Get-Process -Name "SikkhaloyHybrid" -ErrorAction SilentlyContinue | ForEach-Obje
 }
 Start-Sleep -Seconds 1
 
+$iconScript = Join-Path $installerDir "Ensure-AppIcon.ps1"
+$iconFile = Join-Path $hybridRoot "src\Sikkhaloy.Client\Assets\app.ico"
+& $iconScript
+if (-not (Test-Path $iconFile)) {
+    throw "App icon was not created: $iconFile"
+}
+
 Write-Host "Publishing SIKKHALOY Hybrid $appVersion (self-contained win-x64)..." -ForegroundColor Cyan
 if (Test-Path $publishDir) {
     Remove-Item -Recurse -Force $publishDir
@@ -56,6 +63,7 @@ dotnet publish $projectFile `
     -p:InformationalVersion=$appVersion `
     -p:DebugType=None `
     -p:DebugSymbols=false `
+    -p:ApplicationIcon=$iconFile `
     -o $publishDir
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed."
@@ -65,6 +73,20 @@ $exe = Join-Path $publishDir "SikkhaloyHybrid.exe"
 if (-not (Test-Path $exe)) {
     throw "Publish failed: SikkhaloyHybrid.exe not found in $publishDir"
 }
+
+$productionApi = "https://hybridapi.sikkhaloy.com/"
+$appSettings = @"
+{
+  "SyncApi": {
+    "BaseUrl": "$productionApi"
+  }
+}
+"@
+foreach ($name in @("appsettings.json", "appsettings.Production.json")) {
+    [System.IO.File]::WriteAllText((Join-Path $publishDir $name), $appSettings.Trim() + [Environment]::NewLine)
+}
+Write-Host "Sync API set to $productionApi" -ForegroundColor Green
+Copy-Item -Force $iconFile (Join-Path $publishDir "app.ico")
 
 Get-ChildItem -Path $publishDir -Filter "*.pdb" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force
 $junk = Join-Path $publishDir "_buildcheck"

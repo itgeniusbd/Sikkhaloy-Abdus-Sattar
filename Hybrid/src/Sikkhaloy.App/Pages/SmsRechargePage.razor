@@ -3,6 +3,7 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <div class="sms-rcg-page">
     <header class="sms-rcg-hero">
@@ -13,6 +14,14 @@
             <div>
                 <h1>@Locale.T("sms.rechargeTitle")</h1>
                 <p>@Locale.T("sms.rechargeLead")</p>
+@if (pendingPay is not null)
+{
+    <div class="sms-rcg-pending">
+        <span>@Locale.T("pay.pendingHint")</span>
+        <button type="button" class="sms-rcg-pay" disabled="@busy" @onclick="VerifyPendingAsync">@Locale.T("pay.checkBtn")</button>
+        <button type="button" class="sms-rcg-refresh" disabled="@busy" @onclick="ClearPendingAsync">@Locale.T("pay.dismissPending")</button>
+    </div>
+}
             </div>
         </div>
         <div class="sms-rcg-hero-art" aria-hidden="true">
@@ -51,12 +60,12 @@
             <h2>@Locale.T("sms.rechargeNow")</h2>
         </div>
         <div class="sms-rcg-form">
-            <label class="sms-rcg-field">
-                <span>@Locale.T("sms.amountTk")</span>
-                <input type="number" min="0" step="0.01" @bind="amountTk" @bind:event="oninput" disabled="@busy" />
+                        <label class="sms-rcg-field">
+                <span>@Locale.T("sms.smsCount")</span>
+                <input type="number" min="1" step="1" @bind="smsQty" @bind:event="oninput" disabled="@busy" />
                 @if (SmsQty > 0)
                 {
-                    <em>@Locale.T("sms.smsApprox", SmsQty) · @Locale.T("sms.costLine", Invoice.ToString("0.00"), Gateway.ToString("0.00"), Payable.ToString("0.00"))</em>
+                    <em>@Locale.T("sms.costLine", Invoice.ToString("0.00"), Gateway.ToString("0.00"), Payable.ToString("0.00"))</em>
                 }
             </label>
             <button type="button" class="sms-rcg-pay" disabled="@(busy || SmsQty <= 0)" @onclick="PayAsync">
@@ -196,6 +205,20 @@
 </div>
 
 <ExamBusyOverlay Busy="paying" Title="@busyTitle" />
+@if (confirmOpen)
+{
+    <div class="acc-result-back confirm-ask-back" @onclick="ConfirmCancel">
+        <div class="acc-result confirm-ask" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            <div class="acc-result-icon">?</div>
+            <h3>@Locale.T("pay.confirmTitle")</h3>
+            <p>@confirmMsg</p>
+            <div class="confirm-ask-actions">
+                <button type="button" class="confirm-ask-btn cancel" @onclick="ConfirmCancel">@Locale.T("pay.confirmCancel")</button>
+                <button type="button" class="confirm-ask-btn ok" @onclick="ConfirmOk">@Locale.T("pay.confirmOk")</button>
+            </div>
+        </div>
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
     <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="() => popupText = null" />
@@ -203,14 +226,17 @@
 
 @code {
     private SmsRechargePageDto sheet = new();
-    private decimal amountTk;
+    private int smsQty;
     private bool busy, paying, popupError;
+    private bool confirmOpen;
+    private string? confirmMsg;
+    private PendingPayInfo? pendingPay;
     private string? popupText, busyTitle;
     private int rangeDays = 0;
     private int page = 1;
     private const int pageSize = 10;
 
-    private int SmsQty => sheet.PerSmsRate <= 0 || amountTk <= 0 ? 0 : (int)Math.Floor(amountTk / sheet.PerSmsRate);
+    private int SmsQty => smsQty < 0 ? 0 : smsQty;
     private decimal Invoice => SmsQty * sheet.PerSmsRate;
     private decimal Gateway => Math.Round(Invoice / 1000m * 19m, 2);
     private decimal Payable => Invoice + Gateway;
@@ -278,6 +304,7 @@
 
     private async Task LoadAsync()
     {
+        await CheckPendingAsync();
         busy = true;
         await InvokeAsync(StateHasChanged);
         try
@@ -299,12 +326,28 @@
     {
         if (SmsQty <= 0)
         {
-            popupText = Locale.T("sms.needAmount");
+            popupText = Locale.T("sms.needQty");
             popupError = true;
             return;
         }
-        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sms.confirmPay")))
-            return;
+        confirmMsg = Locale.T("sms.confirmPay");
+        confirmOpen = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ConfirmOk()
+    {
+        confirmOpen = false;
+        await ContinuePayAsync();
+    }
+
+    private void ConfirmCancel()
+    {
+        confirmOpen = false;
+    }
+
+    private async Task ContinuePayAsync()
+    {
         busyTitle = Locale.T("sms.paying");
         paying = true;
         await InvokeAsync(StateHasChanged);
@@ -330,7 +373,22 @@
                 popupError = true;
                 return;
             }
-            await JS.InvokeVoidAsync("sikkhaloyOpenUrl", result.CheckoutUrl);
+            if (!string.IsNullOrWhiteSpace(result.SpOrderId))
+            {
+                try { await JS.InvokeVoidAsync("sikkhaloySavePendingPay", "sms", result.SpOrderId); }
+                catch { /* ignore */ }
+            }
+            // Prefer same-tab navigation: window.open is often blocked in mobile WebView after confirm()+await.
+            try
+            {
+                var opened = await JS.InvokeAsync<bool>("sikkhaloyOpenUrl", result.CheckoutUrl);
+                if (!opened)
+                    Nav.NavigateTo(result.CheckoutUrl, forceLoad: true);
+            }
+            catch
+            {
+                Nav.NavigateTo(result.CheckoutUrl, forceLoad: true);
+            }
             popupText = Locale.T("sms.payOpened");
             popupError = false;
         }
@@ -343,5 +401,46 @@
         if (string.IsNullOrWhiteSpace(error))
             return Locale.T("sms.payFail");
         return error.StartsWith("sms.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    }
+
+    private sealed class PendingPayInfo
+    {
+        public string? kind { get; set; }
+        public string? spOrderId { get; set; }
+    }
+
+    private async Task CheckPendingAsync()
+    {
+        try
+        {
+            pendingPay = await JS.InvokeAsync<PendingPayInfo?>("sikkhaloyReadPendingPay");
+            if (pendingPay is not null
+                && !string.IsNullOrWhiteSpace(pendingPay.kind)
+                && !string.Equals(pendingPay.kind, "sms", StringComparison.OrdinalIgnoreCase))
+                pendingPay = null;
+        }
+        catch { pendingPay = null; }
+    }
+
+    private async Task ClearPendingAsync()
+    {
+        try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+        pendingPay = null;
+    }
+
+    private async Task VerifyPendingAsync()
+    {
+        if (pendingPay is null || string.IsNullOrWhiteSpace(pendingPay.spOrderId))
+            return;
+        busyTitle = Locale.T("pay.checking");
+        paying = true;
+        try
+        {
+            var url = "https://hybridapi.sikkhaloy.com/api/pay/shurjopay/callback?order_id="
+                      + Uri.EscapeDataString(pendingPay.spOrderId);
+            try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+            Nav.NavigateTo(url, forceLoad: true);
+        }
+        finally { paying = false; }
     }
 }

@@ -1,0 +1,189 @@
+@page "/teacher/cv"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("tch.cv")</h1>
+    <p class="sa-lead"><a href="teacher/cv/print">@Locale.T("tch.cvPrint") →</a></p>
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <p class="sp-empty" style="color:#b91c1c">@error</p>
+    }
+    @if (cv is null)
+    {
+        <p class="sp-empty">@(busy ? Locale.T("stu.loading") : Locale.T("stu.empty"))</p>
+    }
+    else
+    {
+        <article class="sp-card">
+            <div class="sp-card-h"><h3>@Locale.T("tch.objective")</h3></div>
+            @foreach (var row in cv.Objectives)
+            {
+                <div class="tch-cv-item">
+                    <p>@row.Text</p>
+                    <button type="button" @onclick="() => DeleteObjective(row.Id)">@Locale.T("tch.delete")</button>
+                </div>
+            }
+            <label class="auth-field">
+                <textarea rows="3" @bind="objective" disabled="@busy"></textarea>
+            </label>
+            <button type="button" class="sp-card-go" disabled="@busy" @onclick="AddObjectiveAsync">@Locale.T("tch.add")</button>
+        </article>
+
+        <article class="sp-card">
+            <div class="sp-card-h"><h3>@Locale.T("tch.education")</h3></div>
+            @foreach (var row in cv.Education)
+            {
+                <div class="tch-cv-item">
+                    <b>@row.InstitutionName</b>
+                    <small>@row.ExamName · @row.ExamYear · @row.Result</small>
+                    <button type="button" @onclick="() => DeleteEducation(row.Id)">@Locale.T("tch.delete")</button>
+                </div>
+            }
+            <label class="auth-field">@Locale.T("tch.institution")<input @bind="edu.InstitutionName" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.examName")<input @bind="edu.ExamName" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.examYear")<input @bind="edu.ExamYear" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.result")<input @bind="edu.Result" disabled="@busy" /></label>
+            <button type="button" class="sp-card-go" disabled="@busy" @onclick="AddEducationAsync">@Locale.T("tch.add")</button>
+        </article>
+
+        <article class="sp-card">
+            <div class="sp-card-h"><h3>@Locale.T("tch.experience")</h3></div>
+            @foreach (var row in cv.Jobs)
+            {
+                <div class="tch-cv-item">
+                    <b>@row.InstitutionName</b>
+                    <small>@row.Position · @row.JobYear</small>
+                    <button type="button" @onclick="() => DeleteJob(row.Id)">@Locale.T("tch.delete")</button>
+                </div>
+            }
+            <label class="auth-field">@Locale.T("tch.institution")<input @bind="job.InstitutionName" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.position")<input @bind="job.Position" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.jobYear")<input @bind="job.JobYear" disabled="@busy" /></label>
+            <button type="button" class="sp-card-go" disabled="@busy" @onclick="AddJobAsync">@Locale.T("tch.add")</button>
+        </article>
+
+        <article class="sp-card">
+            <div class="sp-card-h"><h3>@Locale.T("tch.skills")</h3></div>
+            @foreach (var row in cv.Skills)
+            {
+                <div class="tch-cv-item">
+                    <b>@row.Name</b>
+                    <small>@row.Description</small>
+                    <button type="button" @onclick="() => DeleteSkill(row.Id)">@Locale.T("tch.delete")</button>
+                </div>
+            }
+            <label class="auth-field">@Locale.T("tch.skillName")<input @bind="skill.Name" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.description")<input @bind="skill.Description" disabled="@busy" /></label>
+            <button type="button" class="sp-card-go" disabled="@busy" @onclick="AddSkillAsync">@Locale.T("tch.add")</button>
+        </article>
+
+        <article class="sp-card">
+            <div class="sp-card-h"><h3>@Locale.T("tch.languages")</h3></div>
+            @foreach (var row in cv.Languages)
+            {
+                <div class="tch-cv-item">
+                    <b>@row.Name</b>
+                    <small>@row.Level</small>
+                    <button type="button" @onclick="() => DeleteLanguage(row.Id)">@Locale.T("tch.delete")</button>
+                </div>
+            }
+            <label class="auth-field">@Locale.T("tch.language")<input @bind="lang.Name" disabled="@busy" /></label>
+            <label class="auth-field">@Locale.T("tch.level")<input @bind="lang.Level" disabled="@busy" /></label>
+            <button type="button" class="sp-card-go" disabled="@busy" @onclick="AddLanguageAsync">@Locale.T("tch.add")</button>
+        </article>
+    }
+</div>
+
+@code {
+    private TeacherPortalCvDto? cv;
+    private string objective = "";
+    private TeacherPortalCvEducationRequest edu = new();
+    private TeacherPortalCvJobRequest job = new();
+    private TeacherPortalCvSkillRequest skill = new();
+    private TeacherPortalCvLanguageRequest lang = new();
+    private bool busy;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                cv = await Api.GetTeacherPortalCvAsync(Session.AccessToken);
+        }
+        catch { }
+    }
+
+    private async Task AddObjectiveAsync()
+    {
+        await RunAsync(() => Api.AddTeacherPortalCvObjectiveAsync(Session.AccessToken, new TeacherPortalCvTextRequest { Text = objective }));
+        objective = "";
+    }
+
+    private async Task AddEducationAsync()
+    {
+        await RunAsync(() => Api.AddTeacherPortalCvEducationAsync(Session.AccessToken, edu));
+        edu = new();
+    }
+
+    private async Task AddJobAsync()
+    {
+        await RunAsync(() => Api.AddTeacherPortalCvJobAsync(Session.AccessToken, job));
+        job = new();
+    }
+
+    private async Task AddSkillAsync()
+    {
+        await RunAsync(() => Api.AddTeacherPortalCvSkillAsync(Session.AccessToken, skill));
+        skill = new();
+    }
+
+    private async Task AddLanguageAsync()
+    {
+        await RunAsync(() => Api.AddTeacherPortalCvLanguageAsync(Session.AccessToken, lang));
+        lang = new();
+    }
+
+    private Task DeleteObjective(int id) => DeleteAsync("objective", id);
+    private Task DeleteEducation(int id) => DeleteAsync("education", id);
+    private Task DeleteJob(int id) => DeleteAsync("job", id);
+    private Task DeleteSkill(int id) => DeleteAsync("skill", id);
+    private Task DeleteLanguage(int id) => DeleteAsync("language", id);
+
+    private Task DeleteAsync(string kind, int id) =>
+        RunAsync(() => Api.DeleteTeacherPortalCvAsync(Session.AccessToken, kind, id));
+
+    private async Task RunAsync(Func<Task<StudentInfoResult>> action)
+    {
+        error = null;
+        busy = true;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "tch.cvFailed");
+                return;
+            }
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

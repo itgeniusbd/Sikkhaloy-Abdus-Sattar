@@ -2,6 +2,8 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject SyncEngine Sync
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
 @inject NavigationManager Nav
 
 <div class="card sa-page readm-page readm-assign-page">
@@ -398,6 +400,7 @@
             var code = result.Student?.StudentCode ?? student.StudentCode;
             if (goPayOrder)
             {
+                await EnsureTargetYearAsync(toYearId);
                 Nav.NavigateTo($"/accounts/pay-order?class={classId}&id={Uri.EscapeDataString(code)}");
                 return;
             }
@@ -415,6 +418,37 @@
         finally
         {
             busy = false;
+        }
+    }
+
+    private async Task EnsureTargetYearAsync(int yearId)
+    {
+        if (Session.Current is null || yearId <= 0 || yearId == Session.Current.EducationYearID)
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            Session.UpdateYear(yearId);
+            return;
+        }
+
+        try
+        {
+            var switched = await Api.SwitchYearAsync(Session.AccessToken, yearId);
+            if (switched.Succeeded && switched.Session is not null)
+            {
+                switched.Session.DeviceId = Session.Current.DeviceId;
+                Session.Set(switched, notify: false);
+                await OfflineAuth.UpdateCachedSessionAsync(switched);
+                Session.NotifyChanged();
+            }
+            else
+            {
+                Session.UpdateYear(yearId);
+            }
+        }
+        catch
+        {
+            Session.UpdateYear(yearId);
         }
     }
 }

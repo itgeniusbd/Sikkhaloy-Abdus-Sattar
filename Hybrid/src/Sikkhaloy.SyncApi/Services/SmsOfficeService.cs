@@ -9,15 +9,15 @@ using Sikkhaloy.Shared.Students;
 
 namespace Sikkhaloy.SyncApi.Services;
 
-public sealed class SmsOfficeService
+public sealed partial class SmsOfficeService
 {
     private const decimal PerSmsRate = 0.36m;
     private const string ShurjoPayBase = "https://engine.shurjopayment.com";
     private const string ShurjoPayUser = "sikkhaloy";
     private const string ShurjoPayPassword = "sikkp22tmxq3499z";
     private const string ShurjoPayPrefix = "SIK";
-    private const string RechargeReturnUrl = "https://sikkhaloy.com/Profile/Invoice/ShurjoPayCallback.aspx";
-    private const string RechargeCancelUrl = "https://sikkhaloy.com/SMS/SMS_Recharge.aspx?cancelled=1";
+    private const string RechargeReturnUrl = "https://hybrid.sikkhaloy.com/payment/callback"; // Hybrid bridge -> SyncApi verify
+    private const string RechargeCancelUrl = "https://hybrid.sikkhaloy.com/payment/cancel";
 
     private readonly EduConnectionFactory _connections;
     private readonly LocalOfficeMode _local;
@@ -966,10 +966,10 @@ SELECT TOP 1 SchoolName, Phone, Email, Address FROM dbo.SchoolInfo WHERE SchoolI
         var note = "SMS_RECHARGE|" + qty + "|" + session.RegistrationID + "|" + session.SchoolID;
         try
         {
-            var url = await CreateShurjoPayOrderAsync(session.SchoolID, total, invoice, schoolName, phone, email, address, note, ct);
+            var (url, spOrderId) = await CreateShurjoPayOrderAsync(session.SchoolID, total, invoice, schoolName, phone, email, address, note, ct);
             if (string.IsNullOrWhiteSpace(url))
                 return Fail("sms.payFail");
-            return new SmsResult { Succeeded = true, CheckoutUrl = url, Count = qty };
+            return new SmsResult { Succeeded = true, CheckoutUrl = url, SpOrderId = spOrderId, Count = qty };
         }
         catch (Exception ex)
         {
@@ -1096,11 +1096,13 @@ WHERE SchoolID = @SchoolID AND StudentID IN ({string.Join(",", studentIds.Select
         return value is null or DBNull ? 0 : Convert.ToInt32(value);
     }
 
-    private static async Task<string?> CreateShurjoPayOrderAsync(
+    private static async Task<(string? CheckoutUrl, string? SpOrderId)> CreateShurjoPayOrderAsync(
         int schoolId, decimal amount, decimal invoiceAmt, string name, string phone, string email, string address,
         string note, CancellationToken ct)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
+        http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "SikkhaloyHybrid/1.0");
+        http.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
         using (var tokenBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["username"] = ShurjoPayUser,
@@ -1153,7 +1155,14 @@ WHERE SchoolID = @SchoolID AND StudentID IN ({string.Join(",", studentIds.Select
             var payJson = await payRes.Content.ReadAsStringAsync(ct);
             var trimmed = payJson.Trim();
             if (!trimmed.StartsWith('{') && !trimmed.StartsWith('['))
-                throw new InvalidOperationException("ShurjoPay গেটওয়ে একটি অকার্যকর রেসপন্স দিয়েছে।");
+            {
+                var preview = trimmed.Length > 180 ? trimmed[..180] + "..." : trimmed;
+                preview = preview.Replace("\r", " ").Replace("\n", " ");
+                throw new InvalidOperationException(
+                    (int)payRes.StatusCode == 403
+                        ? "ShurjoPay blocked this payment request (HTTP 403). Please try again."
+                        : "ShurjoPay gateway error (HTTP " + (int)payRes.StatusCode + ").");
+            }
             using var payDoc = JsonDocument.Parse(trimmed);
             var pay = payDoc.RootElement;
             var checkout = JsonText(pay, "checkout_url") ?? JsonText(pay, "payment_url");
@@ -1164,7 +1173,12 @@ WHERE SchoolID = @SchoolID AND StudentID IN ({string.Join(",", studentIds.Select
                           ?? "checkout_url পাওয়া যায়নি।";
                 throw new InvalidOperationException("ShurjoPay গেটওয়ে এরর: " + msg);
             }
-            return checkout;
+                        var spOrderId = JsonText(pay, "sp_order_id")
+                          ?? JsonText(pay, "order_id")
+                          ?? JsonText(pay, "customer_order_id")
+                          ?? orderId;
+            return (checkout, spOrderId);
+
         }
     }
 

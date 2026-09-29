@@ -43,11 +43,15 @@ public partial class App : System.Windows.Application
 
     private static IServiceProvider BuildServices()
     {
-        var configuration = new ConfigurationBuilder()
+        var configBuilder = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-            .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
-            .Build();
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+#if DEBUG
+        configBuilder.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false);
+#else
+        configBuilder.AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false);
+#endif
+        var configuration = configBuilder.Build();
 
         var baseUrl = SyncApiClient.NormalizeBaseUrl(configuration["SyncApi:BaseUrl"]);
 #if DEBUG
@@ -62,6 +66,9 @@ public partial class App : System.Windows.Application
         collection.AddSingleton(AppHostInfo.Desktop);
         collection.AddSingleton<AppSession>();
         collection.AddSingleton<AppLocale>();
+        collection.AddSingleton<StudentNoticeInbox>();
+        collection.AddSingleton<AdminFeedbackInbox>();
+        collection.AddSingleton<TeacherFeedbackInbox>();
         collection.AddDbContextFactory<LocalDbContext>(options =>
             options.UseSqlite($"Data Source={LocalDbContext.DefaultDatabasePath()}"));
         collection.AddSingleton<OfflineAuthService>();

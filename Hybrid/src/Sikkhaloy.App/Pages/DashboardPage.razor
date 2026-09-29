@@ -4,6 +4,8 @@
 @inject SyncEngine Sync
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AppHostInfo Host
 
 <style>
     .dash-page .dash-class-card .toolbar { margin-bottom: 0.35rem; }
@@ -456,6 +458,10 @@
         box-shadow: 0 6px 14px rgba(245, 158, 11, 0.28);
     }
     .dash-due-btn.is-pay {
+        border: 0;
+        width: 100%;
+        cursor: pointer;
+        font: inherit;
         width: 100%;
         min-height: 52px;
         padding: 0.95rem 1rem;
@@ -616,15 +622,18 @@
 </style>
 
 <div class="dash-page">
-    <div class="dash-hero">
-        <div>
+    <div class="dash-hero@(Host.IsWeb ? " is-web" : null)">
+        <div class="dash-hero-copy">
             <h1>@Locale.T("dash.hello")</h1>
             <p>@Locale.T("dash.today", Session.Current?.SchoolName ?? "", DateTime.Now.ToString("dd MMMM yyyy"))</p>
         </div>
-        <div class="dash-hero-actions">
-            <span class="dash-pending-pill">@Locale.T("dash.pending"): @stats.PendingSync</span>
-            <button class="btn-primary" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
-        </div>
+        @if (!Host.IsWeb)
+        {
+            <div class="dash-hero-actions">
+                <span class="dash-pending-pill">@Locale.T("dash.pending"): @stats.PendingSync</span>
+                <button class="btn-primary" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
+            </div>
+        }
     </div>
 
     @if (showDueModal && access.HasDue && !access.IsBlocked)
@@ -650,7 +659,7 @@
                         <a class="dash-due-btn is-due" href="invoice/due">@Locale.T("dash.billPay")</a>
                         <button type="button" class="dash-due-btn is-later" @onclick="() => showDueModal = false">@Locale.T("dash.dueLater")</button>
                     </div>
-                    <a class="dash-due-btn is-pay" href="invoice/due">@Locale.T("inv.payOnline")</a>
+                    <button type="button" class="dash-due-btn is-pay" disabled="@busy" @onclick="PayOnlineFromDueAsync">@Locale.T("inv.payOnline")</button>
                 </div>
             </div>
         </div>
@@ -673,36 +682,54 @@
     <section class="dash-quick">
         <h2>@Locale.T("dash.quick")</h2>
         <div class="dash-quick-grid">
-            <a class="dash-quick-card is-teal" href="students/new">
-                <span class="dash-quick-ico">@NewIcon</span>
-                <h3>@Locale.T("dash.admission")</h3>
-                <p>@Locale.T("dash.admission.desc")</p>
-            </a>
-            <a class="dash-quick-card is-pink" href="students">
-                <span class="dash-quick-ico">@SearchIcon</span>
-                <h3>@Locale.T("dash.find")</h3>
-                <p>@Locale.T("dash.find.desc")</p>
-            </a>
-            <a class="dash-quick-card is-blue" href="accounts/collect">
-                <span class="dash-quick-ico">@MoneyIcon</span>
-                <h3>@Locale.T("dash.fees")</h3>
-                <p>@Locale.T("dash.fees.desc")</p>
-            </a>
-            <a class="dash-quick-card is-amber" href="attendance/student/manual">
-                <span class="dash-quick-ico">@AttIcon</span>
-                <h3>@Locale.T("dash.attendance")</h3>
-                <p>@Locale.T("dash.attendance.desc")</p>
-            </a>
-            <a class="dash-quick-card is-violet" href="exam/setting">
-                <span class="dash-quick-ico">@ExamIcon</span>
-                <h3>@Locale.T("dash.exam")</h3>
-                <p>@Locale.T("dash.exam.desc")</p>
-            </a>
-            <a class="dash-quick-card is-green" href="exam/collect-paper">
-                <span class="dash-quick-ico">@PaperIcon</span>
-                <h3>@Locale.T("dash.collectPaper")</h3>
-                <p>@Locale.T("dash.collectPaper.desc")</p>
-            </a>
+            @if (CanOpenQuick("students/new"))
+            {
+                <a class="dash-quick-card is-teal" href="students/new">
+                    <span class="dash-quick-ico">@NewIcon</span>
+                    <h3>@Locale.T("dash.admission")</h3>
+                    <p>@Locale.T("dash.admission.desc")</p>
+                </a>
+            }
+            @if (CanOpenQuick("students"))
+            {
+                <a class="dash-quick-card is-pink" href="students">
+                    <span class="dash-quick-ico">@SearchIcon</span>
+                    <h3>@Locale.T("dash.find")</h3>
+                    <p>@Locale.T("dash.find.desc")</p>
+                </a>
+            }
+            @if (CanOpenQuick("accounts/collect"))
+            {
+                <a class="dash-quick-card is-blue" href="accounts/collect">
+                    <span class="dash-quick-ico">@MoneyIcon</span>
+                    <h3>@Locale.T("dash.fees")</h3>
+                    <p>@Locale.T("dash.fees.desc")</p>
+                </a>
+            }
+            @if (CanOpenQuick("attendance/student/manual"))
+            {
+                <a class="dash-quick-card is-amber" href="attendance/student/manual">
+                    <span class="dash-quick-ico">@AttIcon</span>
+                    <h3>@Locale.T("dash.attendance")</h3>
+                    <p>@Locale.T("dash.attendance.desc")</p>
+                </a>
+            }
+            @if (CanOpenQuick("attendance/display"))
+            {
+                <a class="dash-quick-card is-violet" href="attendance/display">
+                    <span class="dash-quick-ico">@DisplayIcon</span>
+                    <h3>@Locale.T("dash.attDisplay")</h3>
+                    <p>@Locale.T("dash.attDisplay.desc")</p>
+                </a>
+            }
+            @if (CanOpenQuick("sms/recharge"))
+            {
+                <a class="dash-quick-card is-green" href="sms/recharge">
+                    <span class="dash-quick-ico">@SmsIcon</span>
+                    <h3>@Locale.T("dash.smsRecharge")</h3>
+                    <p>@Locale.T("dash.smsRecharge.desc")</p>
+                </a>
+            }
         </div>
     </section>
 
@@ -1080,7 +1107,7 @@
         </section>
     </div>
 
-    <section class="card students-card">
+    <section class="card students-card recent-students">
         <div class="toolbar">
             <h2>@Locale.T("dash.recent")</h2>
             <a href="students">@Locale.T("dash.viewAll")</a>
@@ -1091,13 +1118,15 @@
         }
         else
         {
-            <table class="data-table">
+            <div class="table-wrap recent-students-table-wrap">
+            <table class="data-table recent-students-table">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>@Locale.T("students.name")</th>
                         <th>@Locale.T("dash.classCol")</th>
                         <th>@Locale.T("dash.type")</th>
+                        <th>@Locale.T("students.admissionDate")</th>
                         <th>@Locale.T("dash.mobile")</th>
                         <th>@Locale.T("students.syncCol")</th>
                     </tr>
@@ -1110,12 +1139,33 @@
                         <td><a class="name-link" href="@($"students/details/{student.LocalId}")">@student.StudentsName</a></td>
                         <td>@(student.ClassName ?? "—")</td>
                         <td><span class="@TypePillClass(student.IsNew)">@TypeLabel(student.IsNew)</span></td>
+                        <td>@(student.AdmissionDate?.ToString("dd/MM/yyyy") ?? "—")</td>
                         <td>@student.SMSPhoneNo</td>
                         <td><span class="pill">@student.SyncStatus</span></td>
                     </tr>
                 }
                 </tbody>
             </table>
+            </div>
+
+            <div class="recent-students-cards">
+            @foreach (var student in stats.Recent)
+            {
+                <a class="recent-stu-card" href="@($"students/details/{student.LocalId}")">
+                    <div class="recent-stu-top">
+                        <strong class="recent-stu-name">@student.StudentsName</strong>
+                        <span class="@TypePillClass(student.IsNew)">@TypeLabel(student.IsNew)</span>
+                    </div>
+                    <div class="recent-stu-id">ID: @student.StudentCode</div>
+                    <div class="recent-stu-grid">
+                        <span><em>@Locale.T("dash.classCol")</em>@(student.ClassName ?? "—")</span>
+                        <span><em>@Locale.T("students.admissionDate")</em>@(student.AdmissionDate?.ToString("dd/MM/yyyy") ?? "—")</span>
+                        <span><em>@Locale.T("dash.mobile")</em>@(string.IsNullOrWhiteSpace(student.SMSPhoneNo) ? "—" : student.SMSPhoneNo)</span>
+                        <span><em>@Locale.T("students.syncCol")</em><span class="pill">@student.SyncStatus</span></span>
+                    </div>
+                </a>
+            }
+            </div>
         }
     </section>
 </div>
@@ -1198,6 +1248,12 @@
             return;
         }
 
+        if (Session.IsTeacher)
+        {
+            Nav.NavigateTo("/teacher", replace: true);
+            return;
+        }
+
         if (Session.IsAuthority)
         {
             Nav.NavigateTo("/authority", replace: true);
@@ -1213,20 +1269,28 @@
     private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
     private void OnSyncChanged() => _ = InvokeAsync(async () =>
     {
+        // Menu may land after first paint — refresh quick links when sync finishes.
+        await ReloadQuickMenuAsync();
         await RefreshLocalAsync();
         try
         {
             var cached = await Api.PeekDashboardOverviewAsync();
             if (cached is not null)
-            {
                 online = cached;
-                StateHasChanged();
-            }
         }
         catch
         {
         }
+        StateHasChanged();
     });
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Returning to dashboard (e.g. from attendance/display) must re-read menu.
+        if (Session.IsAuthenticated && !Session.IsStudent && !Session.IsTeacher && !Session.IsAuthority)
+            await ReloadQuickMenuAsync();
+        await base.OnParametersSetAsync();
+    }
 
     public override void Dispose()
     {
@@ -1243,6 +1307,14 @@
 
         try
         {
+            await ReloadQuickMenuAsync();
+            // First paint can race ahead of menu pull — one short retry.
+            if ((quickMenu.Categories?.Count ?? 0) == 0)
+            {
+                await Task.Delay(400);
+                await ReloadQuickMenuAsync();
+            }
+
             var localTask = Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
             var cachedTask = Api.PeekDashboardOverviewAsync();
             stats = await localTask;
@@ -1263,6 +1335,7 @@
         }
 
         StateHasChanged();
+        _ = EnsureBirthdayPhotosAsync(current);
         _ = LoadOnlineAsync();
     }
 
@@ -1274,11 +1347,29 @@
         try
         {
             stats = await Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+            await EnsureBirthdayPhotosAsync(current);
         }
         catch
         {
         }
         StateHasChanged();
+    }
+
+    private async Task EnsureBirthdayPhotosAsync(SessionSnapshot current)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        var kids = stats.BirthdaysToday.Concat(stats.BirthdaysUpcoming).ToList();
+        if (kids.Count == 0)
+            return;
+        try
+        {
+            await Sync.EnsureStudentPhotosAsync(current.SchoolID, kids, Session.AccessToken);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
     }
 
     private async Task LoadOnlineAsync()
@@ -1316,6 +1407,62 @@
         }
         catch
         {
+        }
+    }
+
+
+    private async Task PayOnlineFromDueAsync()
+    {
+        if (!access.HasDue || access.Due <= 0)
+        {
+            message = Locale.T("inv.noDue");
+            messageError = true;
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("inv.confirmPay")))
+            return;
+
+        showDueModal = false;
+        busy = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                message = Locale.T("subj.needOnline");
+                messageError = true;
+                return;
+            }
+            var result = await Api.PayDueInvoiceAsync(Session.AccessToken!);
+            if (result.Succeeded && result.LocalMode && string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                message = Locale.T("inv.localNote");
+                messageError = false;
+                return;
+            }
+            if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                message = string.IsNullOrWhiteSpace(result.Error)
+                    ? Locale.T("inv.payFail")
+                    : (result.Error!.StartsWith("inv.", StringComparison.OrdinalIgnoreCase)
+                        ? Locale.T(result.Error)
+                        : result.Error);
+                messageError = true;
+                return;
+            }
+            await JS.InvokeVoidAsync("sikkhaloyOpenUrl", result.CheckoutUrl);
+            message = Locale.T("inv.payOpened");
+            messageError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            messageError = true;
+        }
+        finally
+        {
+            busy = false;
         }
     }
 
@@ -1786,11 +1933,47 @@
     private string BillDaysText()
     {
         var days = access.DaysUntilExpiry;
+        if (access.InGrace)
+        {
+            if (days == 0) return Locale.T("dash.graceDays0");
+            if (days == 1) return Locale.T("dash.graceDays1");
+            return Locale.T("dash.graceDaysN", days);
+        }
+
         if (days == 0) return Locale.T("dash.billDays0");
         if (days == 1) return Locale.T("dash.billDays1");
         return Locale.T("dash.billDaysN", days);
     }
 
+
+    private MenuTreeDto quickMenu = new();
+
+    private async Task ReloadQuickMenuAsync()
+    {
+        var user = Session.Current?.UserName;
+        if (string.IsNullOrWhiteSpace(user))
+            return;
+        try
+        {
+            quickMenu = await Sync.GetMenuAsync(user) ?? new();
+        }
+        catch
+        {
+            quickMenu ??= new();
+        }
+        quickMenu.Categories ??= [];
+    }
+
+    private bool CanOpenQuick(string route)
+    {
+        if (string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Public office display — always offered on dashboard when logged in.
+        if (route.Equals("attendance/display", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Exact menu route only (ContainsRoute no longer treats /students as /students/new).
+        return quickMenu.ContainsRoute(route);
+    }
     private string TranslateSyncError(string? error) => Locale.SyncError(error);
 
     private static readonly MarkupString NewIcon = Icon("M12 5v14M5 12h14");
@@ -1799,6 +1982,8 @@
     private static readonly MarkupString AttIcon = Icon("M9 11l3 3 8-8M5 19h14V5H5v14Z");
     private static readonly MarkupString ExamIcon = Icon("M8 4h8v2H8V4Zm-2 4h12v12H6V8Zm4 4h4M10 16h4");
     private static readonly MarkupString PaperIcon = Icon("M7 3h8l4 4v14H7V3Zm8 0v4h4M9 12h6M9 16h6");
+    private static readonly MarkupString DisplayIcon = Icon("M3 5h18v12H3V5Zm4 16h10M12 17v4");
+    private static readonly MarkupString SmsIcon = Icon("M4 5h16v10H8l-4 4V5Zm4 4h8M8 12h5");
 
     private static MarkupString Icon(string d) =>
         (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";

@@ -95,6 +95,18 @@ internal sealed partial class OfflineApiStore
         return url.StartsWith("api/sync/", StringComparison.OrdinalIgnoreCase);
     }
 
+    public async Task RemoveSnapshotAsync(string key, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var row = await db.ApiSnapshots.FindAsync([key], cancellationToken);
+        if (row is null)
+            return;
+        db.ApiSnapshots.Remove(row);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task SaveAsync(string key, string json, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key) || json is null)
@@ -447,24 +459,22 @@ internal sealed partial class OfflineApiStore
             .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var classIds = request.StudentClassIDs.Where(x => x > 0).Distinct().ToList();
-        if (codes.Count == 0)
-            return classIds.Count > 0 ? JsonSerializer.Serialize(request, JsonOptions) : null;
-
-        var resolved = new List<int>();
+        var resolved = request.StudentClassIDs.Where(x => x > 0).Distinct().ToList();
         foreach (var code in codes)
         {
             var student = await FindLocalStudentAsync(code, cancellationToken);
             if (student?.StudentClassServerId is > 0)
-            {
                 resolved.Add(student.StudentClassServerId.Value);
-                continue;
-            }
-
-            return null;
         }
 
-        request.StudentClassIDs = resolved.Distinct().ToList();
+        resolved = resolved.Distinct().ToList();
+        if (resolved.Count == 0 && codes.Count == 0)
+            return null;
+
+        // Keep StudentIDs so the server can resolve a newly re-admitted class
+        // even when the local cache does not yet have StudentClassServerId.
+        if (resolved.Count > 0)
+            request.StudentClassIDs = resolved;
         return JsonSerializer.Serialize(request, JsonOptions);
     }
 

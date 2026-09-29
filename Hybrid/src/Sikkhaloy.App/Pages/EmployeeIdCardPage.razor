@@ -61,28 +61,30 @@
             {
                 var name = SplitName(card.Name);
                 <article class="tid-card">
-                    <div class="tid-slash" aria-hidden="true">
-                        <span class="tid-slash-green"></span>
-                        <span class="tid-slash-accent"></span>
-                        <span class="tid-slash-shade"></span>
-                    </div>
-                    <header class="tid-head">
-                        @if (!string.IsNullOrWhiteSpace(card.LogoDataUrl))
-                        {
-                            <img class="tid-logo" src="@card.LogoDataUrl" alt="" />
-                        }
-                        else
-                        {
-                            <span class="tid-logo empty">@Locale.T("emp.idTitle")</span>
-                        }
-                        <div>
-                            <strong>@card.SchoolName</strong>
-                            @if (!string.IsNullOrWhiteSpace(card.InstitutionDialog))
-                            {
-                                <small>@card.InstitutionDialog</small>
-                            }
+                    <div class="tid-top">
+                        <div class="tid-slash" aria-hidden="true">
+                            <span class="tid-slash-green"></span>
+                            <span class="tid-slash-accent"></span>
+                            <span class="tid-slash-shade"></span>
                         </div>
-                    </header>
+                        <div class="tid-head">
+                            @if (!string.IsNullOrWhiteSpace(card.LogoDataUrl))
+                            {
+                                <img class="tid-logo" src="@card.LogoDataUrl" alt="" />
+                            }
+                            else
+                            {
+                                <span class="tid-logo empty">@Locale.T("emp.idTitle")</span>
+                            }
+                            <div>
+                                <strong>@card.SchoolName</strong>
+                                @if (!string.IsNullOrWhiteSpace(card.InstitutionDialog))
+                                {
+                                    <small>@card.InstitutionDialog</small>
+                                }
+                            </div>
+                        </div>
+                    </div>
                     <div class="tid-photo-wrap">
                         @if (!string.IsNullOrWhiteSpace(card.PhotoDataUrl))
                         {
@@ -293,7 +295,7 @@
     }
 
     private async Task PrintAsync() =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", true);
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "", true);
 
     private static string Dash(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

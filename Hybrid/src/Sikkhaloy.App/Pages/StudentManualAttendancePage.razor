@@ -79,20 +79,26 @@
         </section>
         <section class="sal-box is-date">
             <span class="sal-box-h">@Locale.T("att.date")</span>
-            <input type="date" @bind="date" @bind:after="LoadIfReadyAsync" disabled="@busy" />
+            <span class="att-date-wrap">
+                <input type="date" lang="en-GB" @bind="date" @bind:after="LoadIfReadyAsync" disabled="@busy" />
+            </span>
         </section>
-        <section class="sal-box is-names">
+        <section class="sal-box is-names att-sms-lang">
             <span class="sal-box-h">@Locale.T("att.sms")</span>
-            <span class="readm-type">
+            <span class="readm-type att-sms-radios">
                 <label class="choice-inline">
-                    <input type="radio" name="sms-lang" checked="@englishSms" disabled="@busy" @onchange="@(() => englishSms = true)" />
+                    <input type="radio" name="sms-lang" checked="@englishSms" disabled="@busy" @onchange="@(() => SetSmsLang(true))" />
                     <span>@Locale.T("att.englishSms")</span>
                 </label>
                 <label class="choice-inline">
-                    <input type="radio" name="sms-lang" checked="@(!englishSms)" disabled="@busy" @onchange="@(() => englishSms = false)" />
+                    <input type="radio" name="sms-lang" checked="@(!englishSms)" disabled="@busy" @onchange="@(() => SetSmsLang(false))" />
                     <span>@Locale.T("att.banglaSms")</span>
                 </label>
             </span>
+            <div class="tch-sms-lang">
+                <button type="button" class="@(englishSms ? "is-on" : null)" disabled="@busy" @onclick="() => SetSmsLang(true)">@Locale.T("att.englishSms")</button>
+                <button type="button" class="@(englishSms ? null : "is-on")" disabled="@busy" @onclick="() => SetSmsLang(false)">@Locale.T("att.banglaSms")</button>
+            </div>
         </section>
         <div class="sal-actions">
             <button type="button" class="sal-gen" disabled="@busy" @onclick="LoadRowsAsync">@Locale.T("si.find")</button>
@@ -124,7 +130,7 @@
                     <th>@Locale.T("si.id")</th>
                     <th>@Locale.T("att.studentName")</th>
                     <th>@Locale.T("att.rollNo")</th>
-                    <th>@Locale.T("att.status")</th>
+                    <th class="col-status">@Locale.T("att.status")</th>
                     <th>@Locale.T("att.comment")</th>
                     <th>@Locale.T("att.takenBy")</th>
                     <th>@Locale.T("emp.phone")</th>
@@ -186,15 +192,78 @@
 
     @if (rows.Count > 0)
     {
+        <div class="att-mobile-cards no-print">
+            <div class="tch-att-bar">
+                <label>
+                    <input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" />
+                    @Locale.T("att.all")
+                </label>
+                <button type="button" disabled="@busy" @onclick="MarkAllPresent">@Locale.T("tch.allPresent")</button>
+            </div>
+            @foreach (var row in rows)
+            {
+                <article @key="@($"m-{row.StudentClassID}")" class="tch-stu-card @(row.HasRecord || row.Selected ? "is-done" : null)">
+                    <label class="is-check">
+                        <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetSelected(row, e)" />
+                    </label>
+                    <div class="is-name">
+                        <b>@row.Name</b>
+                        <small>@(string.IsNullOrWhiteSpace(row.Phone) ? "—" : row.Phone)</small>
+                    </div>
+                    <span class="is-roll">@Locale.T("att.rollNo") @(string.IsNullOrWhiteSpace(row.RollNo) ? "—" : row.RollNo)</span>
+                    <small class="is-meta">ID @row.ID</small>
+                    <small class="is-taken">@(string.IsNullOrWhiteSpace(row.TakenBy) ? "—" : row.TakenBy)</small>
+                    <div class="tch-status">
+                        @foreach (var st in Statuses)
+                        {
+                            <button type="button" class="is-@st.ToLowerInvariant() @(row.Attendance == st ? "is-on" : null)"
+                                    disabled="@busy" @onclick="() => SetAttendance(row, st)">@st</button>
+                        }
+                    </div>
+                    @if (ShowExtra(row))
+                    {
+                        <div class="tch-extra">
+                            @if (!string.IsNullOrWhiteSpace(row.LeaveRange))
+                            {
+                                <small>@row.LeaveRange</small>
+                            }
+                            @if (NeedsSms(row.Attendance))
+                            {
+                                <label class="tch-sms-check @(row.HasRecord ? (row.SmsSent ? "is-sent" : "is-pending") : null)">
+                                    <input type="checkbox" checked="@(row.HasRecord ? row.SmsSent : row.SendSms)"
+                                           disabled="@(busy || row.SmsSent)"
+                                           @onchange="e => SetSendSms(row, e)" />
+                                    <span>@Locale.T(SmsCaption(row))</span>
+                                </label>
+                            }
+                            <textarea rows="3" @bind="row.Reason" disabled="@busy"></textarea>
+                        </div>
+                    }
+                </article>
+            }
+        </div>
         <div class="att-submit-bar no-print">
             <div class="sal-actions">
                 <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submit")</button>
             </div>
         </div>
+        <div class="tch-att-submit att-mobile-submit no-print">
+            @if (busy)
+            {
+                <div class="tch-progress" role="progressbar" aria-label="@Locale.T("si.loading")"><span></span></div>
+            }
+            <button type="button" class="tch-att-load @(busy ? "is-busy" : null)" disabled="@busy" @onclick="SaveAsync">
+                @if (busy)
+                {
+                    <span class="tch-submit-dot" aria-hidden="true"></span>
+                }
+                @(busy ? Locale.T("si.saving") : Locale.T("att.submit"))
+            </button>
+        </div>
     }
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+<ExamBusyOverlay Busy="@(busy && rows.Count == 0)" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
     <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
@@ -323,7 +392,28 @@
         }
 
         row.Reason = BuildComment(row, status);
-        row.SendSms = true;
+        row.SendSms = !row.SmsSent;
+    }
+
+    private void MarkAllPresent()
+    {
+        foreach (var row in rows)
+            SetAttendance(row, "Pre");
+        allSelected = rows.Count > 0;
+    }
+
+    private void SetSmsLang(bool english)
+    {
+        englishSms = english;
+        foreach (var row in rows.Where(x => x.Attendance is "Abs" or "Late" or "Bunk" && IsGeneratedComment(x.Reason)))
+            row.Reason = BuildComment(row, row.Attendance);
+    }
+
+    private void SetSendSms(StudentManualRowDto row, ChangeEventArgs e)
+    {
+        if (row.SmsSent)
+            return;
+        row.SendSms = e.Value is true or "true";
     }
 
     private async Task LoadRowsAsync()
@@ -407,13 +497,13 @@
             }
             if (!result.Succeeded)
             {
-                Show(Locale.T(result.Error ?? "att.failed"), true);
+                Show(string.IsNullOrWhiteSpace(result.Message)
+                    ? Locale.T(result.Error ?? "att.failed")
+                    : result.Message, true);
                 return;
             }
-            var ok = Locale.T("att.saved");
-            busy = false;
-            await LoadRowsAsync();
-            Show(ok, false);
+            ApplySavedRows(selected);
+            Show(Locale.T("att.saved"), false);
         }
         catch (HttpRequestException)
         {
@@ -486,6 +576,8 @@
 
     private static string RowClass(StudentManualRowDto row)
     {
+        if (row.HasRecord && row.Selected)
+            return "is-saved is-picked";
         if (row.Selected)
             return "is-picked";
         return row.HasRecord ? "is-saved" : "";
@@ -526,5 +618,32 @@
         error = isError ? text : null;
     }
 
+    private void ApplySavedRows(List<StudentManualRowDto> saved)
+    {
+        var who = Session.Current?.DisplayName;
+        foreach (var row in saved)
+        {
+            row.HasRecord = true;
+            row.Selected = true;
+            if (row.SendSms && NeedsSms(row.Attendance))
+                row.SmsSent = true;
+            row.SendSms = false;
+            if (!string.IsNullOrWhiteSpace(who))
+                row.TakenBy = who;
+        }
+        allSelected = rows.Count > 0 && rows.All(x => x.Selected);
+    }
+
     private void ClosePopup() => popupText = "";
+
+    private static bool NeedsSms(string status) =>
+        status is "Abs" or "Late" or "Bunk";
+
+    private static bool ShowExtra(StudentManualRowDto row) =>
+        NeedsSms(row.Attendance) || row.Attendance == "Leave" || !string.IsNullOrWhiteSpace(row.LeaveRange);
+
+    private static string SmsCaption(StudentManualRowDto row) =>
+        row.HasRecord
+            ? (row.SmsSent ? "tch.smsSent" : "tch.smsNotSent")
+            : "tch.sendSms";
 }

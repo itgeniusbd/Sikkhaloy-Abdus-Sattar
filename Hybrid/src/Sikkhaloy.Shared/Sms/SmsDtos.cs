@@ -9,6 +9,7 @@ public sealed class SmsResult
     public int Balance { get; set; }
     public int Count { get; set; }
     public string? CheckoutUrl { get; set; }
+    public string? SpOrderId { get; set; }
     public string? Message { get; set; }
     public bool LocalMode { get; set; }
 }

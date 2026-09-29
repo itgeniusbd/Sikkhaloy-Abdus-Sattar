@@ -21,6 +21,8 @@ public sealed class JwtTokenService
     public const string StudentCodeClaim = "student_code";
     public const string ClassNameClaim = "class_name";
     public const string SectionNameClaim = "section_name";
+    public const string TeacherIdClaim = "teacher_id";
+    public const string EmployeeIdClaim = "employee_id";
 
     private readonly IConfiguration _configuration;
 
@@ -52,7 +54,9 @@ public sealed class JwtTokenService
             new Claim(ClassIdClaim, session.ClassID.ToString()),
             new Claim(StudentCodeClaim, session.StudentCode ?? ""),
             new Claim(ClassNameClaim, session.ClassName ?? ""),
-            new Claim(SectionNameClaim, session.SectionName ?? "")
+            new Claim(SectionNameClaim, session.SectionName ?? ""),
+            new Claim(TeacherIdClaim, session.TeacherID.ToString()),
+            new Claim(EmployeeIdClaim, session.EmployeeID.ToString())
         };
 
         var credentials = new SigningCredentials(
@@ -71,24 +75,98 @@ public sealed class JwtTokenService
 
     public static SessionSnapshot FromPrincipal(ClaimsPrincipal user)
     {
+        var role = ClaimValue(user, RoleClaim, ClaimTypes.Role, "role",
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+        // Some hosts map custom claims; also accept Category-style Admin values.
+        if (string.IsNullOrWhiteSpace(role))
+            role = ClaimValue(user, "Category", "category");
+
         return new SessionSnapshot
         {
-            UserName = user.Identity?.Name ?? "",
-            Role = user.FindFirstValue(RoleClaim) ?? "",
-            SchoolID = ParseInt(user.FindFirstValue(SchoolIdClaim)),
-            RegistrationID = ParseInt(user.FindFirstValue(RegistrationIdClaim)),
-            EducationYearID = ParseInt(user.FindFirstValue(EducationYearIdClaim)),
-            DeviceId = user.FindFirstValue(DeviceIdClaim) ?? "",
-            SchoolName = user.FindFirstValue(SchoolNameClaim) ?? "",
-            DisplayName = user.FindFirstValue(DisplayNameClaim) ?? "",
-            StudentID = ParseInt(user.FindFirstValue(StudentIdClaim)),
-            StudentClassID = ParseInt(user.FindFirstValue(StudentClassIdClaim)),
-            ClassID = ParseInt(user.FindFirstValue(ClassIdClaim)),
-            StudentCode = user.FindFirstValue(StudentCodeClaim) ?? "",
-            ClassName = user.FindFirstValue(ClassNameClaim) ?? "",
-            SectionName = user.FindFirstValue(SectionNameClaim) ?? ""
+            UserName = FirstNonEmpty(
+                user.Identity?.Name,
+                ClaimValue(user, ClaimTypes.Name, JwtRegisteredClaimNames.UniqueName, "unique_name", "name",
+                    JwtRegisteredClaimNames.Sub, ClaimTypes.NameIdentifier)),
+            Role = role,
+            SchoolID = FirstInt(user, SchoolIdClaim, "schoolid", "SchoolID"),
+            RegistrationID = FirstInt(user, RegistrationIdClaim, "registrationid", "RegistrationID"),
+            EducationYearID = FirstInt(user, EducationYearIdClaim, "educationyearid", "EducationYearID"),
+            DeviceId = ClaimValue(user, DeviceIdClaim),
+            SchoolName = ClaimValue(user, SchoolNameClaim),
+            DisplayName = ClaimValue(user, DisplayNameClaim),
+            StudentID = FirstInt(user, StudentIdClaim),
+            StudentClassID = FirstInt(user, StudentClassIdClaim),
+            ClassID = FirstInt(user, ClassIdClaim),
+            StudentCode = ClaimValue(user, StudentCodeClaim),
+            ClassName = ClaimValue(user, ClassNameClaim),
+            SectionName = ClaimValue(user, SectionNameClaim),
+            TeacherID = FirstInt(user, TeacherIdClaim),
+            EmployeeID = FirstInt(user, EmployeeIdClaim)
         };
     }
 
     private static int ParseInt(string? value) => int.TryParse(value, out var parsed) ? parsed : 0;
+
+    private static int FirstInt(ClaimsPrincipal user, params string[] names)
+    {
+        var text = ClaimValue(user, names);
+        if (ParseInt(text) > 0)
+            return ParseInt(text);
+
+        foreach (var claim in user.Claims)
+        {
+            var type = claim.Type ?? "";
+            foreach (var name in names)
+            {
+                if (type.Contains(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var n = ParseInt(claim.Value);
+                    if (n > 0)
+                        return n;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            var text = (value ?? "").Trim();
+            if (text.Length > 0)
+                return text;
+        }
+
+        return "";
+    }
+
+    private static string ClaimValue(ClaimsPrincipal user, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var value = user.FindFirstValue(name);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+
+        foreach (var claim in user.Claims)
+        {
+            var type = claim.Type ?? "";
+            foreach (var name in names)
+            {
+                if (type.Equals(name, StringComparison.OrdinalIgnoreCase)
+                    || type.EndsWith("/" + name, StringComparison.OrdinalIgnoreCase)
+                    || type.EndsWith(":" + name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = (claim.Value ?? "").Trim();
+                    if (value.Length > 0)
+                        return value;
+                }
+            }
+        }
+
+        return "";
+    }
 }

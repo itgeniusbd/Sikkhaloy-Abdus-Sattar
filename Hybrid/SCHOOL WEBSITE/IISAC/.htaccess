@@ -1,0 +1,36 @@
+DirectoryIndex index.php index.html
+
+# Deny sensitive files anywhere under the site root
+<FilesMatch "(?i)^(\.env|\.env\..*|config\.json|config\.local\.php|install\.lock)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS (skip localhost / local IP)
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteCond %{HTTP_HOST} !^localhost [NC]
+  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+  RewriteCond %{HTTP_HOST} !^192\.168\. [NC]
+  RewriteCond %{HTTP_HOST} !^10\. [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+  RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
+  RewriteRule ^uploads/ - [L]
+  RewriteRule ^install/ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . index.php [L]
+</IfModule>

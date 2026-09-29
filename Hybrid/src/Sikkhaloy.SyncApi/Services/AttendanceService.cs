@@ -10,7 +10,7 @@ using Sikkhaloy.Shared.Auth;
 
 namespace Sikkhaloy.SyncApi.Services;
 
-public sealed class AttendanceService
+public sealed partial class AttendanceService
 {
     private static readonly string[] WeekDays =
         ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -602,7 +602,9 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
         cmd.Parameters.AddWithValue("@Date", date.Date);
         try
         {
-            return await ReadManualRowsAsync(cmd, cancellationToken);
+            var items = await ReadManualRowsAsync(cmd, cancellationToken);
+            await MarkSmsSentAsync(con, session, date, items, cancellationToken);
+            return items;
         }
         catch (SqlException)
         {
@@ -634,7 +636,9 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
 """, con);
             AddClassParams(fallback, session, scheduleId, classId, groupId, sectionId, shiftId);
             fallback.Parameters.AddWithValue("@Date", date.Date);
-            return await ReadManualRowsAsync(fallback, cancellationToken);
+            var items = await ReadManualRowsAsync(fallback, cancellationToken);
+            await MarkSmsSentAsync(con, session, date, items, cancellationToken);
+            return items;
         }
     }
 
@@ -681,6 +685,43 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
         return items;
     }
 
+    private static async Task MarkSmsSentAsync(
+        SqlConnection con, SessionSnapshot session, DateTime date,
+        IReadOnlyList<StudentManualRowDto> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+            return;
+        try
+        {
+            await using var cmd = new SqlCommand("""
+SELECT DISTINCT oi.StudentID
+FROM dbo.SMS_OtherInfo AS oi
+INNER JOIN dbo.SMS_Send_Record AS sr ON sr.SMS_Send_ID = oi.SMS_Send_ID
+WHERE oi.SchoolID = @SchoolID
+  AND CAST(sr.Date AS DATE) = @Date
+  AND (sr.PurposeOfSMS = N'Attendance' OR sr.PurposeOfSMS = N'Device Attendance')
+""", con);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            cmd.Parameters.AddWithValue("@Date", date.Date);
+            var sent = new HashSet<int>();
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader["StudentID"] is not DBNull)
+                    sent.Add(Convert.ToInt32(reader["StudentID"]));
+            }
+            foreach (var row in items)
+            {
+                row.SmsSent = sent.Contains(row.StudentID);
+                if (row.SmsSent)
+                    row.SendSms = false;
+            }
+        }
+        catch (SqlException)
+        {
+        }
+    }
+
     public async Task<AttendanceResult> SaveStudentManualAsync(
         SessionSnapshot session, SaveStudentManualRequest? request, CancellationToken cancellationToken)
     {
@@ -688,45 +729,136 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
             return Fail("att.needSchedule");
         if (request.Rows.Count == 0)
             return Fail("att.needRows");
-        await using var con = _connections.Create();
-        await con.OpenAsync(cancellationToken);
-        var saved = 0;
-        foreach (var row in request.Rows)
+        var rows = request.Rows
+            .GroupBy(x => x.StudentClassID)
+            .Select(g => g.Last())
+            .ToList();
+        try
         {
-            await using var cmd = new SqlCommand("""
-IF NOT EXISTS (
-    SELECT 1 FROM dbo.Attendance_Record
-    WHERE StudentClassID = @StudentClassID AND CAST(AttendanceDate AS DATE) = @Date
-      AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID
-      AND ISNULL(Attendance_ScheduleID, 0) = @ScheduleID)
-    INSERT INTO dbo.Attendance_Record
-        (SchoolID, RegistrationID, EducationYearID, StudentID, ClassID, StudentClassID,
-         Attendance_ScheduleID, Attendance, AttendanceDate, Reason)
-    VALUES (@SchoolID, @RegistrationID, @EducationYearID, @StudentID, @ClassID, @StudentClassID,
-            @ScheduleID, @Attendance, @Date, @Reason);
-ELSE
-    UPDATE dbo.Attendance_Record
-    SET Attendance = @Attendance, Reason = @Reason, RegistrationID = @RegistrationID
-    WHERE StudentClassID = @StudentClassID AND CAST(AttendanceDate AS DATE) = @Date
-      AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID
-      AND ISNULL(Attendance_ScheduleID, 0) = @ScheduleID;
-""", con);
-            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            cmd.Parameters.AddWithValue("@RegistrationID", session.RegistrationID);
-            cmd.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-            cmd.Parameters.AddWithValue("@StudentID", row.StudentID);
-            cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
-            cmd.Parameters.AddWithValue("@StudentClassID", row.StudentClassID);
-            cmd.Parameters.AddWithValue("@ScheduleID", request.ScheduleID);
-            cmd.Parameters.AddWithValue("@Attendance", row.Attendance);
-            cmd.Parameters.AddWithValue("@Date", request.AttendanceDate.Date);
-            cmd.Parameters.AddWithValue("@Reason", (object?)row.Reason ?? DBNull.Value);
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
-            saved++;
+            await using var con = _connections.Create();
+            await con.OpenAsync(cancellationToken);
+            await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
+            await SaveManualRowsBatchAsync(con, tx, session, request, rows, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
         }
-        if (request.Rows.Any(x => x.SendSms))
+        catch (SqlException ex)
+        {
+            return new AttendanceResult { Succeeded = false, Error = "att.failed", Message = ex.Message };
+        }
+        catch (Exception ex)
+        {
+            return new AttendanceResult { Succeeded = false, Error = "att.failed", Message = ex.Message };
+        }
+        if (rows.Any(x => x.SendSms))
             _ = _sms.TrySendManualAttendanceAsync(session, request, CancellationToken.None);
-        return new AttendanceResult { Succeeded = true, Saved = saved };
+        return new AttendanceResult { Succeeded = true, Saved = rows.Count };
+    }
+
+    private static async Task SaveManualRowsBatchAsync(
+        SqlConnection con, SqlTransaction tx, SessionSnapshot session,
+        SaveStudentManualRequest request, List<StudentManualSaveRow> rows, CancellationToken cancellationToken)
+    {
+        const int chunkSize = 400;
+        for (var offset = 0; offset < rows.Count; offset += chunkSize)
+        {
+            var chunk = rows.Skip(offset).Take(chunkSize).ToList();
+            var values = new StringBuilder();
+            for (var i = 0; i < chunk.Count; i++)
+            {
+                if (i > 0)
+                    values.Append(',');
+                values.Append($"(@Sid{i}, @Scid{i}, @Att{i}, CAST(@Reason{i} AS nvarchar(500)))");
+            }
+
+            await using var cmd = new SqlCommand($"""
+CREATE TABLE #ManualAtt (
+    StudentID int NOT NULL,
+    StudentClassID int NOT NULL,
+    Attendance nvarchar(128) NOT NULL,
+    Reason nvarchar(500) NULL,
+    PRIMARY KEY (StudentClassID)
+);
+INSERT INTO #ManualAtt (StudentID, StudentClassID, Attendance, Reason)
+VALUES {values};
+
+CREATE TABLE #Ids (
+    AttendanceRecordID int NOT NULL PRIMARY KEY,
+    StudentClassID int NOT NULL
+);
+INSERT INTO #Ids (AttendanceRecordID, StudentClassID)
+SELECT t.AttendanceRecordID, t.StudentClassID
+FROM dbo.Attendance_Record AS t
+INNER JOIN #ManualAtt AS s ON s.StudentID = t.StudentID
+WHERE t.SchoolID = @SchoolID
+  AND t.AttendanceDate = @Date
+  AND t.Attendance_ScheduleID = @ScheduleID;
+
+INSERT INTO #Ids (AttendanceRecordID, StudentClassID)
+SELECT t.AttendanceRecordID, t.StudentClassID
+FROM dbo.Attendance_Record AS t
+INNER JOIN #ManualAtt AS s ON s.StudentClassID = t.StudentClassID
+WHERE t.SchoolID = @SchoolID
+  AND t.EducationYearID = @EducationYearID
+  AND t.AttendanceDate = @Date
+  AND NOT EXISTS (SELECT 1 FROM #Ids AS i WHERE i.StudentClassID = t.StudentClassID);
+
+UPDATE t
+SET Attendance = s.Attendance,
+    Reason = s.Reason,
+    RegistrationID = @RegistrationID,
+    Attendance_ScheduleID = @ScheduleID
+FROM dbo.Attendance_Record AS t
+INNER JOIN #Ids AS i ON i.AttendanceRecordID = t.AttendanceRecordID
+INNER JOIN #ManualAtt AS s ON s.StudentClassID = i.StudentClassID;
+
+INSERT INTO dbo.Attendance_Record
+    (SchoolID, RegistrationID, EducationYearID, StudentID, ClassID, StudentClassID,
+     Attendance_ScheduleID, Attendance, AttendanceDate, Reason, Is_OUT, IsFromDevice)
+SELECT @SchoolID, @RegistrationID, @EducationYearID, s.StudentID, @ClassID, s.StudentClassID,
+       @ScheduleID, s.Attendance, @Date, s.Reason, 0, 0
+FROM #ManualAtt AS s
+WHERE NOT EXISTS (
+    SELECT 1 FROM #Ids AS i WHERE i.StudentClassID = s.StudentClassID);
+
+DROP TABLE #Ids;
+DROP TABLE #ManualAtt;
+""", con, tx);
+            cmd.CommandTimeout = 20;
+            AddManualRowParams(cmd, session, request, chunk);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private static void AddManualRowParams(
+        SqlCommand cmd, SessionSnapshot session, SaveStudentManualRequest request,
+        List<StudentManualSaveRow> chunk)
+    {
+        AddInt(cmd, "@SchoolID", session.SchoolID);
+        AddInt(cmd, "@RegistrationID", session.RegistrationID);
+        AddInt(cmd, "@EducationYearID", session.EducationYearID);
+        AddInt(cmd, "@ClassID", request.ClassID);
+        AddInt(cmd, "@ScheduleID", request.ScheduleID);
+        cmd.Parameters.Add("@Date", SqlDbType.Date).Value = request.AttendanceDate.Date;
+        cmd.Parameters.Add("@NextDate", SqlDbType.Date).Value = request.AttendanceDate.Date.AddDays(1);
+        for (var i = 0; i < chunk.Count; i++)
+        {
+            var row = chunk[i];
+            AddInt(cmd, $"@Sid{i}", row.StudentID);
+            AddInt(cmd, $"@Scid{i}", row.StudentClassID);
+            cmd.Parameters.Add($"@Att{i}", SqlDbType.NVarChar, 128).Value = row.Attendance ?? "Pre";
+            var reason = cmd.Parameters.Add($"@Reason{i}", SqlDbType.NVarChar, 500);
+            reason.Value = ReasonValue(row.Reason);
+        }
+    }
+
+    private static void AddInt(SqlCommand cmd, string name, int value) =>
+        cmd.Parameters.Add(name, SqlDbType.Int).Value = value;
+
+    private static object ReasonValue(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            return DBNull.Value;
+        return reason.Length <= 500 ? reason : reason[..500];
     }
 
     public async Task<IReadOnlyList<EmployeeManualRowDto>> ListEmployeeManualAsync(
@@ -796,7 +928,11 @@ IF EXISTS (
     WHERE EmployeeID = @EmployeeID AND CAST(AttendanceDate AS DATE) = @Date
       AND SchoolID = @SchoolID AND ISNULL(Attendance_ScheduleID, 0) = @ScheduleID)
     UPDATE dbo.Employee_Attendance_Record
-    SET AttendanceStatus = @Status, EntryTime = @Entry, ExitTime = @Exit, Attendance_ScheduleID = @ScheduleID
+    SET AttendanceStatus = @Status,
+        -- A blank time box must not wipe a device punch (Abs/Leave clear the times on purpose).
+        EntryTime = CASE WHEN @Status IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@Entry, EntryTime) END,
+        ExitTime = CASE WHEN @Status IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@Exit, ExitTime) END,
+        Attendance_ScheduleID = @ScheduleID, RegistrationID = @RegistrationID
     WHERE EmployeeID = @EmployeeID AND CAST(AttendanceDate AS DATE) = @Date
       AND SchoolID = @SchoolID AND ISNULL(Attendance_ScheduleID, 0) = @ScheduleID;
 ELSE

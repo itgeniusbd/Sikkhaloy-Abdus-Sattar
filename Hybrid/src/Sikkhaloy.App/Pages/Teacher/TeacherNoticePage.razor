@@ -1,0 +1,220 @@
+@page "/teacher/notice"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page tch-nt-page">
+    <section class="tch-nt-hero">
+        <span class="tch-nt-hero-ico" aria-hidden="true">@MegaphoneIco</span>
+        <div>
+            <h1>@Locale.T("tch.noticeHero")</h1>
+            <p>@Locale.T("tch.noticeHint")</p>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <p class="sp-empty" style="color:#b91c1c">@error</p>
+    }
+
+    <article class="tch-nt-card">
+        <h2 class="tch-nt-sec"><span class="tch-nt-dot">@CapIco</span> @Locale.T("stu.class")</h2>
+        <div class="tch-nt-classes">
+            <label class="is-all @(AllSelected ? "is-on" : null)">
+                <input type="checkbox" checked="@AllSelected" disabled="@(busy || classes.Count == 0)" @onchange="ToggleAll" />
+                <span>@Locale.T("att.all")</span>
+            </label>
+            @foreach (var cls in classes)
+            {
+                var on = selected.Contains(cls.Id);
+                <label class="@(on ? "is-on" : null)">
+                    <input type="checkbox" checked="@on" @onchange="() => Toggle(cls.Id)" disabled="@busy" />
+                    <span>@cls.Name</span>
+                </label>
+            }
+        </div>
+    </article>
+
+    <article class="tch-nt-card">
+        <h2 class="tch-nt-sec"><span class="tch-nt-dot">@DocIco</span> @Locale.T("tch.noticeType")</h2>
+        <div class="tch-nt-types">
+            <button type="button" class="@(!homework ? "is-on" : null)" disabled="@busy" @onclick="() => homework = false">
+                <span class="tch-nt-radio" aria-hidden="true"></span>
+                @Locale.T("tch.generalNotice")
+            </button>
+            <button type="button" class="@(homework ? "is-on" : null)" disabled="@busy" @onclick="() => homework = true">
+                <span class="tch-nt-radio" aria-hidden="true"></span>
+                @Locale.T("tch.homework")
+            </button>
+        </div>
+    </article>
+
+    <article class="tch-nt-card">
+        <h2 class="tch-nt-sec"><span class="tch-nt-dot">@TitleIco</span> @Locale.T(homework ? "tch.subject" : "tch.noticeTitle")</h2>
+        <label class="tch-nt-field">
+            <span class="tch-nt-pen" aria-hidden="true">@PenIco</span>
+            <input @bind="title" disabled="@busy" placeholder="@Locale.T(homework ? "tch.subject" : "tch.noticeTitlePh")" />
+        </label>
+    </article>
+
+    <article class="tch-nt-card">
+        <h2 class="tch-nt-sec"><span class="tch-nt-dot">@TextIco</span> @Locale.T(homework ? "tch.homework" : "tch.noticeBody")</h2>
+        <label class="tch-nt-field is-area">
+            <span class="tch-nt-pen" aria-hidden="true">@PenIco</span>
+            <textarea rows="4" @bind="body" disabled="@busy" placeholder="@Locale.T(homework ? "tch.hwBodyPh" : "tch.noticeBodyPh")"></textarea>
+        </label>
+    </article>
+
+    <div class="tch-nt-submit">
+        @if (busy)
+        {
+            <div class="tch-progress" role="progressbar" aria-label="@Locale.T("stu.loading")"><span></span></div>
+        }
+        <button type="button" class="tch-nt-go @(busy ? "is-busy" : null)" disabled="@busy" @onclick="SaveAsync">
+            @if (busy)
+            {
+                <span class="tch-submit-dot" aria-hidden="true"></span>
+            }
+            else
+            {
+                @SendIco
+            }
+            @(busy ? Locale.T("stu.loading") : Locale.T("att.submit"))
+        </button>
+    </div>
+
+    <article class="tch-nt-card tch-nt-list">
+        <h2 class="tch-nt-sec"><span class="tch-nt-dot">@DocIco</span> @Locale.T("tch.myNotices")</h2>
+        @if (notices.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            @foreach (var row in notices)
+            {
+                <div class="tch-nt-item">
+                    <b>@row.NoticeTitle</b>
+                    <small>
+                        @(row.IsHomeWork ? Locale.T("tch.homework") : Locale.T("tch.generalNotice"))
+                        · @row.Classes
+                        · @(row.InsertDate?.ToString("d MMM yyyy") ?? "")
+                    </small>
+                    @if (!string.IsNullOrWhiteSpace(row.Notice))
+                    {
+                        <p>@row.Notice</p>
+                    }
+                </div>
+            }
+        }
+    </article>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="att.failed" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<TeacherPortalOptionDto> classes = [];
+    private readonly HashSet<int> selected = [];
+    private readonly List<NoticeDto> notices = [];
+    private string title = "";
+    private string body = "";
+    private bool homework;
+    private bool AllSelected => classes.Count > 0 && selected.Count == classes.Count;
+    private bool busy;
+    private bool popupError;
+    private string? error;
+    private string? popupText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                classes.AddRange(await Api.GetTeacherPortalClassesAsync(Session.AccessToken));
+                notices.AddRange(await Api.GetTeacherPortalNoticesAsync(Session.AccessToken));
+            }
+        }
+        catch { }
+    }
+
+    private void Toggle(int id)
+    {
+        if (!selected.Add(id))
+            selected.Remove(id);
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        selected.Clear();
+        if (e.Value is true or "true")
+        {
+            foreach (var cls in classes)
+                selected.Add(cls.Id);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = popupText = null;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var result = await Api.SaveTeacherPortalNoticeAsync(Session.AccessToken, new SaveNoticeRequest
+            {
+                NoticeTitle = title,
+                Notice = body,
+                IsHomeWork = homework,
+                ClassIDs = selected.ToList()
+            });
+            if (!result.Succeeded)
+            {
+                ShowPopup(Locale.T(result.Error ?? "sm.needTitle"), true);
+                return;
+            }
+            title = body = "";
+            homework = false;
+            selected.Clear();
+            notices.Clear();
+            notices.AddRange(await Api.GetTeacherPortalNoticesAsync(Session.AccessToken));
+            ShowPopup(Locale.T("tch.noticeSaved"), false);
+        }
+        catch (Exception ex)
+        {
+            ShowPopup(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ShowPopup(string text, bool isError)
+    {
+        popupText = text;
+        popupError = isError;
+        if (isError)
+            error = text;
+    }
+
+    private void ClosePopup()
+    {
+        popupText = null;
+        popupError = false;
+    }
+
+    private static readonly RenderFragment MegaphoneIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h2l6 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M6 15v2a2 2 0 0 0 2 2h1"/></svg>;
+    private static readonly RenderFragment CapIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c1.5 1.3 3.6 2 6 2s4.5-.7 6-2v-5"/></svg>;
+    private static readonly RenderFragment DocIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>;
+    private static readonly RenderFragment TitleIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V4h16"/><path d="M8 8h8M8 12h5"/></svg>;
+    private static readonly RenderFragment TextIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>;
+    private static readonly RenderFragment PenIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>;
+    private static readonly RenderFragment SendIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>;
+}

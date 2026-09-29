@@ -107,9 +107,9 @@
 
 @if (phase is "preview" or "running" or "done")
 {
-    <div class="acc-result-back">
+    <div class="acc-result-back ab-modal-back">
         <div class="acc-result is-ok sms-modal ab-modal" @onclick:stopPropagation="true">
-            <h3>@(phase == "running" ? Locale.T("ab.runTitle") : Locale.T("ab.preview"))</h3>
+            <h3>@(phase == "running" ? Locale.T("ab.runTitle") : phase == "done" ? Locale.T("ab.doneTitle") : Locale.T("ab.preview"))</h3>
             @if (phase == "preview")
             {
                 @if (previewBusy)
@@ -118,7 +118,11 @@
                 }
                 else if (preview is not null)
                 {
-                    <p>@preview.SchoolName · @preview.Mode · @preview.TotalRows.ToString("N0")</p>
+                    <div class="ab-modal-meta">
+                        <b>@preview.SchoolName</b>
+                        <span>@preview.Mode</span>
+                        <span>@preview.TotalRows.ToString("N0")</span>
+                    </div>
                     @if (preview.Bytes > 0)
                     {
                         <p><strong>@Locale.T("ab.imgSize", FmtBytes(preview.Bytes))</strong></p>
@@ -133,6 +137,12 @@
                     }
                     <div class="ab-table-wrap">
                         <table class="ad-table">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("ab.colTable")</th>
+                                    <th>@Locale.T("ab.colRows")</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 @foreach (var table in preview.Tables)
                                 {
@@ -144,16 +154,26 @@
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="RunAsync">@(mode == "IMAGES" ? Locale.T("ab.imgRun") : Locale.T("ab.runBtn"))</button>
-                    <button type="button" class="acc-btn" @onclick="CloseModal">@Locale.T("ab.close")</button>
+                    <div class="ab-modal-foot">
+                        <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="RunAsync">@(mode == "IMAGES" ? Locale.T("ab.imgRun") : Locale.T("ab.runBtn"))</button>
+                        <button type="button" class="acc-btn" @onclick="CloseModal">@Locale.T("ab.close")</button>
+                    </div>
                 }
             }
             else if (phase == "running")
             {
                 <p class="ab-timer">@elapsedText</p>
-                <p>@Locale.T("ab.runHint")</p>
-                <div class="ab-prog"><div style="width: @(progress.Percent)%"></div></div>
-                <p>@Locale.T("ab.rowsDeleted", progress.DeletedRows.ToString("N0"), progress.TotalRows.ToString("N0"))</p>
+                <p class="@(IsFinishing ? "ab-warn" : null)">@(IsFinishing ? Locale.T("ab.finishing") : Locale.T("ab.runHint"))</p>
+                <p class="ab-run-wait">@Locale.T("ab.runWait")</p>
+                <div class="ab-prog"><div style="width: @(DisplayPercent)%"></div></div>
+                <p class="ab-count">@Locale.T("ab.rowsDeleted", ShownDeleted.ToString("N0"), ShownTotal.ToString("N0"))</p>
+                @if (IsFinishing)
+                {
+                    <p class="muted">@Locale.T("ab.finishingNote")</p>
+                }
+                <div class="ab-modal-foot">
+                    <button type="button" class="acc-btn acc-btn-primary" @onclick="CloseModal">@Locale.T("ab.close")</button>
+                </div>
             }
             else
             {
@@ -183,6 +203,36 @@
     private ResetProgressDto progress = new();
     private DateTime runStarted;
     private CancellationTokenSource? pollCts;
+
+    private long ShownTotal => progress.TotalRows > 0 ? progress.TotalRows : preview?.TotalRows ?? 0;
+    private long ShownDeleted
+    {
+        get
+        {
+            var total = ShownTotal;
+            var n = progress.DeletedRows;
+            if (total > 0 && n > total) n = total;
+            if (n < 0) n = 0;
+            return n;
+        }
+    }
+
+    private bool IsFinishing =>
+        phase == "running"
+        && !IsFinishedStatus
+        && (progress.Percent >= 85
+            || ShownTotal > 0 && ShownDeleted >= ShownTotal
+            || ShownTotal > 0 && ShownTotal - ShownDeleted <= 20);
+
+    private bool IsFinishedStatus =>
+        string.Equals(progress.Status, "Done", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(progress.Status, "Error", StringComparison.OrdinalIgnoreCase);
+
+    private int DisplayPercent =>
+        IsFinishedStatus && !string.Equals(progress.Status, "Error", StringComparison.OrdinalIgnoreCase) ? 100
+        : ShownTotal <= 0 ? progress.Percent
+        : IsFinishing ? Math.Min(99, Math.Max(progress.Percent, (int)Math.Round(100.0 * ShownDeleted / ShownTotal)))
+        : (int)Math.Min(99, Math.Round(100.0 * ShownDeleted / ShownTotal));
 
     private ResetSchoolOptionDto? SelectedSchool => schools.FirstOrDefault(x => x.SchoolID == schoolId);
 
@@ -324,6 +374,16 @@
 
         phase = "running";
         runStarted = DateTime.Now;
+        progress = new ResetProgressDto
+        {
+            Ok = true,
+            HasProgress = true,
+            Status = "Running",
+            TotalRows = preview?.TotalRows ?? 0,
+            DeletedRows = 0,
+            Percent = 0
+        };
+        elapsedText = "0s";
         pollCts?.Cancel();
         pollCts = new CancellationTokenSource();
         var token = pollCts.Token;
@@ -344,36 +404,107 @@
                 Show(Err(result.Error) + result.Error, true);
                 return;
             }
+            _ = TickAsync(token);
             _ = PollAsync(token);
         }
         catch (Exception ex) { phase = ""; Show(ex.Message, true); }
     }
 
+    private async Task TickAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested && phase == "running")
+        {
+            elapsedText = FormatElapsed(DateTime.Now - runStarted);
+            if (CountReached())
+            {
+                FinishUi(false);
+                return;
+            }
+            await InvokeAsync(StateHasChanged);
+            try { await Task.Delay(400, token); }
+            catch (TaskCanceledException) { return; }
+        }
+    }
+
     private async Task PollAsync(CancellationToken token)
     {
-        while (!token.IsCancellationRequested)
+        while (!token.IsCancellationRequested && phase == "running")
         {
             try
             {
-                progress = await Api.GetAuthorityResetProgressAsync(Session.AccessToken!, schoolId);
+                using var one = CancellationTokenSource.CreateLinkedTokenSource(token);
+                one.CancelAfter(TimeSpan.FromSeconds(6));
+                var next = await Api.GetAuthorityResetProgressAsync(Session.AccessToken!, schoolId, one.Token);
                 elapsedText = FormatElapsed(DateTime.Now - runStarted);
-                await InvokeAsync(StateHasChanged);
-                if (progress.Status is "Done" or "Error")
+                if (next.HasProgress)
                 {
-                    phase = "done";
-                    doneMessage = progress.Message ?? progress.Status;
-                    if (progress.Status == "Error")
-                        Show(doneMessage, true);
-                    else
-                        Show(doneMessage, false);
+                    if (next.TotalRows <= 0 && progress.TotalRows > 0)
+                        next.TotalRows = progress.TotalRows;
+                    var finished = string.Equals(next.Status, "Done", StringComparison.OrdinalIgnoreCase)
+                                   || string.Equals(next.Status, "Error", StringComparison.OrdinalIgnoreCase);
+                    var running = string.Equals(next.Status, "Running", StringComparison.OrdinalIgnoreCase);
+                    if (running && next.DeletedRows < progress.DeletedRows)
+                        next.DeletedRows = progress.DeletedRows;
+                    if (next.TotalRows > 0 && next.DeletedRows > next.TotalRows)
+                        next.DeletedRows = next.TotalRows;
+                    if (finished && next.DeletedRows < next.TotalRows)
+                        next.DeletedRows = next.TotalRows;
+                    if (next.TotalRows > 0)
+                    {
+                        next.Percent = finished && !string.Equals(next.Status, "Error", StringComparison.OrdinalIgnoreCase)
+                            ? 100
+                            : (int)Math.Min(99, Math.Round(100.0 * next.DeletedRows / next.TotalRows));
+                    }
+                    progress = next;
+                    if (finished || CountReached())
+                    {
+                        FinishUi(string.Equals(progress.Status, "Error", StringComparison.OrdinalIgnoreCase));
+                        return;
+                    }
+                }
+                else if (CountReached())
+                {
+                    FinishUi(false);
                     return;
                 }
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return;
             }
             catch
             {
+                elapsedText = FormatElapsed(DateTime.Now - runStarted);
+                if (CountReached())
+                {
+                    FinishUi(false);
+                    return;
+                }
+                await InvokeAsync(StateHasChanged);
             }
-            await Task.Delay(1500, token);
+            try { await Task.Delay(800, token); }
+            catch (TaskCanceledException) { return; }
         }
+    }
+
+    private bool CountReached() => ShownTotal > 0 && ShownDeleted >= ShownTotal;
+
+    private void FinishUi(bool error)
+    {
+        if (phase == "done") return;
+        pollCts?.Cancel();
+        progress.Status = error ? "Error" : "Done";
+        if (!error)
+        {
+            progress.DeletedRows = ShownTotal;
+            progress.Percent = 100;
+        }
+        doneMessage = string.IsNullOrWhiteSpace(progress.Message) ? Locale.T(error ? "ab.failed" : "ab.doneTitle") : progress.Message;
+        progress.Message = doneMessage;
+        phase = "done";
+        Show(doneMessage, error);
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void CloseModal()

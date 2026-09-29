@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="g" x1="12" y1="8" x2="84" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B4F9C"/>
+      <stop offset="1" stop-color="#0B2A57"/>
+    </linearGradient>
+    <linearGradient id="a" x1="24" y1="28" x2="72" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF9F43"/>
+      <stop offset="1" stop-color="#F58634"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="url(#g)"/>
+  <circle cx="48" cy="48" r="34" fill="#0E3A73" opacity=".35"/>
+  <path d="M48 18 L78 34 V38 L48 54 L18 38 V34 L48 18Z" fill="url(#a)"/>
+  <path d="M28 42 V64 C28 64 38 72 48 72 C58 72 68 64 68 64 V42 L48 54 L28 42Z" fill="#FFFFFF" opacity=".96"/>
+  <path d="M48 54 V72" stroke="#F58634" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="34" r="3.5" fill="#fff"/>
+  <text x="48" y="88" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700" fill="#FFFFFF" letter-spacing="1">DEMO</text>
+</svg>

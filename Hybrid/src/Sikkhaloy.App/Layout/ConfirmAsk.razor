@@ -1,0 +1,33 @@
+@inject AppLocale Locale
+
+@if (Visible)
+{
+    <div class="acc-result-back confirm-ask-back" @onclick="Cancel">
+        <div class="acc-result confirm-ask" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            <div class="acc-result-icon">?</div>
+            <h3>@TitleText</h3>
+            <p>@Message</p>
+            <div class="confirm-ask-actions">
+                <button type="button" class="confirm-ask-btn cancel" @onclick="Cancel">@CancelLabel</button>
+                <button type="button" class="confirm-ask-btn ok" @onclick="Ok">@OkLabel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? OkText { get; set; }
+    [Parameter] public string? CancelText { get; set; }
+    [Parameter] public EventCallback OnOk { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string TitleText => string.IsNullOrWhiteSpace(Title) ? Locale.T("pay.confirmTitle") : Title!;
+    private string OkLabel => string.IsNullOrWhiteSpace(OkText) ? Locale.T("pay.confirmOk") : OkText!;
+    private string CancelLabel => string.IsNullOrWhiteSpace(CancelText) ? Locale.T("pay.confirmCancel") : CancelText!;
+
+    private Task Ok() => OnOk.InvokeAsync();
+    private Task Cancel() => OnCancel.InvokeAsync();
+}

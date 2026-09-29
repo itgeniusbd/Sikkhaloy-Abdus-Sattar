@@ -11,8 +11,13 @@ namespace Sikkhaloy.SyncApi.Controllers;
 public sealed class StudentPortalController : ControllerBase
 {
     private readonly StudentPortalService _portal;
+    private readonly StudentFeedbackService _feedback;
 
-    public StudentPortalController(StudentPortalService portal) => _portal = portal;
+    public StudentPortalController(StudentPortalService portal, StudentFeedbackService feedback)
+    {
+        _portal = portal;
+        _feedback = feedback;
+    }
 
     [HttpGet("dashboard")]
     public async Task<ActionResult<StudentPortalDashboardDto>> Dashboard(CancellationToken cancellationToken)
@@ -43,10 +48,11 @@ public sealed class StudentPortalController : ControllerBase
     }
 
     [HttpGet("sms")]
-    public async Task<ActionResult<List<StudentPortalSmsDto>>> Sms(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<StudentPortalSmsDto>>> Sms(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _portal.GetSmsAsync(session, cancellationToken));
+        return Ok(await _portal.GetSmsAsync(session, from, to, cancellationToken));
     }
 
     [HttpGet("accounts")]
@@ -109,11 +115,25 @@ public sealed class StudentPortalController : ControllerBase
         return Ok(await _portal.GetExamsAsync(session, cancellationToken));
     }
 
+    [HttpGet("exams/subjects")]
+    public async Task<ActionResult<List<StudentPortalExamSubjectDto>>> ExamSubjects(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _portal.GetExamSubjectsAsync(session, cancellationToken));
+    }
+
     [HttpGet("cumulative")]
     public async Task<ActionResult<List<StudentPortalExamDto>>> Cumulative(CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _portal.GetCumulativeAsync(session, cancellationToken));
+    }
+
+    [HttpGet("cumulative/subjects")]
+    public async Task<ActionResult<List<StudentPortalExamSubjectDto>>> CumulativeSubjects(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _portal.GetCumulativeSubjectsAsync(session, cancellationToken));
     }
 
     [HttpGet("routine")]
@@ -136,5 +156,57 @@ public sealed class StudentPortalController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _portal.GetFaultReportsAsync(session, from, to, cancellationToken));
+    }
+
+    [HttpGet("inbox-reads")]
+    public async Task<ActionResult<StudentPortalInboxReadsDto>> InboxReads(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _portal.GetInboxReadsAsync(session, cancellationToken));
+    }
+
+    [HttpPut("inbox-reads")]
+    public async Task<ActionResult<StudentPortalInboxReadsDto>> SaveInboxReads(
+        [FromBody] StudentPortalInboxReadsDto body, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _portal.SaveInboxReadsAsync(session, body, cancellationToken));
+    }
+
+    [HttpGet("feedback/recipients")]
+    public async Task<ActionResult<List<StudentFeedbackRecipientDto>>> FeedbackRecipients(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _feedback.ListRecipientsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("feedback")]
+    public async Task<ActionResult<List<StudentFeedbackItemDto>>> Feedback(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _feedback.ListMineAsync(session, cancellationToken));
+    }
+
+    [HttpPost("feedback")]
+    public async Task<ActionResult<StudentFeedbackResult>> SubmitFeedback(
+        [FromBody] SubmitStudentFeedbackRequest body, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _feedback.SubmitAsync(session, body, cancellationToken));
+    }
+
+    [HttpPost("feedback/{id:int}/reply")]
+    public async Task<ActionResult<StudentFeedbackResult>> ReplyFeedback(
+        int id, [FromBody] StudentFeedbackReplyRequest body, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _feedback.ReplyAsync(session, id, body?.Body, cancellationToken));
+    }
+
+    [HttpPut("feedback/{id:int}/replies/read")]
+    public async Task<ActionResult<StudentFeedbackResult>> MarkFeedbackRepliesRead(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _feedback.MarkRepliesReadAsync(session, id, cancellationToken));
     }
 }

@@ -1,0 +1,46 @@
+@page "/attendance/guideline"
+@inherits LocaleAwareComponent
+@inject IJSRuntime JS
+
+<div class="card sa-page students-card att-guide-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("nav.attendance")</p>
+            <h1>@Locale.T("att.guideTitle")</h1>
+            <p class="sa-lead">@Locale.T("att.guideHint")</p>
+        </div>
+    </header>
+
+    <div class="att-guide-actions no-print">
+        <a class="acc-btn acc-btn-primary" href="@PngUrl" download="attendance_rules_bn.png">@Locale.T("att.guidePng")</a>
+        <a class="acc-btn acc-btn-primary" href="@PdfUrl" download="attendance_rules_bn.pdf">@Locale.T("att.guidePdf")</a>
+        <button type="button" class="acc-btn rpt-print" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    <div class="att-guide-sheet">
+        <img class="att-guide-img" src="@PngUrl" alt="@Locale.T("att.guideTitle")" />
+    </div>
+</div>
+
+<style>
+    .att-guide-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 16px; }
+    .att-guide-actions a.acc-btn { text-decoration: none; }
+    .att-guide-sheet { display: flex; justify-content: center; }
+    .att-guide-img { display: block; width: 100%; max-width: 760px; height: auto; border-radius: 14px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.12); }
+
+    /* Print only the poster, fitted to one A4 portrait page. */
+    @@media print {
+        html, body { height: 100% !important; max-height: 100% !important; overflow: hidden !important; }
+        body * { visibility: hidden !important; }
+        .att-guide-sheet, .att-guide-sheet * { visibility: visible !important; }
+        .att-guide-sheet { position: fixed !important; inset: 0 !important; display: flex !important; align-items: center; justify-content: center; background: #fff; }
+        .att-guide-img { width: auto !important; height: auto !important; max-width: 100% !important; max-height: 100% !important; border-radius: 0 !important; box-shadow: none !important; }
+    }
+</style>
+
+@code {
+    private const string PngUrl = "_content/Sikkhaloy.App/guideline/attendance_rules_bn.png?v=1";
+    private const string PdfUrl = "_content/Sikkhaloy.App/guideline/attendance_rules_bn.pdf?v=1";
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "10mm").AsTask();
+}

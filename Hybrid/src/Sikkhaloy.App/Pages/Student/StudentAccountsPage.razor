@@ -26,7 +26,7 @@
     {
         <div class="sp-tabs">
             <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("stu.tabDue")</button>
-            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("stu.tabCurrent")</button>
+            <button type="button" class="@(tab == 1 ? "is-on is-due-tab" : "is-due-tab")" @onclick="() => tab = 1">@Locale.T("stu.tabCurrent")</button>
             <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("stu.tabPaid")</button>
             <button type="button" class="@(tab == 3 ? "is-on" : null)" @onclick="() => tab = 3">@Locale.T("stu.tabReceipt")</button>
             <button type="button" class="@(tab == 4 ? "is-on" : null)" @onclick="() => tab = 4">@Locale.T("stu.tabConc")</button>
@@ -35,17 +35,27 @@
 
         @if (tab == 0)
         {
-            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.totalDue", Money(data.TotalDue))</strong></div>
+            <div class="sp-acc-sum is-overdue">
+                <div class="sp-acc-sum-info">@WalletIco <strong>@Locale.T("stu.overdueDue", Money(OverdueTotal))</strong></div>
+                <button type="button" class="sp-pay-online" disabled="@(busy || OverdueTotal <= 0 || data is { OnlinePaymentEnabled: false })" @onclick="PayOverdueAsync">
+                    @(busy ? Locale.T("stu.payBusy") : Locale.T("stu.payOnline"))
+                </button>
+            </div>
             <article class="sp-card">
-                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabDue")</h3></div>
+                <div class="sp-card-h is-total">
+                    <h3>@DocIco @Locale.T("stu.tabDue")</h3>
+                    <strong class="sp-acc-head-amt">@Money(data.TotalDue) Tk</strong>
+                </div>
                 @FeeTable(data.TotalDues, pick: true)
             </article>
         }
         else if (tab == 1)
         {
-            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.currentDue", Money(data.CurrentDue))</strong></div>
             <article class="sp-card">
-                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabCurrent")</h3></div>
+                <div class="sp-card-h is-current">
+                    <h3>@DocIco @Locale.T("stu.tabCurrent")</h3>
+                    <strong class="sp-acc-head-amt">@Money(data.CurrentDue) Tk</strong>
+                </div>
                 @FeeTable(data.CurrentDues, pick: false)
             </article>
         }
@@ -204,6 +214,9 @@
     private decimal SelectedTotal =>
         data?.TotalDues.Where(x => selected.Contains(x.PayOrderID)).Sum(x => x.Due) ?? 0;
 
+    private decimal OverdueTotal =>
+        data?.TotalDues.Where(IsOverdue).Sum(x => x.Due) ?? 0;
+
     protected override async Task OnInitializedAsync()
     {
         if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
@@ -244,6 +257,16 @@
     {
         if (on) selected.Add(id);
         else selected.Remove(id);
+    }
+
+    private async Task PayOverdueAsync()
+    {
+        if (data is null)
+            return;
+        selected.Clear();
+        foreach (var row in data.TotalDues.Where(IsOverdue))
+            selected.Add(row.PayOrderID);
+        await PayAsync();
     }
 
     private async Task PayAsync()
@@ -327,7 +350,8 @@
                     @foreach (var row in rows)
                     {
                         var on = pick && selected.Contains(row.PayOrderID);
-                        <tr class="@(on ? "is-pick" : null)">
+                        var overdue = pick && IsOverdue(row);
+                        <tr class="@((on ? "is-pick " : "") + (overdue ? "is-overdue" : null))">
                             @if (pick)
                             {
                                 <td>
@@ -373,6 +397,9 @@
             </table>
         </div>
     };
+
+    private static bool IsOverdue(StudentPortalDueRowDto row) =>
+        row.Due > 0 && row.EndDate is DateTime end && end < DateTime.Now;
 
     private static string Money(decimal value) => value.ToString("N0");
     private static string Date(DateTime? value) => value is DateTime d ? d.ToString("dd-MMM-yy") : "";

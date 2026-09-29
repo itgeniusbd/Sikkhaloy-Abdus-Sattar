@@ -1,6 +1,7 @@
 @inherits LocaleAwareComponent
 @implements IDisposable
 @inject NavigationManager Nav
+@inject AdminFeedbackInbox Inbox
 
 <nav class="sidebar-nav">
     <NavLink href="dashboard" Match="NavLinkMatch.All" class="menu-top">
@@ -74,6 +75,18 @@
         </details>
     }
 
+    <NavLink href="feedback" Match="NavLinkMatch.Prefix" class="menu-top">
+        <svg class="menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6Z"/>
+            <path d="M10.2 19.2a2 2 0 0 0 3.6 0"/>
+        </svg>
+        <span>@Locale.T("fb.title")</span>
+        @if (Inbox.UnreadCount > 0)
+        {
+            <em class="menu-unread">@Inbox.BadgeText</em>
+        }
+    </NavLink>
+
     <HelpMenuLink />
 </nav>
 
@@ -86,9 +99,20 @@
     private string? openSubKey;
     private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
 
-    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Inbox.Changed += OnInbox;
+    }
 
-    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+    public override void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        Inbox.Changed -= OnInbox;
+        base.Dispose();
+    }
+
+    private void OnInbox() => _ = InvokeAsync(StateHasChanged);
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {

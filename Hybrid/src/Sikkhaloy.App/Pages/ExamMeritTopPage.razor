@@ -1,0 +1,181 @@
+@page "/exam/merit-top"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page exam-top-merit-page">
+    <a class="exam-link no-print" href="exam/merit">@Locale.T("exam.meritTopBack")</a>
+    <h1 class="no-print">@Locale.T("exam.meritTop")</h1>
+    <div class="filter-row no-print">
+        <select @bind="examId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <div class="exam-status exam-top-mode">
+            <strong>@Locale.T("exam.meritShow")</strong>
+            <label><input type="radio" name="tm-mode" checked="@(!bySection)" @onchange="@(() => SetMode(false))" disabled="@busy" /> @Locale.T("exam.meritClassWise")</label>
+            <label><input type="radio" name="tm-mode" checked="@bySection" @onchange="@(() => SetMode(true))" disabled="@busy" /> @Locale.T("exam.meritSectionWise")</label>
+        </div>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@(busy || sheet.Groups.Count == 0)" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+    </div>
+
+    @if (sheet.Groups.Count > 0)
+    {
+        <PrintHeader Centered="true" ShowDate="false" ShowInstitutionId="false" />
+        <div class="exam-top-title">
+            <span>@Locale.T("exam.meritTopSession", sheet.ExamName, sheet.EducationYear)</span>
+            <span>@Locale.T(bySection ? "exam.meritTopSectionTitle" : "exam.meritTopClassTitle")</span>
+        </div>
+        <div class="exam-top-board">
+            @foreach (var group in sheet.Groups)
+            {
+                <section class="exam-top-card">
+                    <h2>@GroupTitle(group)</h2>
+                    <div class="exam-top-table-wrap">
+                        <table>
+                            <colgroup>
+                                <col class="col-pos" />
+                                <col class="col-id" />
+                                <col class="col-roll" />
+                                <col class="col-name" />
+                                <col class="col-father" />
+                                <col class="col-total" />
+                                <col class="col-avg" />
+                                <col class="col-grade" />
+                                <col class="col-point" />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="is-pos">@Locale.T("exam.meritPos")</th>
+                                    <th class="is-id">@Locale.T("exam.id")</th>
+                                    <th class="is-roll">@Locale.T("exam.rollCol")</th>
+                                    <th class="is-name">@Locale.T("exam.name")</th>
+                                    <th class="is-father">@Locale.T("exam.father")</th>
+                                    <th>@Locale.T("exam.total")</th>
+                                    <th>@Locale.T("exam.avg")</th>
+                                    <th>@Locale.T("exam.grade")</th>
+                                    <th>@Locale.T("exam.point")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var row in group.Students)
+                            {
+                                <tr>
+                                    <td class="@RankCss(row.Position)">@RankLabel(row.Position)</td>
+                                    <td class="is-id">@row.ID</td>
+                                    <td>@row.RollNo</td>
+                                    <td class="is-name">@row.Name</td>
+                                    <td class="is-father">@row.FatherName</td>
+                                    <td>@Num(row.Total)</td>
+                                    <td>@Num(row.Average)</td>
+                                    <td>@row.Grade</td>
+                                    <td>@Num(row.Point)</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+        </div>
+    }
+    else if (!busy && examId > 0)
+    {
+        <p class="empty-row">@Locale.T("exam.empty")</p>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingTopMerit")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="exam.failed" OnClose="ClosePopup" />
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private ExamTopMeritSheetDto sheet = new();
+    private int examId;
+    private bool bySection;
+    private bool busy;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => BootAsync();
+
+    private async Task BootAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "merit-top"); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private Task SetMode(bool section)
+    {
+        bySection = section;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        sheet = new();
+        if (examId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { sheet = await Api.GetExamTopMeritAsync(Session.AccessToken!, examId, bySection ? "section" : "class"); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private string GroupTitle(ExamTopMeritGroupDto group)
+    {
+        if (!bySection) return group.ClassName;
+        var title = group.ClassName;
+        if (!string.IsNullOrWhiteSpace(group.SectionName))
+            title += " , " + Locale.T("exam.sectionLine", group.SectionName);
+        if (!string.IsNullOrWhiteSpace(group.GroupName))
+            title += " , " + Locale.T("exam.groupLine", group.GroupName);
+        return title;
+    }
+
+    private string RankLabel(int n) => n switch
+    {
+        1 => Locale.IsBengali ? "১ম" : "1st",
+        2 => Locale.IsBengali ? "২য়" : "2nd",
+        3 => Locale.IsBengali ? "৩য়" : "3rd",
+        _ => n.ToString()
+    };
+    private static string? RankCss(int n) => n switch
+    {
+        1 => "is-first",
+        2 => "is-second",
+        3 => "is-third",
+        _ => null
+    };
+    private string Num(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || !Locale.IsBengali) return value ?? "";
+        var chars = value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '0' and <= '9')
+                chars[i] = (char)('\u09E6' + (chars[i] - '0'));
+        }
+        return new string(chars);
+    }
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false, "5mm 4mm").AsTask();
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            popupText = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

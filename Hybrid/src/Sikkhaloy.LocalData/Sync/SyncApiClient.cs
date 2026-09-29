@@ -24,6 +24,7 @@ using Sikkhaloy.Shared.Sms;
 using Sikkhaloy.Shared.Students;
 using Sikkhaloy.Shared.Subjects;
 using Sikkhaloy.Shared.Sync;
+using Sikkhaloy.Shared.Teachers;
 
 namespace Sikkhaloy.LocalData.Sync;
 
@@ -32,6 +33,7 @@ public interface ISyncApiClient
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<bool> PingAsync(CancellationToken cancellationToken = default);
     string ApiHost { get; }
+    string ApiBaseUrl { get; }
     event Action? OfflineQueueChanged;
     Task<int> FlushQueuedWritesAsync(string accessToken, CancellationToken cancellationToken = default);
     Task QueueOfficeSmsAsync(string phones, string text, CancellationToken cancellationToken = default);
@@ -71,6 +73,9 @@ public interface ISyncApiClient
     Task<SubjectAssignResult> SaveClassSubjectsAsync(string accessToken, SaveClassSubjectsRequest request, CancellationToken cancellationToken = default);
     Task<SubjectAssignResult> ClearClassSubjectsAsync(string accessToken, int classId, int groupId, CancellationToken cancellationToken = default);
     Task<InstitutionDto> GetInstitutionAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<WebsiteApiKeyDto> GetWebsiteApiKeyAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<WebsiteApiKeyResult> SaveWebsiteApiKeyAsync(string accessToken, WebsiteApiKeySaveRequest request, CancellationToken cancellationToken = default);
+
     Task<InstitutionResult> SaveInstitutionAsync(string accessToken, InstitutionDto request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<HolidayDto>> GetHolidaysAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<HolidayResult> AddWeeklyHolidaysAsync(string accessToken, WeeklyHolidayRequest request, CancellationToken cancellationToken = default);
@@ -158,7 +163,7 @@ public interface ISyncApiClient
         string accessToken, int classId, int groupId, int sectionId, int shiftId, string? ids,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPhotoDto>> GetStudentPhotosAsync(
-        string accessToken, CancellationToken cancellationToken = default);
+        string accessToken, IReadOnlyList<int>? studentIds = null, CancellationToken cancellationToken = default);
     Task<StudentReportDto> GetStudentReportAsync(
         string accessToken, string studentId, string? part = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentFaultReportsAsync(
@@ -291,6 +296,7 @@ public interface ISyncApiClient
         string accessToken, SaveEmployeeLeaveRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LeaveReportRowDto>> GetLeaveReportAsync(
         string accessToken, string? type, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<AttendanceDisplayDto> GetAttendanceDisplayAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AttendanceMonthDto>> GetAttendanceFineMonthsAsync(
         string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AttendanceFineRowDto>> GenerateAttendanceFineAsync(
@@ -390,17 +396,75 @@ public interface ISyncApiClient
     Task<StudentPortalDetailsDto> GetStudentPortalDetailsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EducationYearDto>> GetStudentPortalSessionsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<StudentPortalAttendanceDto> GetStudentPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(string accessToken, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default);
     Task<StudentPortalAccountsBundleDto> GetStudentPortalAccountsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalReceiptLineDto>> GetStudentPortalReceiptAsync(string accessToken, int moneyReceiptId, CancellationToken cancellationToken = default);
     Task<StudentPortalPayStartResult> StartStudentPortalPayAsync(string accessToken, StudentPortalPayStartRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalNoticeDto>> GetStudentPortalNoticesAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalExamsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalExamSubjectDto>> GetStudentPortalExamSubjectsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalCumulativeAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalExamSubjectDto>> GetStudentPortalCumulativeSubjectsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalPeriodDto>> GetStudentPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalUpcomingExamsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentPortalReportAsync(
         string accessToken, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default);
+    Task<StudentPortalInboxReadsDto> GetStudentPortalInboxReadsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentPortalInboxReadsDto> SaveStudentPortalInboxReadsAsync(
+        string accessToken, StudentPortalInboxReadsDto reads, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentFeedbackRecipientDto>> GetStudentFeedbackRecipientsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentFeedbackItemDto>> GetStudentFeedbackAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> SubmitStudentFeedbackAsync(string accessToken, SubmitStudentFeedbackRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentFeedbackItemDto>> GetOfficeFeedbackAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentFeedbackRecipientDto>> GetOfficeFeedbackRecipientsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackUnreadDto> GetOfficeFeedbackUnreadAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> SetOfficeFeedbackStatusAsync(string accessToken, int feedbackId, string status, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> AssignOfficeFeedbackAsync(string accessToken, int feedbackId, int toRegistrationId, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkOfficeFeedbackReadAsync(string accessToken, int feedbackId, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkOfficeFeedbackReadAllAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> ReplyOfficeFeedbackAsync(string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> ReplyStudentFeedbackAsync(string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkOfficeFeedbackRepliesReadAsync(string accessToken, int feedbackId, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkStudentFeedbackRepliesReadAsync(string accessToken, int feedbackId, CancellationToken cancellationToken = default);
+
+    Task<TeacherPortalDashboardDto> GetTeacherPortalDashboardAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<TeacherPortalDashboardDto?> PeekTeacherPortalDashboardAsync(CancellationToken cancellationToken = default);
+    Task<TeacherPortalDetailsDto> GetTeacherPortalDetailsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<EducationYearDto>> GetTeacherPortalSessionsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentPortalAttendanceDto> GetTeacherPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TeacherPortalPeriodDto>> GetTeacherPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TeacherPortalSubjectDto>> GetTeacherPortalSubjectsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ExamNameDto>> GetTeacherPortalExamsAsync(string accessToken, int classId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SubExamDto>> GetTeacherPortalSubExamsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<ExamFilterDto> GetTeacherPortalMarksFiltersAsync(string accessToken, int examId = 0, int classId = 0, int subjectId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, CancellationToken cancellationToken = default);
+    Task<InputSheetDto> GetTeacherPortalMarksAsync(string accessToken, int examId, int classId, int subjectId, int subExamId, string? groupId = null, string? sectionId = null, string? shiftId = null, CancellationToken cancellationToken = default);
+    Task<ExamResult> SaveTeacherPortalMarksAsync(string accessToken, SaveInputMarksRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TeacherPortalStudentHitDto>> SearchTeacherPortalStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default);
+    Task<StudentPhotoDto> GetTeacherPortalStudentPhotoAsync(string accessToken, string studentCode, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalFaultReportDto>> GetTeacherPortalReportsAsync(string accessToken, string? studentCode = null, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> SaveTeacherPortalReportAsync(string accessToken, SaveStudentFaultReportRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> SaveTeacherPortalReportsBulkAsync(string accessToken, SaveStudentFaultReportsBulkRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> UpdateTeacherPortalReportAsync(string accessToken, UpdateStudentFaultReportRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> DeleteTeacherPortalReportAsync(string accessToken, int studentFaultId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NoticeDto>> GetTeacherPortalNoticesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> SaveTeacherPortalNoticeAsync(string accessToken, SaveNoticeRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TeacherPortalOptionDto>> GetTeacherPortalClassesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<TeacherPortalAttendanceMetaDto> GetTeacherPortalStudentAttendanceMetaAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentManualRowDto>> GetTeacherPortalStudentAttendanceAsync(string accessToken, int scheduleId, int classId, DateTime date, CancellationToken cancellationToken = default);
+    Task<AttendanceResult> SaveTeacherPortalStudentAttendanceAsync(string accessToken, SaveStudentManualRequest request, CancellationToken cancellationToken = default);
+    Task<TeacherPortalCvDto> GetTeacherPortalCvAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> AddTeacherPortalCvObjectiveAsync(string accessToken, TeacherPortalCvTextRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> AddTeacherPortalCvEducationAsync(string accessToken, TeacherPortalCvEducationRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> AddTeacherPortalCvJobAsync(string accessToken, TeacherPortalCvJobRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> AddTeacherPortalCvSkillAsync(string accessToken, TeacherPortalCvSkillRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> AddTeacherPortalCvLanguageAsync(string accessToken, TeacherPortalCvLanguageRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> DeleteTeacherPortalCvAsync(string accessToken, string kind, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentFeedbackItemDto>> GetTeacherFeedbackAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackUnreadDto> GetTeacherFeedbackUnreadAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> SetTeacherFeedbackStatusAsync(string accessToken, int feedbackId, string status, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkTeacherFeedbackReadAsync(string accessToken, int feedbackId, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> ReplyTeacherFeedbackAsync(string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default);
+    Task<StudentFeedbackResult> MarkTeacherFeedbackRepliesReadAsync(string accessToken, int feedbackId, CancellationToken cancellationToken = default);
 
     Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExamNameDto>> GetExamNamesAsync(string accessToken, CancellationToken cancellationToken = default);
@@ -431,6 +495,9 @@ public interface ISyncApiClient
     Task<ExamResult> PublishExamResultAsync(string accessToken, ExamPublishRequest request, CancellationToken cancellationToken = default);
     Task<ExamResult> DeleteExamResultAsync(string accessToken, ExamDeleteResultRequest request, CancellationToken cancellationToken = default);
     Task<ExamMeritListDto> GetExamMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? passStatus, CancellationToken cancellationToken = default);
+    Task<SmsResult> SendExamMeritSmsAsync(string accessToken, ExamMeritSmsRequest request, CancellationToken cancellationToken = default);
+    Task<SmsResult> SendExamCumulativeMeritSmsAsync(string accessToken, ExamMeritSmsRequest request, CancellationToken cancellationToken = default);
+    Task<ExamTopMeritSheetDto> GetExamTopMeritAsync(string accessToken, int examId, string? mode, CancellationToken cancellationToken = default);
     Task<ExamMeritListDto> GetExamMeritSubjectAsync(string accessToken, int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default);
     Task<ExamResultCardSheetDto> GetExamResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default);
     Task<ExamAnalyticalDto> GetExamAnalyticalAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default);
@@ -470,6 +537,7 @@ public interface ISyncApiClient
     Task<RoutineResult> SaveRoutineNameAsync(string accessToken, SaveRoutineNameRequest request, CancellationToken cancellationToken = default);
     Task<RoutineResult> DeleteRoutineNameAsync(string accessToken, int id, CancellationToken cancellationToken = default);
     Task<RoutineResult> CreateClassRoutineAsync(string accessToken, CreateClassRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<RoutineTemplateDto> GetRoutineTemplateAsync(string accessToken, int routineInfoId, CancellationToken cancellationToken = default);
     Task<ClassRoutineSheetDto> GetRoutineAssignAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RoutineOptionDto>> GetRoutineTeachersAsync(string accessToken, int classId, int subjectId, string day, string start, string end, int exceptRoutineInfoId, CancellationToken cancellationToken = default);
     Task<RoutineResult> AssignClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default);
@@ -598,6 +666,8 @@ public interface ISyncApiClient
     Task<ClientSmsPageDto> GetAuthorityClientSmsAsync(string accessToken, string? q, string? validation, CancellationToken cancellationToken = default);
     Task<SendClientSmsResult> SendAuthorityClientSmsAsync(string accessToken, SendClientSmsRequest request, CancellationToken cancellationToken = default);
     Task<AuthAccountsPageDto> GetAuthorityAccountsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthUnpaidSchoolsPageDto> GetAuthorityUnpaidSchoolsAsync(string accessToken, DateTime? from, DateTime? to, string? q, int? schoolId, CancellationToken cancellationToken = default);
+    Task<AuthUnpaidInvoicesPageDto> GetAuthorityUnpaidInvoicesAsync(string accessToken, int year, int month, string? q, int? schoolId, CancellationToken cancellationToken = default);
     Task<AuthProgressPageDto> GetAuthorityProgressAsync(string accessToken, string? filter, CancellationToken cancellationToken = default);
     Task<AuthCollectPageDto> GetAuthorityCollectionAsync(string accessToken, int categoryId, string? month, CancellationToken cancellationToken = default);
     Task<AuthManagePageDto> GetAuthorityManageAsync(string accessToken, string? q, string? validation, string? payment, CancellationToken cancellationToken = default);
@@ -684,6 +754,7 @@ public sealed class SyncApiClient : ISyncApiClient
     private readonly OfflineApiStore _offline;
     public event Action? OfflineQueueChanged;
     public string ApiHost => Http().BaseAddress?.Host ?? "";
+    public string ApiBaseUrl => (Http().BaseAddress?.ToString() ?? "http://127.0.0.1:5135/").TrimEnd('/');
 
     public SyncApiClient(IHttpClientFactory httpFactory, IDbContextFactory<LocalDbContext> dbFactory)
     {
@@ -741,12 +812,13 @@ public sealed class SyncApiClient : ISyncApiClient
             if (string.Equals(call.Url, "api/sync/accounts/payorder", StringComparison.OrdinalIgnoreCase))
             {
                 var remapped = await _offline.RemapPayOrderBodyAsync(body, cancellationToken);
-                if (remapped is null)
+                if (remapped is not null)
+                    body = remapped;
+                else if (!PayOrderHasTargets(body))
                 {
                     await _offline.MarkErrorAsync(entry.OutboxId, "Waiting for student sync", cancellationToken);
                     continue;
                 }
-                body = remapped;
             }
             else if (string.Equals(call.Url, "api/sync/accounts/collect", StringComparison.OrdinalIgnoreCase))
             {
@@ -1326,6 +1398,30 @@ public sealed class SyncApiClient : ISyncApiClient
                ?? new InstitutionDto();
     }
 
+    
+    public async Task<WebsiteApiKeyDto> GetWebsiteApiKeyAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/website-api-key");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WebsiteApiKeyDto>(JsonOptions, cancellationToken)
+               ?? new WebsiteApiKeyDto();
+    }
+
+    public async Task<WebsiteApiKeyResult> SaveWebsiteApiKeyAsync(
+        string accessToken, WebsiteApiKeySaveRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/website-api-key")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WebsiteApiKeyResult>(JsonOptions, cancellationToken)
+               ?? new WebsiteApiKeyResult { Succeeded = false, Error = "Empty response" };
+    }
     public async Task<InstitutionResult> SaveInstitutionAsync(
         string accessToken, InstitutionDto request, CancellationToken cancellationToken = default)
     {
@@ -1979,9 +2075,14 @@ public sealed class SyncApiClient : ISyncApiClient
     }
 
     public async Task<IReadOnlyList<StudentPhotoDto>> GetStudentPhotosAsync(
-        string accessToken, CancellationToken cancellationToken = default)
+        string accessToken, IReadOnlyList<int>? studentIds = null, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/student-info/photos");
+        if (studentIds is null || studentIds.Count == 0)
+            return [];
+        var ids = string.Join(",", studentIds.Where(x => x > 0).Distinct());
+        if (ids.Length == 0)
+            return [];
+        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/student-info/photos?ids=" + Uri.EscapeDataString(ids));
         message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         using var response = await Http().SendAsync(message, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -2513,6 +2614,9 @@ public sealed class SyncApiClient : ISyncApiClient
         return GetListAsync<LeaveReportRowDto>(accessToken, url, cancellationToken);
     }
 
+    public Task<AttendanceDisplayDto> GetAttendanceDisplayAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AttendanceDisplayDto>(accessToken, "api/sync/attendance/display", cancellationToken);
+
     public Task<IReadOnlyList<AttendanceMonthDto>> GetAttendanceFineMonthsAsync(
         string accessToken, CancellationToken cancellationToken = default) =>
         GetListAsync<AttendanceMonthDto>(accessToken, "api/sync/attendance/fine/months", cancellationToken);
@@ -2581,6 +2685,12 @@ public sealed class SyncApiClient : ISyncApiClient
         var remapped = await _offline.RemapPayOrderBodyAsync(json, cancellationToken);
         if (remapped is null)
         {
+            if (request.StudentIDs.Any(x => !string.IsNullOrWhiteSpace(x))
+                || request.StudentClassIDs.Any(x => x > 0))
+            {
+                return await PostAccountsAsync(accessToken, "api/sync/accounts/payorder", request, cancellationToken);
+            }
+
             await QueueWriteAsync("api/sync/accounts/payorder", "accounts", request, cancellationToken);
             return new AccountsResult { Succeeded = true, Queued = true, Saved = request.Items.Count };
         }
@@ -2651,31 +2761,17 @@ public sealed class SyncApiClient : ISyncApiClient
     public async Task<FeeStudentBundleDto> GetFeeStudentBundleAsync(string accessToken, string id, CancellationToken cancellationToken = default)
     {
         var url = $"api/sync/accounts/students/bundle?id={Uri.EscapeDataString(id ?? "")}";
-        FeeStudentBundleDto? remote = null;
         try
         {
-            remote = await GetItemAsync<FeeStudentBundleDto>(accessToken, url, cancellationToken);
+            var remote = await GetItemAsync<FeeStudentBundleDto>(accessToken, url, cancellationToken);
+            if (remote.Student is not null)
+                return remote;
         }
         catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
         {
         }
 
-        var local = await _offline.BundleFromLocalAsync(id ?? "", cancellationToken);
-        if (local is null)
-            return remote ?? new FeeStudentBundleDto();
-        if (remote?.Student is null)
-            return local;
-
-        var seen = remote.CurrentDues.Select(x => x.PayOrderID).ToHashSet();
-        foreach (var due in local.CurrentDues)
-        {
-            if (seen.Add(due.PayOrderID))
-                remote.CurrentDues.Add(due);
-        }
-        remote.CurrentDue = remote.CurrentDues.Sum(x => x.Due);
-        if (remote.Student.StudentID <= 0)
-            remote.Student = local.Student;
-        return remote;
+        return await _offline.BundleFromLocalAsync(id ?? "", cancellationToken) ?? new FeeStudentBundleDto();
     }
 
     public async Task<AccountsResult> CollectPaymentAsync(string accessToken, CollectPaymentRequest request, CancellationToken cancellationToken = default)
@@ -2944,8 +3040,16 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<StudentPortalAttendanceDto> GetStudentPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<StudentPortalAttendanceDto>(accessToken, "api/sync/student-portal/attendance", cancellationToken);
 
-    public Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(string accessToken, CancellationToken cancellationToken = default) =>
-        GetListAsync<StudentPortalSmsDto>(accessToken, "api/sync/student-portal/sms", cancellationToken);
+    public Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(
+        string accessToken, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
+    {
+        var qs = "api/sync/student-portal/sms";
+        var parts = new List<string>();
+        if (from is DateTime f) parts.Add($"from={Uri.EscapeDataString(f.ToString("yyyy-MM-dd"))}");
+        if (to is DateTime t) parts.Add($"to={Uri.EscapeDataString(t.ToString("yyyy-MM-dd"))}");
+        if (parts.Count > 0) qs += "?" + string.Join("&", parts);
+        return GetListAsync<StudentPortalSmsDto>(accessToken, qs, cancellationToken);
+    }
 
     public Task<StudentPortalAccountsBundleDto> GetStudentPortalAccountsAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<StudentPortalAccountsBundleDto>(accessToken, "api/sync/student-portal/accounts", cancellationToken);
@@ -2974,8 +3078,14 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalExamsAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetListAsync<StudentPortalExamDto>(accessToken, "api/sync/student-portal/exams", cancellationToken);
 
+    public Task<IReadOnlyList<StudentPortalExamSubjectDto>> GetStudentPortalExamSubjectsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalExamSubjectDto>(accessToken, "api/sync/student-portal/exams/subjects", cancellationToken);
+
     public Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalCumulativeAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetListAsync<StudentPortalExamDto>(accessToken, "api/sync/student-portal/cumulative", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalExamSubjectDto>> GetStudentPortalCumulativeSubjectsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalExamSubjectDto>(accessToken, "api/sync/student-portal/cumulative/subjects", cancellationToken);
 
     public Task<IReadOnlyList<StudentPortalPeriodDto>> GetStudentPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetListAsync<StudentPortalPeriodDto>(accessToken, "api/sync/student-portal/routine", cancellationToken);
@@ -2993,6 +3103,351 @@ public sealed class SyncApiClient : ISyncApiClient
         if (parts.Count > 0) qs += "?" + string.Join("&", parts);
         return GetListAsync<StudentPortalFaultReportDto>(accessToken, qs, cancellationToken);
     }
+
+    public Task<StudentPortalInboxReadsDto> GetStudentPortalInboxReadsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalInboxReadsDto>(accessToken, "api/sync/student-portal/inbox-reads", cancellationToken);
+
+    public async Task<StudentPortalInboxReadsDto> SaveStudentPortalInboxReadsAsync(
+        string accessToken, StudentPortalInboxReadsDto reads, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, "api/sync/student-portal/inbox-reads")
+        {
+            Content = JsonContent.Create(reads)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return reads;
+        return JsonSerializer.Deserialize<StudentPortalInboxReadsDto>(body, JsonOptions) ?? reads;
+    }
+
+    public Task<IReadOnlyList<StudentFeedbackRecipientDto>> GetStudentFeedbackRecipientsAsync(
+        string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentFeedbackRecipientDto>(accessToken, "api/sync/student-portal/feedback/recipients", cancellationToken);
+
+    public Task<IReadOnlyList<StudentFeedbackItemDto>> GetStudentFeedbackAsync(
+        string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentFeedbackItemDto>(accessToken, "api/sync/student-portal/feedback", cancellationToken);
+
+    public async Task<StudentFeedbackResult> SubmitStudentFeedbackAsync(
+        string accessToken, SubmitStudentFeedbackRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/student-portal/feedback")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new StudentFeedbackResult { Error = ExtractApiError(body) ?? "fb.failed" };
+        return JsonSerializer.Deserialize<StudentFeedbackResult>(body, JsonOptions)
+               ?? new StudentFeedbackResult { Error = "fb.failed" };
+    }
+
+    public Task RemoveSnapshotAsync(string key, CancellationToken cancellationToken = default) =>
+        _offline.RemoveSnapshotAsync(key, cancellationToken);
+
+    public async Task<IReadOnlyList<StudentFeedbackItemDto>> GetOfficeFeedbackAsync(
+        string accessToken, CancellationToken cancellationToken = default)
+    {
+        const string url = "api/sync/feedback";
+        // Drop empty stale snapshots so main-admin never keeps a blank inbox after a failed earlier load.
+        var stale = await _offline.ReadAsync<List<StudentFeedbackItemDto>>(url, cancellationToken);
+        if (stale is { Count: 0 })
+            await _offline.RemoveSnapshotAsync(url, cancellationToken);
+
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, url);
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                    null,
+                    response.StatusCode);
+            }
+
+            var listBody = string.IsNullOrWhiteSpace(body) ? "[]" : body;
+            _ = Task.Run(async () =>
+            {
+                try { await _offline.SaveAsync(url, listBody, CancellationToken.None); }
+                catch { }
+            });
+            var list = JsonSerializer.Deserialize<List<StudentFeedbackItemDto>>(string.IsNullOrWhiteSpace(body) ? "[]" : body, JsonOptions) ?? [];
+            // Surface API diagnostics when main-admin inbox is blank.
+            if (list.Count == 0
+                && response.Headers.TryGetValues("X-Feedback-Count", out var counts))
+            {
+                var count = counts.FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(count) && count != "0")
+                    throw new InvalidOperationException($"feedback.mismatch:{count}");
+            }
+            return list;
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+            if (ex is HttpRequestException http
+                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw;
+            var cached = await _offline.ReadAsync<List<StudentFeedbackItemDto>>(url, cancellationToken);
+            if (cached is { Count: > 0 })
+                return cached;
+            throw;
+        }
+    }
+
+    public Task<IReadOnlyList<StudentFeedbackRecipientDto>> GetOfficeFeedbackRecipientsAsync(
+        string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentFeedbackRecipientDto>(accessToken, "api/sync/feedback/recipients", cancellationToken);
+
+    public Task<StudentFeedbackUnreadDto> GetOfficeFeedbackUnreadAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentFeedbackUnreadDto>(accessToken, "api/sync/feedback/unread", cancellationToken);
+
+    public Task<StudentFeedbackResult> SetOfficeFeedbackStatusAsync(
+        string accessToken, int feedbackId, string status, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/feedback/{feedbackId}/status",
+            new StudentFeedbackStatusRequest { Status = status }, cancellationToken);
+
+    public Task<StudentFeedbackResult> AssignOfficeFeedbackAsync(
+        string accessToken, int feedbackId, int toRegistrationId, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/feedback/{feedbackId}/assign",
+            new AssignStudentFeedbackRequest { ToRegistrationID = toRegistrationId }, cancellationToken);
+
+    public async Task<StudentFeedbackResult> MarkOfficeFeedbackReadAsync(
+        string accessToken, int feedbackId, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, $"api/sync/feedback/{feedbackId}/read");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new StudentFeedbackResult { Error = ExtractApiError(body) ?? "fb.failed" };
+        return JsonSerializer.Deserialize<StudentFeedbackResult>(body, JsonOptions)
+               ?? new StudentFeedbackResult { Succeeded = true, FeedbackID = feedbackId };
+    }
+
+    public async Task<StudentFeedbackResult> MarkOfficeFeedbackReadAllAsync(
+        string accessToken, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, "api/sync/feedback/read-all");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new StudentFeedbackResult { Error = ExtractApiError(body) ?? "fb.failed" };
+        return JsonSerializer.Deserialize<StudentFeedbackResult>(body, JsonOptions)
+               ?? new StudentFeedbackResult { Succeeded = true };
+    }
+
+    public Task<StudentFeedbackResult> ReplyOfficeFeedbackAsync(
+        string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Post, $"api/sync/feedback/{feedbackId}/reply",
+            new StudentFeedbackReplyRequest { Body = body }, cancellationToken);
+
+    public Task<StudentFeedbackResult> ReplyStudentFeedbackAsync(
+        string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Post, $"api/sync/student-portal/feedback/{feedbackId}/reply",
+            new StudentFeedbackReplyRequest { Body = body }, cancellationToken);
+
+    public Task<StudentFeedbackResult> MarkOfficeFeedbackRepliesReadAsync(
+        string accessToken, int feedbackId, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/feedback/{feedbackId}/replies/read",
+            new { }, cancellationToken);
+
+    public Task<StudentFeedbackResult> MarkStudentFeedbackRepliesReadAsync(
+        string accessToken, int feedbackId, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/student-portal/feedback/{feedbackId}/replies/read",
+            new { }, cancellationToken);
+
+    private async Task<StudentFeedbackResult> SendOfficeFeedbackAsync<T>(
+        string accessToken, HttpMethod method, string url, T body, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(body)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var text = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new StudentFeedbackResult { Error = ExtractApiError(text) ?? "fb.failed" };
+        return JsonSerializer.Deserialize<StudentFeedbackResult>(text, JsonOptions)
+               ?? new StudentFeedbackResult { Succeeded = true };
+    }
+
+    public Task<TeacherPortalDashboardDto> GetTeacherPortalDashboardAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<TeacherPortalDashboardDto>(accessToken, "api/sync/teacher-portal/dashboard", cancellationToken);
+
+    public Task<TeacherPortalDashboardDto?> PeekTeacherPortalDashboardAsync(CancellationToken cancellationToken = default) =>
+        _offline.ReadAsync<TeacherPortalDashboardDto>("api/sync/teacher-portal/dashboard", cancellationToken);
+
+    public Task<TeacherPortalDetailsDto> GetTeacherPortalDetailsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<TeacherPortalDetailsDto>(accessToken, "api/sync/teacher-portal/details", cancellationToken);
+
+    public Task<IReadOnlyList<EducationYearDto>> GetTeacherPortalSessionsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<EducationYearDto>(accessToken, "api/sync/teacher-portal/sessions", cancellationToken);
+
+    public Task<StudentPortalAttendanceDto> GetTeacherPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalAttendanceDto>(accessToken, "api/sync/teacher-portal/attendance", cancellationToken);
+
+    public Task<IReadOnlyList<TeacherPortalPeriodDto>> GetTeacherPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<TeacherPortalPeriodDto>(accessToken, "api/sync/teacher-portal/routine", cancellationToken);
+
+    public Task<IReadOnlyList<TeacherPortalSubjectDto>> GetTeacherPortalSubjectsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<TeacherPortalSubjectDto>(accessToken, "api/sync/teacher-portal/subjects", cancellationToken);
+
+    public Task<IReadOnlyList<ExamNameDto>> GetTeacherPortalExamsAsync(string accessToken, int classId, CancellationToken cancellationToken = default) =>
+        GetListAsync<ExamNameDto>(accessToken, $"api/sync/teacher-portal/exams?classId={classId}", cancellationToken);
+
+    public Task<IReadOnlyList<SubExamDto>> GetTeacherPortalSubExamsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<SubExamDto>(accessToken, "api/sync/teacher-portal/sub-exams", cancellationToken);
+
+    public Task<ExamFilterDto> GetTeacherPortalMarksFiltersAsync(string accessToken, int examId = 0, int classId = 0, int subjectId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/teacher-portal/marks-filters?examId={examId}&classId={classId}&subjectId={subjectId}";
+        if (!string.IsNullOrWhiteSpace(groupId))
+            url += $"&groupId={Uri.EscapeDataString(groupId)}";
+        if (!string.IsNullOrWhiteSpace(sectionId))
+            url += $"&sectionId={Uri.EscapeDataString(sectionId)}";
+        if (!string.IsNullOrWhiteSpace(shiftId))
+            url += $"&shiftId={Uri.EscapeDataString(shiftId)}";
+        return GetItemAsync<ExamFilterDto>(accessToken, url, cancellationToken);
+    }
+
+    public Task<InputSheetDto> GetTeacherPortalMarksAsync(string accessToken, int examId, int classId, int subjectId, int subExamId, string? groupId = null, string? sectionId = null, string? shiftId = null, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/teacher-portal/marks?examId={examId}&classId={classId}&subjectId={subjectId}&subExamId={subExamId}";
+        if (!string.IsNullOrWhiteSpace(groupId))
+            url += $"&groupId={Uri.EscapeDataString(groupId)}";
+        if (!string.IsNullOrWhiteSpace(sectionId))
+            url += $"&sectionId={Uri.EscapeDataString(sectionId)}";
+        if (!string.IsNullOrWhiteSpace(shiftId))
+            url += $"&shiftId={Uri.EscapeDataString(shiftId)}";
+        return GetItemAsync<InputSheetDto>(accessToken, url, cancellationToken);
+    }
+
+    public Task<ExamResult> SaveTeacherPortalMarksAsync(string accessToken, SaveInputMarksRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/teacher-portal/marks", request, cancellationToken);
+
+    public Task<IReadOnlyList<TeacherPortalStudentHitDto>> SearchTeacherPortalStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default) =>
+        GetListAsync<TeacherPortalStudentHitDto>(accessToken, $"api/sync/teacher-portal/students?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+
+    public Task<StudentPhotoDto> GetTeacherPortalStudentPhotoAsync(string accessToken, string studentCode, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPhotoDto>(accessToken, $"api/sync/teacher-portal/students/photo?student={Uri.EscapeDataString(studentCode ?? "")}", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalFaultReportDto>> GetTeacherPortalReportsAsync(string accessToken, string? studentCode = null, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(studentCode))
+            parts.Add("student=" + Uri.EscapeDataString(studentCode.Trim()));
+        if (from is DateTime f) parts.Add($"from={Uri.EscapeDataString(f.ToString("yyyy-MM-dd"))}");
+        if (to is DateTime t) parts.Add($"to={Uri.EscapeDataString(t.ToString("yyyy-MM-dd"))}");
+        var url = "api/sync/teacher-portal/reports";
+        if (parts.Count > 0) url += "?" + string.Join("&", parts);
+        return GetListAsync<StudentPortalFaultReportDto>(accessToken, url, cancellationToken);
+    }
+
+    public Task<StudentInfoResult> SaveTeacherPortalReportAsync(string accessToken, SaveStudentFaultReportRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/reports", request, cancellationToken);
+
+    public Task<StudentInfoResult> SaveTeacherPortalReportsBulkAsync(string accessToken, SaveStudentFaultReportsBulkRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/reports/bulk", request, cancellationToken);
+
+    public async Task<StudentInfoResult> UpdateTeacherPortalReportAsync(string accessToken, UpdateStudentFaultReportRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, "api/sync/teacher-portal/reports")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
+    public async Task<StudentInfoResult> DeleteTeacherPortalReportAsync(string accessToken, int studentFaultId, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Delete, $"api/sync/teacher-portal/reports/{studentFaultId}");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<NoticeDto>> GetTeacherPortalNoticesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<NoticeDto>(accessToken, "api/sync/teacher-portal/notices", cancellationToken);
+
+    public Task<StudentInfoResult> SaveTeacherPortalNoticeAsync(string accessToken, SaveNoticeRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/notices", request, cancellationToken);
+
+    public Task<IReadOnlyList<TeacherPortalOptionDto>> GetTeacherPortalClassesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<TeacherPortalOptionDto>(accessToken, "api/sync/teacher-portal/classes", cancellationToken);
+
+    public Task<TeacherPortalAttendanceMetaDto> GetTeacherPortalStudentAttendanceMetaAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<TeacherPortalAttendanceMetaDto>(accessToken, "api/sync/teacher-portal/student-attendance/meta", cancellationToken);
+
+    public Task<IReadOnlyList<StudentManualRowDto>> GetTeacherPortalStudentAttendanceAsync(string accessToken, int scheduleId, int classId, DateTime date, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentManualRowDto>(accessToken, $"api/sync/teacher-portal/student-attendance?scheduleId={scheduleId}&classId={classId}&date={Uri.EscapeDataString(date.ToString("yyyy-MM-dd"))}", cancellationToken);
+
+    public Task<AttendanceResult> SaveTeacherPortalStudentAttendanceAsync(string accessToken, SaveStudentManualRequest request, CancellationToken cancellationToken = default) =>
+        PostAttendanceAsync(accessToken, "api/sync/teacher-portal/student-attendance", request, cancellationToken);
+
+    public Task<TeacherPortalCvDto> GetTeacherPortalCvAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<TeacherPortalCvDto>(accessToken, "api/sync/teacher-portal/cv", cancellationToken);
+
+    public Task<StudentInfoResult> AddTeacherPortalCvObjectiveAsync(string accessToken, TeacherPortalCvTextRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/cv/objective", request, cancellationToken);
+
+    public Task<StudentInfoResult> AddTeacherPortalCvEducationAsync(string accessToken, TeacherPortalCvEducationRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/cv/education", request, cancellationToken);
+
+    public Task<StudentInfoResult> AddTeacherPortalCvJobAsync(string accessToken, TeacherPortalCvJobRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/cv/job", request, cancellationToken);
+
+    public Task<StudentInfoResult> AddTeacherPortalCvSkillAsync(string accessToken, TeacherPortalCvSkillRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/cv/skill", request, cancellationToken);
+
+    public Task<StudentInfoResult> AddTeacherPortalCvLanguageAsync(string accessToken, TeacherPortalCvLanguageRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/teacher-portal/cv/language", request, cancellationToken);
+
+    public async Task<StudentInfoResult> DeleteTeacherPortalCvAsync(string accessToken, string kind, int id, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Delete, $"api/sync/teacher-portal/cv/{Uri.EscapeDataString(kind)}/{id}");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadStudentInfoResultAsync(response, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<StudentFeedbackItemDto>> GetTeacherFeedbackAsync(
+        string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentFeedbackItemDto>(accessToken, "api/sync/teacher-portal/feedback", cancellationToken);
+
+    public Task<StudentFeedbackUnreadDto> GetTeacherFeedbackUnreadAsync(
+        string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentFeedbackUnreadDto>(accessToken, "api/sync/teacher-portal/feedback/unread", cancellationToken);
+
+    public Task<StudentFeedbackResult> SetTeacherFeedbackStatusAsync(
+        string accessToken, int feedbackId, string status, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/teacher-portal/feedback/{feedbackId}/status",
+            new StudentFeedbackStatusRequest { Status = status }, cancellationToken);
+
+    public Task<StudentFeedbackResult> MarkTeacherFeedbackReadAsync(
+        string accessToken, int feedbackId, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/teacher-portal/feedback/{feedbackId}/read",
+            new { }, cancellationToken);
+
+    public Task<StudentFeedbackResult> ReplyTeacherFeedbackAsync(
+        string accessToken, int feedbackId, string body, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Post, $"api/sync/teacher-portal/feedback/{feedbackId}/reply",
+            new StudentFeedbackReplyRequest { Body = body }, cancellationToken);
+
+    public Task<StudentFeedbackResult> MarkTeacherFeedbackRepliesReadAsync(
+        string accessToken, int feedbackId, CancellationToken cancellationToken = default) =>
+        SendOfficeFeedbackAsync(accessToken, HttpMethod.Put, $"api/sync/teacher-portal/feedback/{feedbackId}/replies/read",
+            new { }, cancellationToken);
 
     public async Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default)
     {
@@ -3153,6 +3608,15 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<ExamMeritListDto> GetExamMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? passStatus, CancellationToken cancellationToken = default) =>
         GetItemAsync<ExamMeritListDto>(accessToken, $"api/sync/exam/merit?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("passStatus", passStatus)}", cancellationToken);
 
+    public Task<SmsResult> SendExamMeritSmsAsync(string accessToken, ExamMeritSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/exam/merit/sms", request, cancellationToken);
+
+    public Task<SmsResult> SendExamCumulativeMeritSmsAsync(string accessToken, ExamMeritSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/exam/cumulative-merit/sms", request, cancellationToken);
+
+    public Task<ExamTopMeritSheetDto> GetExamTopMeritAsync(string accessToken, int examId, string? mode, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamTopMeritSheetDto>(accessToken, $"api/sync/exam/merit-top?examId={examId}{Q("mode", mode)}", cancellationToken);
+
     public Task<ExamMeritListDto> GetExamMeritSubjectAsync(string accessToken, int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default) =>
         GetItemAsync<ExamMeritListDto>(accessToken, $"api/sync/exam/merit-subject?classId={classId}&examId={examId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
 
@@ -3289,6 +3753,9 @@ public sealed class SyncApiClient : ISyncApiClient
 
     public Task<RoutineResult> CreateClassRoutineAsync(string accessToken, CreateClassRoutineRequest request, CancellationToken cancellationToken = default) =>
         PostRoutineAsync(accessToken, "api/sync/routine/create", request, cancellationToken);
+
+    public Task<RoutineTemplateDto> GetRoutineTemplateAsync(string accessToken, int routineInfoId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<RoutineTemplateDto>(accessToken, $"api/sync/routine/template?routineInfoId={routineInfoId}", cancellationToken);
 
     public Task<ClassRoutineSheetDto> GetRoutineAssignAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken cancellationToken = default) =>
         GetItemAsync<ClassRoutineSheetDto>(accessToken, $"api/sync/routine/assign?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&routineInfoId={routineInfoId}", cancellationToken);
@@ -3641,8 +4108,23 @@ public sealed class SyncApiClient : ISyncApiClient
             $"api/sync/authority/reset/image-preview?schoolId={schoolId}&yearIds={Uri.EscapeDataString(string.Join(",", yearIds ?? []))}",
             cancellationToken);
 
-    public Task<ResetProgressDto> GetAuthorityResetProgressAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
-        GetItemAsync<ResetProgressDto>(accessToken, $"api/sync/authority/reset/progress?schoolId={schoolId}", cancellationToken);
+    public async Task<ResetProgressDto> GetAuthorityResetProgressAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/authority/reset/progress?schoolId={schoolId}");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                null,
+                response.StatusCode);
+        }
+        if (string.IsNullOrWhiteSpace(body) || body == "null")
+            return new ResetProgressDto();
+        return JsonSerializer.Deserialize<ResetProgressDto>(body, JsonOptions) ?? new ResetProgressDto();
+    }
 
     public Task<AuthorityResult> StartAuthorityResetAsync(string accessToken, ResetExecuteRequest request, CancellationToken cancellationToken = default) =>
         PostAuthAsync(accessToken, "api/sync/authority/reset/execute", request, cancellationToken);
@@ -3719,7 +4201,26 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<AuthAccountsPageDto> GetAuthorityAccountsAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<AuthAccountsPageDto>(accessToken, "api/sync/authority/accounts", cancellationToken);
 
-    public Task<AuthProgressPageDto> GetAuthorityProgressAsync(string accessToken, string? filter, CancellationToken cancellationToken = default) =>
+        public Task<AuthUnpaidSchoolsPageDto> GetAuthorityUnpaidSchoolsAsync(
+        string accessToken, DateTime? from, DateTime? to, string? q, int? schoolId, CancellationToken cancellationToken = default)
+    {
+        var url = "api/sync/authority/unpaid-schools?";
+        if (from is not null) url += $"from={from:yyyy-MM-dd}&";
+        if (to is not null) url += $"to={to:yyyy-MM-dd}&";
+        if (!string.IsNullOrWhiteSpace(q)) url += $"q={Uri.EscapeDataString(q)}&";
+        if (schoolId is > 0) url += $"schoolId={schoolId}&";
+        return GetItemAsync<AuthUnpaidSchoolsPageDto>(accessToken, url.TrimEnd('&', '?'), cancellationToken);
+    }
+
+    public Task<AuthUnpaidInvoicesPageDto> GetAuthorityUnpaidInvoicesAsync(
+        string accessToken, int year, int month, string? q, int? schoolId, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/authority/unpaid-invoices?year={year}&month={month}";
+        if (!string.IsNullOrWhiteSpace(q)) url += $"&q={Uri.EscapeDataString(q)}";
+        if (schoolId is > 0) url += $"&schoolId={schoolId}";
+        return GetItemAsync<AuthUnpaidInvoicesPageDto>(accessToken, url, cancellationToken);
+    }
+public Task<AuthProgressPageDto> GetAuthorityProgressAsync(string accessToken, string? filter, CancellationToken cancellationToken = default) =>
         GetItemAsync<AuthProgressPageDto>(accessToken, $"api/sync/authority/progress?filter={Uri.EscapeDataString(filter ?? "%")}", cancellationToken);
 
     public Task<AuthCollectPageDto> GetAuthorityCollectionAsync(string accessToken, int categoryId, string? month, CancellationToken cancellationToken = default) =>
@@ -4361,7 +4862,13 @@ public sealed class SyncApiClient : ISyncApiClient
                     response.StatusCode);
             }
 
-            await _offline.SaveAsync(url, string.IsNullOrWhiteSpace(body) ? "{}" : body, cancellationToken);
+            // Cache in background — do not await (SyncEngine SQLite writes can block 10–20s).
+            var cacheBody = string.IsNullOrWhiteSpace(body) ? "{}" : body;
+            _ = Task.Run(async () =>
+            {
+                try { await _offline.SaveAsync(url, cacheBody, CancellationToken.None); }
+                catch { }
+            });
             if (string.IsNullOrWhiteSpace(body) || body == "null")
                 return new T();
             return JsonSerializer.Deserialize<T>(body, JsonOptions) ?? new T();
@@ -4413,8 +4920,13 @@ public sealed class SyncApiClient : ISyncApiClient
                     response.StatusCode);
             }
 
-            await _offline.SaveAsync(url, string.IsNullOrWhiteSpace(body) ? "[]" : body, cancellationToken);
-            return JsonSerializer.Deserialize<List<T>>(string.IsNullOrWhiteSpace(body) ? "[]" : body, JsonOptions) ?? [];
+            var listBody = string.IsNullOrWhiteSpace(body) ? "[]" : body;
+            _ = Task.Run(async () =>
+            {
+                try { await _offline.SaveAsync(url, listBody, CancellationToken.None); }
+                catch { }
+            });
+            return JsonSerializer.Deserialize<List<T>>(listBody, JsonOptions) ?? [];
         }
         catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
         {
@@ -4508,6 +5020,24 @@ public sealed class SyncApiClient : ISyncApiClient
         {
             await QueueWriteAsync(url, "attendance", request, cancellationToken);
             return new AttendanceResult { Succeeded = true, Queued = true, Saved = 1 };
+        }
+    }
+
+    private static bool PayOrderHasTargets(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return false;
+        try
+        {
+            var request = JsonSerializer.Deserialize<CreatePayOrdersRequest>(body, JsonOptions);
+            if (request is null)
+                return false;
+            return request.StudentClassIDs.Any(x => x > 0)
+                   || request.StudentIDs.Any(x => !string.IsNullOrWhiteSpace(x));
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 
@@ -4648,3 +5178,4 @@ public sealed class SyncApiClient : ISyncApiClient
 
     private HttpClient Http() => _httpFactory.CreateClient(HttpClientName);
 }
+

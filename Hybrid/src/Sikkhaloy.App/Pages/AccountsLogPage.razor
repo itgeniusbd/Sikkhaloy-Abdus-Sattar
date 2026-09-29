@@ -81,7 +81,7 @@
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false).AsTask();
     private Task ExportWordAsync()
     {
         var school = Session.Current?.SchoolName ?? "";

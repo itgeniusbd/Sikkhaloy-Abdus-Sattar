@@ -5,7 +5,7 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="card ab-page">
+<div class="card ab-page ab-page-full">
     <h1>@Locale.T("auth.m.progress")</h1>
     <div class="ab-radios no-print">
         <label><input type="radio" name="pf" checked="@(filter == "%")" disabled="@busy" @onchange="FilterAll" /> @Locale.T("ai.all")</label>
@@ -38,7 +38,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (data.Rows.Count == 0)
+                @if (!busy && data.Rows.Count == 0)
                 {
                     <tr><td colspan="11">@Locale.T("ab.empty")</td></tr>
                 }
@@ -87,10 +87,17 @@
 
     private async Task LoadAsync()
     {
-        await SetBusyAsync(Locale.T("ab.loading"));
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return;
+        }
+
+        busyTitle = Locale.T("ab.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
-            if (!await OnlineAsync()) return;
             data = await Api.GetAuthorityProgressAsync(Session.AccessToken!, filter);
             if (!string.IsNullOrWhiteSpace(data.Error))
                 Show(data.Error, true);
@@ -101,15 +108,5 @@
 
     private void ClosePopup() => popupText = "";
     private void Show(string text, bool err) { popupText = text; popupError = err; }
-    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
-    private async Task<bool> OnlineAsync()
-    {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
-        {
-            Show(Locale.T("subj.needOnline"), true);
-            return false;
-        }
-        return true;
-    }
     private static string Tk(decimal n) => n.ToString("N0");
 }

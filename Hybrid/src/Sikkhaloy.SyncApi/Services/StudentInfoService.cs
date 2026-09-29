@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Sikkhaloy.Shared.Auth;
@@ -13,6 +14,14 @@ public sealed partial class StudentInfoService
     {
         _connections = connections;
     }
+
+    private static readonly ConcurrentDictionary<string, bool> TableExistsCache = new(StringComparer.OrdinalIgnoreCase);
+
+    private static SqlCommand CreateReportCommand(string sql, SqlConnection con)
+    {
+        return new SqlCommand(sql, con) { CommandTimeout = 90 };
+    }
+
 
     public async Task<StudentSignupListsDto> ListSignupAsync(
         SessionSnapshot session, int classId, int groupId, int sectionId, int shiftId, string? studentCode,
@@ -426,11 +435,16 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1
     }
 
     public async Task<IReadOnlyList<StudentPhotoDto>> ListPhotosAsync(
-        SessionSnapshot session, CancellationToken cancellationToken)
+        SessionSnapshot session, string? ids, CancellationToken cancellationToken)
     {
+        var parsed = ParseStudentIds(ids);
+        if (parsed.Count == 0)
+            return [];
+
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
-        await using var cmd = new SqlCommand("""
+        var names = parsed.Select((_, i) => "@id" + i).ToArray();
+        await using var cmd = new SqlCommand($"""
 SELECT s.StudentID, si.Image
 FROM dbo.Student AS s
 INNER JOIN dbo.StudentsClass AS sc ON sc.StudentID = s.StudentID
@@ -438,10 +452,14 @@ LEFT OUTER JOIN dbo.Student_Image AS si ON s.StudentImageID = si.StudentImageID
 WHERE sc.SchoolID = @SchoolID
   AND sc.EducationYearID = @EducationYearID
   AND s.Status = N'Active'
+  AND s.StudentID IN ({string.Join(",", names)})
   AND si.Image IS NOT NULL
 """, con);
+        cmd.CommandTimeout = 90;
         cmd.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
         cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        for (var i = 0; i < parsed.Count; i++)
+            cmd.Parameters.AddWithValue(names[i], parsed[i]);
 
         var map = new Dictionary<int, StudentPhotoDto>();
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -1068,7 +1086,7 @@ SELECT IsApproved, IsLockedOut FROM dbo.aspnet_Membership WHERE UserId = @UserId
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
 
-        await using (var find = new SqlCommand("""
+        await using (var find = CreateReportCommand("""
 SELECT TOP 1 Student.StudentID, StudentsClass.StudentClassID, StudentsClass.ClassID
 FROM dbo.StudentsClass
 INNER JOIN dbo.Student ON StudentsClass.StudentID = Student.StudentID
@@ -1108,7 +1126,7 @@ WHERE StudentsClass.EducationYearID = @EducationYearID
     {
         try
         {
-            await using var cmd = new SqlCommand("""
+            await using var cmd = CreateReportCommand("""
 SELECT si.Image
 FROM dbo.Student AS s
 LEFT OUTER JOIN dbo.Student_Image AS si ON s.StudentImageID = si.StudentImageID
@@ -1130,7 +1148,7 @@ WHERE s.StudentID = @StudentID
         const string pub = "N'Pub'";
         try
         {
-            await using var avgs = new SqlCommand($"""
+            await using var avgs = CreateReportCommand($"""
 SELECT Subject.SubjectName,
        ROUND(AVG(Exam_Result_of_Subject.ObtainedPercentage_ofSubject), 2, 0) AS Sub_Avg,
        AVG(CAST(Exam_Result_of_Subject.Position_InSubject_Class AS int)) AS Sub_Position
@@ -1184,7 +1202,7 @@ ORDER BY Sub_Avg DESC
 """;
         try
         {
-            await using var summary = new SqlCommand($"""
+            await using var summary = CreateReportCommand($"""
 SELECT AVG(CAST(Position_InExam_Class AS int)) AS Average_Position_Class,
        ROUND(AVG(Student_Point), 2, 0) AS Average_Point,
        (SELECT ROUND(AVG(Exam_Result_of_Subject.ObtainedPercentage_ofSubject), 2, 0)
@@ -1231,7 +1249,7 @@ WHERE StudentPublishStatus = N'Pub' AND StudentID = @StudentID
  WHERE StudentPublishStatus = N'Pub' AND StudentID = @StudentID
  GROUP BY EducationYearID)
 """;
-            await using var sessions = new SqlCommand($"""
+            await using var sessions = CreateReportCommand($"""
 SELECT Education_Year.EducationYear,
        T_AP.Average_Position_Class,
        T_AP.Average_Point,
@@ -1278,7 +1296,7 @@ ORDER BY Education_Year.StartDate
 
         try
         {
-            await using var exams = new SqlCommand("""
+            await using var exams = CreateReportCommand("""
 SELECT Exam_Name.ExamName,
        Exam_Result_of_Student.Student_Grade,
        Exam_Result_of_Student.Student_Point,
@@ -1322,7 +1340,7 @@ ORDER BY Exam_Name.ExamID
     {
         try
         {
-            await using var work = new SqlCommand("""
+            await using var work = CreateReportCommand("""
 SELECT COUNT(DISTINCT CAST(AttendanceDate AS date))
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID
@@ -1332,7 +1350,7 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = 
             work.Parameters.AddWithValue("@ClassID", dto.ClassID);
             dto.Attendance.WorkingDays = ToInt(await work.ExecuteScalarAsync(cancellationToken));
 
-            await using var counts = new SqlCommand("""
+            await using var counts = CreateReportCommand("""
 SELECT LTRIM(RTRIM(ISNULL(Attendance, N''))) AS Attendance, COUNT(*) AS Cnt
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND StudentClassID = @StudentClassID
@@ -1368,7 +1386,7 @@ GROUP BY LTRIM(RTRIM(ISNULL(Attendance, N'')))
 
         try
         {
-            await using var days = new SqlCommand("""
+            await using var days = CreateReportCommand("""
 SELECT CAST(AttendanceDate AS date) AS AttendanceDate, Attendance, EntryTime, ExitTime
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND StudentClassID = @StudentClassID
@@ -1398,12 +1416,16 @@ ORDER BY AttendanceDate
 
         try
         {
-            await using var hol = new SqlCommand("""
-SELECT CAST(HolidayDate AS date) AS HolidayDate, HolidayName
-FROM dbo.Employee_Holiday
-WHERE SchoolID = @SchoolID
+            await using var hol = CreateReportCommand("""
+SELECT CAST(h.HolidayDate AS date) AS HolidayDate, h.HolidayName
+FROM dbo.Employee_Holiday AS h
+INNER JOIN dbo.Education_Year AS y ON y.EducationYearID = @EducationYearID
+WHERE h.SchoolID = @SchoolID
+  AND CAST(h.HolidayDate AS date) >= CAST(y.StartDate AS date)
+  AND CAST(h.HolidayDate AS date) <= CAST(y.EndDate AS date)
 """, con);
             hol.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            hol.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
             await using var reader = await hol.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -1423,7 +1445,7 @@ WHERE SchoolID = @SchoolID
 
         try
         {
-            await using var leave = new SqlCommand("""
+            await using var leave = CreateReportCommand("""
 SELECT CAST(StartDate AS date) AS StartDate, CAST(EndDate AS date) AS EndDate,
        ISNULL(LeaveType, N'') AS LeaveType, ISNULL(Description, N'') AS Description
 FROM dbo.Attendance_Leave
@@ -1459,7 +1481,7 @@ WHERE SchoolID = @SchoolID AND StudentID = @StudentID
             return;
         try
         {
-            await using var cmd = new SqlCommand("""
+            await using var cmd = CreateReportCommand("""
 SELECT Subject.SubjectName, StudentRecord.SubjectType
 FROM dbo.StudentRecord
 INNER JOIN dbo.Subject ON StudentRecord.SubjectID = Subject.SubjectID
@@ -1569,7 +1591,7 @@ ORDER BY Income_PayOrder.StartDate
 
         try
         {
-            await using var rec = new SqlCommand("""
+            await using var rec = CreateReportCommand("""
 SELECT MoneyReceipt_SN, PaidDate, TotalAmount, ISNULL(PrintedReceiptNo, N'') AS PrintedReceiptNo
 FROM dbo.Income_MoneyReceipt
 WHERE StudentID = @StudentID AND EducationYearID = @EducationYearID
@@ -1594,7 +1616,7 @@ ORDER BY PaidDate DESC
             dto.Accounts.Receipts.Clear();
             try
             {
-                await using var rec = new SqlCommand("""
+                await using var rec = CreateReportCommand("""
 SELECT MoneyReceipt_SN, PaidDate, TotalAmount
 FROM dbo.Income_MoneyReceipt
 WHERE StudentID = @StudentID AND EducationYearID = @EducationYearID
@@ -1620,7 +1642,7 @@ ORDER BY PaidDate DESC
 
         try
         {
-            await using var conc = new SqlCommand("""
+            await using var conc = CreateReportCommand("""
 SELECT Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.Amount, Income_PayOrder.LateFee,
        Income_PayOrder.Total_Discount, Income_PayOrder.StartDate, Income_PayOrder.EndDate
 FROM dbo.Income_PayOrder
@@ -1659,7 +1681,7 @@ ORDER BY Income_PayOrder.StartDate
         var rows = new List<StudentReportPayOrderDto>();
         try
         {
-            await using var cmd = new SqlCommand(sql, con);
+            await using var cmd = CreateReportCommand(sql, con);
             cmd.Parameters.AddWithValue("@SchoolID", schoolId);
             cmd.Parameters.AddWithValue("@StudentID", studentId);
             cmd.Parameters.AddWithValue("@EducationYearID", yearId);
@@ -1708,6 +1730,17 @@ ORDER BY Income_PayOrder.StartDate
             .Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+    private static List<int> ParseStudentIds(string? ids)
+    {
+        var list = new List<int>();
+        foreach (var part in ParseIds(ids))
+        {
+            if (int.TryParse(part, out var id) && id > 0 && !list.Contains(id))
+                list.Add(id);
+        }
+        return list;
+    }
 
     private static StudentInfoResult Fail(string error) => new() { Succeeded = false, Error = error };
 
@@ -1763,10 +1796,15 @@ ORDER BY Income_PayOrder.StartDate
     private static async Task<bool> TableExistsAsync(
         SqlConnection con, string tableName, CancellationToken cancellationToken)
     {
-        await using var cmd = new SqlCommand(
+        if (TableExistsCache.TryGetValue(tableName, out var cached))
+            return cached;
+
+        await using var cmd = CreateReportCommand(
             "SELECT CASE WHEN OBJECT_ID(@Name, 'U') IS NULL THEN 0 ELSE 1 END", con);
         cmd.Parameters.AddWithValue("@Name", "dbo." + tableName);
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) == 1;
+        var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) == 1;
+        TableExistsCache[tableName] = exists;
+        return exists;
     }
 
     private static string? ToDataUrl(byte[]? bytes)

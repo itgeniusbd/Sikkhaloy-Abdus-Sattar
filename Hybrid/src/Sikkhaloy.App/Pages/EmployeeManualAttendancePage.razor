@@ -17,7 +17,7 @@
     }
 
     <div class="sal-bar no-print">
-        <section class="sal-box">
+        <section class="sal-box is-class">
             <span class="sal-box-h">@Locale.T("att.selectSchedule")</span>
             <select @bind="scheduleInput" @bind:after="LoadIfReadyAsync" disabled="@busy">
                 <option value="0">@Locale.T("att.selectSchedule")</option>
@@ -27,13 +27,15 @@
                 }
             </select>
         </section>
-        <section class="sal-box">
+        <section class="sal-box is-date">
             <span class="sal-box-h">@Locale.T("att.date")</span>
-            <input type="date" @bind="date" @bind:after="LoadIfReadyAsync" disabled="@busy" />
+            <span class="att-date-wrap">
+                <input type="date" lang="en-GB" @bind="date" @bind:after="LoadIfReadyAsync" disabled="@busy" />
+            </span>
         </section>
-        <section class="sal-box is-type">
+        <section class="sal-box is-type att-emp-type">
             <span class="sal-box-h">@Locale.T("emp.type")</span>
-            <span class="readm-type">
+            <span class="readm-type att-emp-radios">
                 <label class="choice-inline">
                     <input type="radio" name="eman-type" checked="@(type == "%")" @onchange="@(() => ChangeTypeAsync("%"))" />
                     <span>@Locale.T("emp.all")</span>
@@ -47,6 +49,11 @@
                     <span>@Locale.T("emp.staff")</span>
                 </label>
             </span>
+            <div class="tch-emp-type">
+                <button type="button" class="@(type == "%" ? "is-on" : null)" disabled="@busy" @onclick="SetTypeAllAsync">@Locale.T("emp.all")</button>
+                <button type="button" class="@(type == "Teacher" ? "is-on" : null)" disabled="@busy" @onclick="SetTypeTeacherAsync">@Locale.T("emp.teacher")</button>
+                <button type="button" class="@(type == "Staff" ? "is-on" : null)" disabled="@busy" @onclick="SetTypeStaffAsync">@Locale.T("emp.staff")</button>
+            </div>
         </section>
         @if (rows.Count > 0)
         {
@@ -70,7 +77,7 @@
                     <th>@Locale.T("emp.id")</th>
                     <th class="col-name">@Locale.T("si.name")</th>
                     <th>@Locale.T("emp.designation")</th>
-                    <th>@Locale.T("att.status")</th>
+                    <th class="col-status">@Locale.T("att.status")</th>
                     <th class="col-time">@Locale.T("att.entry")</th>
                     <th class="col-time">@Locale.T("att.exit")</th>
                 </tr>
@@ -104,17 +111,79 @@
                                 }
                             </span>
                         </td>
-                        <td class="col-time"><input type="time" value="@Time(row.EntryTime)" @onchange="e => row.EntryTime = e.Value?.ToString()" disabled="@busy" /></td>
-                        <td class="col-time"><input type="time" value="@Time(row.ExitTime)" @onchange="e => row.ExitTime = e.Value?.ToString()" disabled="@busy" /></td>
+                        <td class="col-time">
+                            <RoutineTimePicker Value="@ParseTime(row.EntryTime)" ValueChanged="value => SetEntryTime(row, value)" Disabled="busy" Placeholder="@Locale.T("att.entry")" />
+                        </td>
+                        <td class="col-time">
+                            <RoutineTimePicker Value="@ParseTime(row.ExitTime)" ValueChanged="value => SetExitTime(row, value)" Disabled="busy" Placeholder="@Locale.T("att.exit")" />
+                        </td>
                     </tr>
                 }
             }
             </tbody>
         </table>
     </div>
+
+    @if (rows.Count > 0)
+    {
+        <div class="att-mobile-cards no-print">
+            <div class="tch-att-bar">
+                <label>
+                    <input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" />
+                    @Locale.T("att.all")
+                </label>
+                <button type="button" disabled="@busy" @onclick="MarkAllPresent">@Locale.T("tch.allPresent")</button>
+            </div>
+            @foreach (var row in rows)
+            {
+                <article @key="@($"m-{row.EmployeeID}")" class="tch-stu-card @(row.HasRecord || row.Selected ? "is-done" : null)">
+                    <label class="is-check">
+                        <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetSelected(row, e)" />
+                    </label>
+                    <div class="is-name">
+                        <b>@row.Name</b>
+                        <small>@(string.IsNullOrWhiteSpace(row.Designation) ? "—" : row.Designation)</small>
+                    </div>
+                    <span class="is-roll">ID @(string.IsNullOrWhiteSpace(row.ID) ? "—" : row.ID)</span>
+                    <small class="is-meta">@(string.IsNullOrWhiteSpace(row.EmployeeType) ? "—" : row.EmployeeType)</small>
+                    <small class="is-taken"></small>
+                    <div class="tch-status">
+                        @foreach (var st in Statuses)
+                        {
+                            <button type="button" class="is-@StatusCss(st) @(row.Attendance == st ? "is-on" : null)"
+                                    disabled="@busy" @onclick="() => SetAttendance(row, st)">@StatusShort(st)</button>
+                        }
+                    </div>
+                    <div class="tch-extra att-emp-times">
+                        <label>
+                            <span>@Locale.T("att.entry")</span>
+                            <RoutineTimePicker Value="@ParseTime(row.EntryTime)" ValueChanged="value => SetEntryTime(row, value)" Disabled="busy" Placeholder="@Locale.T("att.entry")" />
+                        </label>
+                        <label>
+                            <span>@Locale.T("att.exit")</span>
+                            <RoutineTimePicker Value="@ParseTime(row.ExitTime)" ValueChanged="value => SetExitTime(row, value)" Disabled="busy" Placeholder="@Locale.T("att.exit")" />
+                        </label>
+                    </div>
+                </article>
+            }
+        </div>
+        <div class="tch-att-submit att-mobile-submit no-print">
+            @if (busy)
+            {
+                <div class="tch-progress" role="progressbar" aria-label="@Locale.T("si.loading")"><span></span></div>
+            }
+            <button type="button" class="tch-att-load @(busy ? "is-busy" : null)" disabled="@busy" @onclick="SaveAsync">
+                @if (busy)
+                {
+                    <span class="tch-submit-dot" aria-hidden="true"></span>
+                }
+                @(busy ? Locale.T("si.saving") : Locale.T("att.submit"))
+            </button>
+        </div>
+    }
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+<ExamBusyOverlay Busy="@(busy && rows.Count == 0)" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
     <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
@@ -165,6 +234,10 @@
         return LoadIfReadyAsync();
     }
 
+    private Task SetTypeAllAsync() => ChangeTypeAsync("%");
+    private Task SetTypeTeacherAsync() => ChangeTypeAsync("Teacher");
+    private Task SetTypeStaffAsync() => ChangeTypeAsync("Staff");
+
     private Task LoadIfReadyAsync()
     {
         if (ScheduleId <= 0)
@@ -204,6 +277,13 @@
         row.Attendance = status;
         row.Selected = true;
         allSelected = rows.Count > 0 && rows.All(x => x.Selected);
+    }
+
+    private void MarkAllPresent()
+    {
+        foreach (var row in rows)
+            SetAttendance(row, "Pre");
+        allSelected = rows.Count > 0;
     }
 
     private async Task LoadRowsAsync()
@@ -312,6 +392,8 @@
 
     private static string RowClass(EmployeeManualRowDto row)
     {
+        if (row.HasRecord && row.Selected)
+            return "is-saved is-picked";
         if (row.Selected)
             return "is-picked";
         return row.HasRecord ? "is-saved" : "";
@@ -327,12 +409,19 @@
         _ => status
     };
 
-    private static string Time(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return "";
-        return value.Length >= 5 ? value[..5] : value;
-    }
+    private static string StatusShort(string status) => status == "Late Abs" ? "LAbs" : status;
+
+    private static string StatusCss(string status) =>
+        status.Replace(" ", "", StringComparison.Ordinal).ToLowerInvariant();
+
+    private static TimeOnly? ParseTime(string? value) =>
+        DateTime.TryParse(value, out var dt) ? TimeOnly.FromDateTime(dt) : null;
+
+    private static void SetEntryTime(EmployeeManualRowDto row, TimeOnly? value) =>
+        row.EntryTime = value?.ToString("HH:mm");
+
+    private static void SetExitTime(EmployeeManualRowDto row, TimeOnly? value) =>
+        row.ExitTime = value?.ToString("HH:mm");
 
     private async Task SetBusyAsync(string key)
     {

@@ -31,11 +31,12 @@
                 <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
                 <div class="rpt-table-wrap">
                     <table class="mgrid">
-                        <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                        <thead><tr><th>@Locale.T("acc.receiptNo")</th><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
                         <tbody>
                         @foreach (var line in group.Lines)
                         {
                             <tr>
+                                <td>@ReceiptCell(line)</td>
                                 <td>@line.UserName</td>
                                 <td>@line.AccountName</td>
                                 <td>@line.Details</td>
@@ -94,8 +95,10 @@
         await PaintAsync();
         try
         {
-            categories.AddRange(await Api.GetReportIncomeCategoriesAsync(Session.AccessToken));
-            await LoadCoreAsync();
+            var catsTask = Api.GetReportIncomeCategoriesAsync(Session.AccessToken);
+            var reportTask = LoadCoreAsync();
+            await Task.WhenAll(catsTask, reportTask);
+            categories.AddRange(await catsTask);
         }
         catch (Exception ex) { error = ex.Message; }
         finally { busy = false; }
@@ -121,4 +124,17 @@
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
     private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
     private static string Tk(decimal n) => n.ToString("N0");
+    private static MarkupString ReceiptCell(ReportLineDto line)
+    {
+        if (string.IsNullOrWhiteSpace(line.ReceiptNo))
+            return (MarkupString)"—";
+        var no = System.Net.WebUtility.HtmlEncode(line.ReceiptNo);
+        var href = line.ReceiptKind switch
+        {
+            "money" => "accounts/receipt/" + Uri.EscapeDataString(line.ReceiptNo),
+            "expense" => "accounts/expense/" + Uri.EscapeDataString(line.ReceiptNo),
+            _ => null
+        };
+        return href is null ? (MarkupString)no : (MarkupString)$"<a href=\"{href}\">{no}</a>";
+    }
 }

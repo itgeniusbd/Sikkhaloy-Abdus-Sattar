@@ -16,36 +16,36 @@ public sealed class RoutineService
     {
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
-        var sql = unusedOnly
-            ? """
-SELECT RoutineInfoID, RoutineSpecification
-FROM dbo.RoutineInfo
-WHERE SchoolID = @SchoolID
-  AND RoutineInfoID NOT IN (SELECT RoutineInfoID FROM dbo.RoutineDay WHERE SchoolID = @SchoolID)
-ORDER BY RoutineSpecification
-"""
-            : """
+        await using var cmd = new SqlCommand("""
 SELECT i.RoutineInfoID, i.RoutineSpecification,
        CASE WHEN EXISTS (SELECT 1 FROM dbo.RoutineDay d WHERE d.RoutineInfoID = i.RoutineInfoID AND d.SchoolID = @SchoolID)
-            THEN 1 ELSE 0 END AS Used
+            THEN 1 ELSE 0 END AS Used,
+       (SELECT COUNT(*) FROM dbo.RoutineTime t WHERE t.RoutineInfoID = i.RoutineInfoID AND t.SchoolID = @SchoolID) AS PeriodCount,
+       (SELECT COUNT(*) FROM dbo.RoutineDay d WHERE d.RoutineInfoID = i.RoutineInfoID AND d.SchoolID = @SchoolID) AS DayCount,
+       CASE WHEN EXISTS (SELECT 1 FROM dbo.RoutineForClass c WHERE c.RoutineInfoID = i.RoutineInfoID AND c.SchoolID = @SchoolID)
+            THEN 1 ELSE 0 END AS Assigned
 FROM dbo.RoutineInfo i
 WHERE i.SchoolID = @SchoolID
 ORDER BY i.RoutineSpecification
-""";
-        await using var cmd = new SqlCommand(sql, con);
+""", con);
         cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
         var rows = new List<RoutineNameDto>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
+            var periodCount = Convert.ToInt32(reader["PeriodCount"]);
+            var dayCount = Convert.ToInt32(reader["DayCount"]);
             rows.Add(new RoutineNameDto
             {
                 RoutineInfoID = Convert.ToInt32(reader["RoutineInfoID"]),
                 Name = reader["RoutineSpecification"]?.ToString() ?? "",
-                Used = unusedOnly || Convert.ToInt32(reader["Used"]) == 1
+                Used = Convert.ToInt32(reader["Used"]) == 1 || periodCount > 0,
+                Assigned = Convert.ToInt32(reader["Assigned"]) == 1,
+                PeriodCount = periodCount,
+                DayCount = dayCount
             });
         }
-        return rows;
+        return unusedOnly ? rows.Where(x => !x.Used).ToList() : rows;
     }
 
     public async Task<RoutineResult> SaveNameAsync(SessionSnapshot session, SaveRoutineNameRequest? request, CancellationToken ct)
@@ -111,9 +111,29 @@ VALUES (@SchoolID, @RegID, @Name, GETDATE())
 
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
+        await using var assignedCmd = new SqlCommand("""
+SELECT TOP 1 1 FROM dbo.RoutineForClass
+WHERE SchoolID = @SchoolID AND RoutineInfoID = @RID
+""", con);
+        assignedCmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        assignedCmd.Parameters.AddWithValue("@RID", request.RoutineInfoID);
+        if (await assignedCmd.ExecuteScalarAsync(ct) is not null)
+            return Fail("rt.locked");
+
         await using var tx = (SqlTransaction)await con.BeginTransactionAsync(ct);
         try
         {
+            foreach (var sql in new[]
+            {
+                "DELETE FROM dbo.RoutineDay WHERE SchoolID = @SchoolID AND RoutineInfoID = @RID",
+                "DELETE FROM dbo.RoutineTime WHERE SchoolID = @SchoolID AND RoutineInfoID = @RID"
+            })
+            {
+                await using var wipe = new SqlCommand(sql, con, tx);
+                wipe.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                wipe.Parameters.AddWithValue("@RID", request.RoutineInfoID);
+                await wipe.ExecuteNonQueryAsync(ct);
+            }
             foreach (var day in days)
             {
                 await using var dayCmd = new SqlCommand("""
@@ -152,6 +172,47 @@ VALUES (@RID, @SchoolID, @RegID, @Period, @Start, @End, @Duration, @Off)
         }
     }
 
+    public async Task<RoutineTemplateDto> GetTemplateAsync(SessionSnapshot session, int routineInfoId, CancellationToken ct)
+    {
+        var result = new RoutineTemplateDto { RoutineInfoID = routineInfoId };
+        if (routineInfoId <= 0)
+            return result;
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(ct);
+        await using (var nameCmd = new SqlCommand("""
+SELECT RoutineSpecification,
+       CASE WHEN EXISTS (SELECT 1 FROM dbo.RoutineForClass c WHERE c.RoutineInfoID = i.RoutineInfoID AND c.SchoolID = @SchoolID)
+            THEN 1 ELSE 0 END AS Assigned
+FROM dbo.RoutineInfo i
+WHERE i.RoutineInfoID = @RID AND i.SchoolID = @SchoolID
+""", con))
+        {
+            nameCmd.Parameters.AddWithValue("@RID", routineInfoId);
+            nameCmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await using var reader = await nameCmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct))
+                return result;
+            result.Name = reader["RoutineSpecification"]?.ToString() ?? "";
+            result.Assigned = Convert.ToInt32(reader["Assigned"]) == 1;
+        }
+
+        await using (var dayCmd = new SqlCommand("""
+SELECT Day FROM dbo.RoutineDay
+WHERE RoutineInfoID = @RID AND SchoolID = @SchoolID
+""", con))
+        {
+            dayCmd.Parameters.AddWithValue("@RID", routineInfoId);
+            dayCmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await using var reader = await dayCmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                result.Days.Add(reader["Day"]?.ToString() ?? "");
+        }
+
+        result.Periods = await LoadPeriodsAsync(con, session.SchoolID, routineInfoId, false, ct);
+        return result;
+    }
+
     public async Task<ClassRoutineSheetDto> GetAssignSheetAsync(
         SessionSnapshot session, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken ct)
     {
@@ -159,13 +220,16 @@ VALUES (@RID, @SchoolID, @RegID, @Period, @Start, @End, @Duration, @Off)
         {
             Routines = (await GetNamesAsync(session, false, ct)).ToList()
         };
-        if (classId <= 0 || routineInfoId <= 0)
+        if (routineInfoId <= 0)
             return sheet;
 
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
-        sheet.Subjects = await LoadSubjectsAsync(con, session.SchoolID, classId, groupId, ct);
         sheet.Periods = await LoadPeriodsAsync(con, session.SchoolID, routineInfoId, true, ct);
+        if (classId <= 0)
+            return sheet;
+
+        sheet.Subjects = await LoadSubjectsAsync(con, session.SchoolID, classId, groupId, ct);
         var likeGroup = Like(groupId);
         var likeSection = Like(sectionId);
         var likeShift = Like(shiftId);
@@ -235,6 +299,9 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @YearID AND ClassID = @ClassID
                 return Fail("rt.already");
         }
 
+        var clash = FindSameTimeTeacherClash(request);
+        if (clash is not null)
+            return Fail(clash);
         var conflict = await FindTeacherConflictAsync(con, session, request, false, ct);
         if (conflict is not null)
             return new RoutineResult { Error = conflict };
@@ -275,21 +342,15 @@ VALUES
         var sheet = new ClassRoutineSheetDto();
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
-        sheet.Routines = await LoadClassRoutinesAsync(con, session.SchoolID, classId, ct);
+        sheet.Routines = await LoadClassRoutinesAsync(con, session.SchoolID, session.EducationYearID, classId, ct);
         if (classId <= 0 || routineInfoId <= 0)
             return sheet;
 
         sheet.Periods = await LoadPeriodsAsync(con, session.SchoolID, routineInfoId, false, ct);
         sheet.Subjects = await LoadSubjectsAsync(con, session.SchoolID, classId, groupId, ct);
-        var likeGroup = assignedOnly && groupId == 0 ? "0" : Like(groupId);
-        var likeSection = assignedOnly && sectionId == 0 ? "0" : Like(sectionId);
-        var likeShift = assignedOnly && shiftId == 0 ? "0" : Like(shiftId);
-        if (!assignedOnly)
-        {
-            likeGroup = Like(groupId);
-            likeSection = Like(sectionId);
-            likeShift = Like(shiftId);
-        }
+        var likeGroup = Like(groupId);
+        var likeSection = Like(sectionId);
+        var likeShift = Like(shiftId);
 
         await using (var cmd = new SqlCommand("""
 SELECT RoutineDayID, Day FROM dbo.RoutineDay
@@ -333,30 +394,45 @@ WHERE RoutineInfoID = @RID AND SchoolID = @SchoolID
             return Fail("rt.needClassRoutine");
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
+        var clash = FindSameTimeTeacherClash(request);
+        if (clash is not null)
+            return Fail(clash);
         var conflict = await FindTeacherConflictAsync(con, session, request, true, ct);
         if (conflict is not null)
             return new RoutineResult { Error = conflict };
 
         foreach (var cell in request.Cells)
         {
-            await using var upd = new SqlCommand("""
+            await using var upd = new SqlCommand(cell.RoutineForClassID > 0 ? """
+UPDATE dbo.RoutineForClass
+SET SubjectID = @SID, TeacherID = @TeacherID
+WHERE RoutineForClassID = @RFCID AND SchoolID = @SchoolID AND EducationYearID = @YearID
+""" : """
 UPDATE dbo.RoutineForClass
 SET SubjectID = @SID, TeacherID = @TeacherID
 WHERE SchoolID = @SchoolID AND EducationYearID = @YearID AND RoutineInfoID = @RID
-  AND RoutineTimeID = @TID AND ClassID = @ClassID AND SectionID = @SectionID
-  AND ShiftID = @ShiftID AND SubjectGroupID = @GroupID AND Day = @Day
+  AND RoutineTimeID = @TID AND ClassID = @ClassID
+  AND SectionID LIKE @SectionID AND ShiftID LIKE @ShiftID
+  AND SubjectGroupID LIKE @GroupID AND Day = @Day
 """, con);
             upd.Parameters.AddWithValue("@SID", cell.SubjectID);
             upd.Parameters.AddWithValue("@TeacherID", cell.TeacherID);
             upd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             upd.Parameters.AddWithValue("@YearID", session.EducationYearID);
-            upd.Parameters.AddWithValue("@RID", request.RoutineInfoID);
-            upd.Parameters.AddWithValue("@TID", cell.RoutineTimeID);
-            upd.Parameters.AddWithValue("@ClassID", request.ClassID);
-            upd.Parameters.AddWithValue("@SectionID", Store(request.SectionID));
-            upd.Parameters.AddWithValue("@ShiftID", Store(request.ShiftID));
-            upd.Parameters.AddWithValue("@GroupID", Store(request.GroupID));
-            upd.Parameters.AddWithValue("@Day", cell.Day);
+            if (cell.RoutineForClassID > 0)
+            {
+                upd.Parameters.AddWithValue("@RFCID", cell.RoutineForClassID);
+            }
+            else
+            {
+                upd.Parameters.AddWithValue("@RID", request.RoutineInfoID);
+                upd.Parameters.AddWithValue("@TID", cell.RoutineTimeID);
+                upd.Parameters.AddWithValue("@ClassID", request.ClassID);
+                upd.Parameters.AddWithValue("@SectionID", Like(request.SectionID));
+                upd.Parameters.AddWithValue("@ShiftID", Like(request.ShiftID));
+                upd.Parameters.AddWithValue("@GroupID", Like(request.GroupID));
+                upd.Parameters.AddWithValue("@Day", cell.Day);
+            }
             await upd.ExecuteNonQueryAsync(ct);
         }
         return Ok("rt.updated");
@@ -455,9 +531,9 @@ FROM dbo.Exam_Routine_Rows WHERE RoutineID = @ID ORDER BY RowIndex
         if (dto.Rows.Count == 0)
             dto.Rows.Add(new ExamRoutineRowDto { Duration = "3 hours" });
 
-        var cells = new List<(int Row, int Col, int SubjectId, string Text)>();
+        var cells = new List<(int Row, int Col, int SubjectId, string Text, string Time)>();
         await using (var cell = new SqlCommand("""
-SELECT RowIndex, ColumnIndex, SubjectID, SubjectText
+SELECT RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText
 FROM dbo.Exam_Routine_CellData WHERE RoutineID = @ID
 """, con))
         {
@@ -469,7 +545,8 @@ FROM dbo.Exam_Routine_CellData WHERE RoutineID = @ID
                     Convert.ToInt32(reader["RowIndex"]),
                     Convert.ToInt32(reader["ColumnIndex"]),
                     reader["SubjectID"] is DBNull ? 0 : Convert.ToInt32(reader["SubjectID"]),
-                    reader["SubjectText"]?.ToString() ?? ""));
+                    reader["SubjectText"]?.ToString() ?? "",
+                    reader["TimeText"]?.ToString() ?? ""));
             }
         }
         for (var r = 0; r < dto.Rows.Count; r++)
@@ -477,11 +554,17 @@ FROM dbo.Exam_Routine_CellData WHERE RoutineID = @ID
             foreach (var column in dto.Columns)
             {
                 var match = cells.FirstOrDefault(x => x.Row == r && x.Col == column.ColumnIndex);
+                var subjectName = column.Subjects.FirstOrDefault(x => x.Id == match.SubjectId)?.Name ?? "";
+                var extra = match.Text ?? "";
+                if (string.Equals(extra, subjectName, StringComparison.OrdinalIgnoreCase))
+                    extra = "";
                 dto.Rows[r].Cells.Add(new ExamRoutineCellDto
                 {
                     ColumnIndex = column.ColumnIndex,
                     SubjectID = match.SubjectId,
-                    SubjectText = match.Text
+                    SubjectText = subjectName,
+                    ExtraInfo = extra,
+                    TimeText = match.Time ?? ""
                 });
             }
         }
@@ -586,14 +669,15 @@ VALUES (@ID, @Idx, @Date, @Day, @Start, @End, @Duration, @ExamTime)
                 foreach (var cell in row.Cells)
                 {
                     await using var cellCmd = new SqlCommand("""
-INSERT INTO dbo.Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText)
-VALUES (@ID, @Row, @Col, @SID, @Text)
+INSERT INTO dbo.Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
+VALUES (@ID, @Row, @Col, @SID, @Text, @Time)
 """, con, tx);
                     cellCmd.Parameters.AddWithValue("@ID", id);
                     cellCmd.Parameters.AddWithValue("@Row", r);
                     cellCmd.Parameters.AddWithValue("@Col", cell.ColumnIndex);
                     cellCmd.Parameters.AddWithValue("@SID", cell.SubjectID > 0 ? cell.SubjectID : DBNull.Value);
-                    cellCmd.Parameters.AddWithValue("@Text", (object?)cell.SubjectText ?? DBNull.Value);
+                    cellCmd.Parameters.AddWithValue("@Text", string.IsNullOrWhiteSpace(cell.ExtraInfo) ? DBNull.Value : cell.ExtraInfo.Trim());
+                    cellCmd.Parameters.AddWithValue("@Time", string.IsNullOrWhiteSpace(cell.TimeText) ? DBNull.Value : cell.TimeText.Trim());
                     await cellCmd.ExecuteNonQueryAsync(ct);
                 }
             }
@@ -629,6 +713,37 @@ VALUES (@ID, @Row, @Col, @SID, @Text)
         return Ok("rt.examDeleted");
     }
 
+    private static string? FindSameTimeTeacherClash(AssignRoutineRequest request)
+    {
+        var cells = request.Cells.Where(x => x.TeacherID > 0).ToList();
+        for (var i = 0; i < cells.Count; i++)
+        {
+            for (var j = i + 1; j < cells.Count; j++)
+            {
+                var a = cells[i];
+                var b = cells[j];
+                if (a.TeacherID != b.TeacherID || !string.Equals(a.Day, b.Day, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!TimesOverlap(a.StartTime, a.EndTime, b.StartTime, b.EndTime))
+                    continue;
+                return "rt.teacherBusy";
+            }
+        }
+        return null;
+    }
+
+    private static bool TimesOverlap(string? startA, string? endA, string? startB, string? endB)
+    {
+        if (!DateTime.TryParse(startA, out var a) || !DateTime.TryParse(endA, out var b)
+            || !DateTime.TryParse(startB, out var c) || !DateTime.TryParse(endB, out var d))
+            return string.Equals(startA, startB, StringComparison.OrdinalIgnoreCase);
+        a = DateTime.Today.Add(a.TimeOfDay);
+        b = DateTime.Today.Add(b.TimeOfDay);
+        c = DateTime.Today.Add(c.TimeOfDay);
+        d = DateTime.Today.Add(d.TimeOfDay);
+        return a < d && c < b;
+    }
+
     private async Task<string?> FindTeacherConflictAsync(
         SqlConnection con, SessionSnapshot session, AssignRoutineRequest request, bool excludeSameRoutine, CancellationToken ct)
     {
@@ -638,7 +753,7 @@ VALUES (@ID, @Row, @Col, @SID, @Text)
 SELECT TOP 1 t.RoutinePeriod
 FROM dbo.RoutineForClass c
 INNER JOIN dbo.RoutineTime t ON c.RoutineTimeID = t.RoutineTimeID
-WHERE c.SchoolID = @SchoolID AND c.TeacherID = @TeacherID AND c.TeacherID <> 0 AND c.Day = @Day
+WHERE c.SchoolID = @SchoolID AND c.EducationYearID = @YearID AND c.TeacherID = @TeacherID AND c.TeacherID <> 0 AND c.Day = @Day
 """ + (excludeSameRoutine ? " AND c.RoutineInfoID <> @RID" : "") + """
   AND (((t.StartTime <= @Start) AND (t.EndTime > @Start))
     OR ((t.StartTime < @End) AND (t.EndTime >= @End))
@@ -646,6 +761,7 @@ WHERE c.SchoolID = @SchoolID AND c.TeacherID = @TeacherID AND c.TeacherID <> 0 A
 """;
             await using var cmd = new SqlCommand(sql, con);
             cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            cmd.Parameters.AddWithValue("@YearID", session.EducationYearID);
             cmd.Parameters.AddWithValue("@TeacherID", cell.TeacherID);
             cmd.Parameters.AddWithValue("@Day", cell.Day);
             cmd.Parameters.AddWithValue("@Start", cell.StartTime ?? "");
@@ -708,7 +824,7 @@ LEFT JOIN dbo.Subject s ON c.SubjectID = s.SubjectID
 LEFT JOIN dbo.Teacher te ON c.TeacherID = te.TeacherID
 WHERE t.RoutineInfoID = @RID AND t.SchoolID = @SchoolID
 """ + (forEdit ? " AND ISNULL(t.Is_OffTime, 0) = 0" : "") + """
-ORDER BY t.StartTime
+ ORDER BY t.StartTime
 """, con);
         AddFilter(cmd, session, classId, group, section, shift, routineInfoId);
         cmd.Parameters.AddWithValue("@Day", day);
@@ -808,17 +924,18 @@ FROM dbo.Teacher WHERE TeacherID = @Keep
         return rows.GroupBy(x => x.Id).Select(g => g.First()).OrderBy(x => x.Name).ToList();
     }
 
-    private static async Task<List<RoutineNameDto>> LoadClassRoutinesAsync(SqlConnection con, int schoolId, int classId, CancellationToken ct)
+    private static async Task<List<RoutineNameDto>> LoadClassRoutinesAsync(SqlConnection con, int schoolId, int yearId, int classId, CancellationToken ct)
     {
         await using var cmd = new SqlCommand("""
 SELECT DISTINCT i.RoutineInfoID, i.RoutineSpecification
 FROM dbo.RoutineInfo i
 INNER JOIN dbo.RoutineForClass c ON i.RoutineInfoID = c.RoutineInfoID
-WHERE i.SchoolID = @SchoolID AND c.ClassID = @ClassID
+WHERE i.SchoolID = @SchoolID AND c.ClassID = @ClassID AND c.EducationYearID = @YearID
 ORDER BY i.RoutineSpecification
 """, con);
         cmd.Parameters.AddWithValue("@SchoolID", schoolId);
         cmd.Parameters.AddWithValue("@ClassID", classId);
+        cmd.Parameters.AddWithValue("@YearID", yearId);
         var rows = new List<RoutineNameDto>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))

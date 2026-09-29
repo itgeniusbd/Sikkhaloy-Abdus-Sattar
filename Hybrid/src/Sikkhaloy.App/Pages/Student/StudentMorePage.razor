@@ -7,19 +7,36 @@
 <div class="sp-page">
     <h1>@Locale.T("stu.more")</h1>
     <article class="sp-card sp-more">
-        <a href="student/report">@Locale.T("stu.report") <span>→</span></a>
-        <a href="student/notice">@Locale.T("stu.notice") <span>→</span></a>
-        <a href="student/sms">@Locale.T("stu.sms") <span>→</span></a>
-        <a href="student/exam">@Locale.T("stu.individual") <span>→</span></a>
-        <a href="student/result">@Locale.T("stu.cumulative") <span>→</span></a>
-        <a href="student/routine">@Locale.T("stu.classRoutine") <span>→</span></a>
-        <a href="student/exam-routine">@Locale.T("stu.examRoutine") <span>→</span></a>
-        <a href="student/password">@Locale.T("stu.password") <span>→</span></a>
+        <a href="student/profile">
+            <i class="is-green">@UserIco</i>
+            <span>@Locale.T("stu.details")</span>
+            <em>→</em>
+        </a>
+        <a href="student/feedback">
+            <i class="is-slate">@ChatIco</i>
+            <span>@Locale.T("stu.feedback")</span>
+            <em>→</em>
+        </a>
+        <a href="student/accounts">
+            <i class="is-orange">@AccIco</i>
+            <span>@Locale.T("stu.accounts")</span>
+            <em>→</em>
+        </a>
+        <a href="student/password">
+            <i class="is-slate">@LockIco</i>
+            <span>@Locale.T("stu.password")</span>
+            <em>→</em>
+        </a>
     </article>
     <button type="button" class="sp-out" @onclick="Logout">@Locale.T("stu.logout")</button>
 </div>
 
 @code {
+    private static readonly MarkupString UserIco = Ico("""<circle cx="12" cy="8" r="3.4"/><path d="M5 19.4a7 7 0 0 1 14 0"/>""");
+    private static readonly MarkupString ChatIco = Ico("""<path d="M4.5 6.2h15A1.5 1.5 0 0 1 21 7.7v8.6a1.5 1.5 0 0 1-1.5 1.5H9.2L4 21v-3.2H4.5A1.5 1.5 0 0 1 3 16.3V7.7A1.5 1.5 0 0 1 4.5 6.2Z"/><path d="M8 10.5h8M8 13.5h5"/>""");
+    private static readonly MarkupString AccIco = Ico("""<path d="M12 3v18M16.6 6.2H9.8a3.2 3.2 0 0 0 0 6.4h4.4a3.2 3.2 0 1 1 0 6.4H7.2"/>""");
+    private static readonly MarkupString LockIco = Ico("""<rect x="5.2" y="10.5" width="13.6" height="9.3" rx="2"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>""");
+
     protected override void OnInitialized()
     {
         if (!Session.IsStudent)
@@ -31,4 +48,7 @@
         Session.Clear();
         Nav.NavigateTo("/login", replace: true);
     }
+
+    private static MarkupString Ico(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
 }

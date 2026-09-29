@@ -1,0 +1,155 @@
+@page "/teacher/profile"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page tch-prof-page">
+    <h1>@Locale.T("tch.profile")</h1>
+    @if (row is null)
+    {
+        <p class="sp-empty">@(loading ? Locale.T("stu.loading") : Locale.T("stu.empty"))</p>
+    }
+    else
+    {
+        <article class="tch-prof-id">
+            <div class="tch-prof-photo">
+                @if (!string.IsNullOrWhiteSpace(row.PhotoDataUrl))
+                {
+                    <img src="@row.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    @Initials(row.Name)
+                }
+            </div>
+            <div class="tch-prof-who">
+                <p>@row.Name</p>
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c1.5 1.3 3.6 2 6 2s4.5-.7 6-2v-5"/></svg>
+                    @(string.IsNullOrWhiteSpace(row.Designation) ? Locale.T("tch.teacher") : row.Designation)
+                </span>
+            </div>
+        </article>
+
+        <article class="tch-prof-card">
+            <h2>
+                <span class="tch-prof-sec" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.4"/><path d="M5 19.4a7 7 0 0 1 14 0"/></svg>
+                </span>
+                @Locale.T("tch.personalInfo")
+            </h2>
+            @Row(IcoUser, "is-desig", "tch.designation", row.Designation)
+            @Row(IcoPhone, "is-phone", "stu.phone", row.Phone)
+            @Row(IcoMail, "is-mail", "stu.email", row.Email)
+            @Row(IcoGender, "is-gender", "stu.gender", row.Gender)
+            @Row(IcoCal, "is-dob", "stu.dob", row.DateOfBirth)
+            @Row(IcoFaith, "is-rel", "stu.religion", row.Religion)
+            @Row(IcoFather, "is-father", "stu.father", row.FatherName)
+            @Row(IcoMother, "is-mother", "stu.mother", row.MothersName)
+            @Row(IcoPin, "is-addr", "tch.address", row.Address)
+            @Row(IcoHome, "is-perm", "stu.permanentAddr", row.PermanentAddress)
+            @Row(IcoGlobe, "is-nat", "tch.nationality", row.Nationality)
+        </article>
+
+        <article class="tch-prof-card">
+            <h2>@Locale.T("fb.title")</h2>
+            @if (feedback.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("fb.empty")</p>
+            }
+            else
+            {
+                <div class="sp-fb-list">
+                    @foreach (var item in feedback)
+                    {
+                        <a class="sp-fb-mini @StatusItemClass(item.Status)" href="teacher/feedback">
+                            <strong>@item.Title</strong>
+                            <small>
+                                <em class="@StatusClass(item.Status)">@StatusLabel(item.Status)</em>
+                                <span class="sp-fb-kind-tag @(item.Kind.Equals("Suggestion", StringComparison.OrdinalIgnoreCase) ? "is-tip" : null)">@KindLabel(item.Kind)</span>
+                                <span>@item.StudentName</span>
+                            </small>
+                        </a>
+                    }
+                </div>
+            }
+            <a class="sp-card-go" href="teacher/feedback" style="margin-top:0.75rem">@Locale.T("stu.viewAll") →</a>
+        </article>
+    }
+</div>
+
+@code {
+    private static readonly RenderFragment IcoUser = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.4"/><path d="M5 19.4a7 7 0 0 1 14 0"/></svg>;
+    private static readonly RenderFragment IcoPhone = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.2 3.8h3.2l1.2 3.2-2 1.2a12 12 0 0 0 5.2 5.2l1.2-2 3.2 1.2v3.2A2 2 0 0 1 17.2 20 14.2 14.2 0 0 1 4 6.8 2 2 0 0 1 6 4.8Z"/></svg>;
+    private static readonly RenderFragment IcoMail = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.2" y="5.2" width="17.6" height="13.6" rx="2"/><path d="m4.2 7 7.8 6 7.8-6"/></svg>;
+    private static readonly RenderFragment IcoGender = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9.2 18.2h5.6"/></svg>;
+    private static readonly RenderFragment IcoCal = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.4" y="5" width="17.2" height="15.4" rx="2.2"/><path d="M8 3.2v3.6M16 3.2v3.6M3.4 10h17.2"/></svg>;
+    private static readonly RenderFragment IcoFaith = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5a7 7 0 1 0 5.4 11.2A6.2 6.2 0 0 1 15 5Z"/><path d="M10.2 20.5h3.6"/></svg>;
+    private static readonly RenderFragment IcoFather = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="2.6"/><circle cx="16" cy="8.6" r="2.2"/><path d="M4.2 19c.4-3.2 2.6-5 4.8-5s4.4 1.8 4.8 5M13.4 14.4c1.7-.3 3.6 1 4.2 4.6"/></svg>;
+    private static readonly RenderFragment IcoMother = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5.2 19.5c.7-3.6 3.2-5.4 6.8-5.4s6.1 1.8 6.8 5.4"/></svg>;
+    private static readonly RenderFragment IcoPin = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s6.2-5.4 6.2-10.2A6.2 6.2 0 0 0 12 4.6a6.2 6.2 0 0 0-6.2 6.2C5.8 15.6 12 21 12 21Z"/><circle cx="12" cy="10.8" r="1.8"/></svg>;
+    private static readonly RenderFragment IcoHome = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11.2 12 4.4l8 6.8V20a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 20z"/><path d="M10 21.4V14h4v7.4"/></svg>;
+    private static readonly RenderFragment IcoGlobe = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8c2.4 2.6 3.6 5.4 3.6 8.2s-1.2 5.6-3.6 8.2c-2.4-2.6-3.6-5.4-3.6-8.2s1.2-5.6 3.6-8.2Z"/></svg>;
+
+    private TeacherPortalDetailsDto? row;
+    private bool loading = true;
+    private IReadOnlyList<StudentFeedbackItemDto> feedback = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                row = await Api.GetTeacherPortalDetailsAsync(Session.AccessToken);
+                feedback = await Api.GetTeacherFeedbackAsync(Session.AccessToken);
+            }
+        }
+        catch { }
+        loading = false;
+    }
+
+    private string KindLabel(string value) =>
+        value.Equals("Suggestion", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T("stu.suggestion")
+            : Locale.T("stu.complaint");
+
+    private string StatusLabel(string value) => value switch
+    {
+        "Processing" => Locale.T("fb.processing"),
+        "Solved" => Locale.T("fb.solved"),
+        _ => Locale.T("fb.pending")
+    };
+
+    private static string StatusClass(string value) => value switch
+    {
+        "Processing" => "is-work",
+        "Solved" => "is-ok",
+        _ => "is-wait"
+    };
+
+    private static string StatusItemClass(string value) => StatusClass(value);
+
+    private RenderFragment Row(RenderFragment icon, string tone, string labelKey, string? value) => __builder =>
+    {
+        var empty = string.IsNullOrWhiteSpace(value);
+        var text = empty ? Locale.T("stu.notAdded") : value!.Trim();
+        <div class="tch-prof-row">
+            <span class="tch-prof-ico @tone" aria-hidden="true">@icon</span>
+            <span>@Locale.T(labelKey)</span>
+            <b class="@(empty ? "is-empty" : null)">@text</b>
+        </div>
+    };
+
+    private static string Initials(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "T";
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+}

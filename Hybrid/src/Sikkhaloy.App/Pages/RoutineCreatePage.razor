@@ -3,64 +3,146 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page acc-page exam-page routine-page">
-    <h1>@Locale.T("rt.createTitle")</h1>
-    <div class="filter-row no-print">
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => showNames = true">@Locale.T("rt.manageNames")</button>
-        <select @bind="routineInfoId" disabled="@busy">
-            <option value="0">@Locale.T("rt.selectName")</option>
-            @foreach (var item in unused)
+<div class="card sa-page structure-page routine-page rt-create">
+    <header class="rt-hero no-print">
+        <div class="rt-hero-copy">
+            <span class="rt-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3V2zm13 8H4v10h16V10z"/></svg>
+            </span>
+            <div>
+                <h1>@Locale.T("rt.createTitle")</h1>
+                <p>@Locale.T("rt.createLead")</p>
+            </div>
+        </div>
+        <div class="rt-hero-banner">
+            <strong>@Locale.T("rt.banner")</strong>
+        </div>
+    </header>
+
+    <div class="rt-board">
+        <section class="rt-pane">
+            <label class="rt-field">
+                <span>@Locale.T("rt.enterName")</span>
+                <div class="rt-name-row">
+                    <input type="text" @bind="newName" disabled="@busy" placeholder="@Locale.T("rt.nameHint")" />
+                    <button type="button" class="rt-btn" disabled="@busy" @onclick="SaveNameAsync">@Locale.T("rt.add")</button>
+                    <button type="button" class="rt-btn is-ghost" disabled="@busy" @onclick="() => showNames = true">@Locale.T("rt.manageNames")</button>
+                </div>
+            </label>
+            @if (allNames.Count > 0)
             {
-                <option value="@item.RoutineInfoID">@item.Name</option>
+                <div class="rt-picked-list">
+                    @foreach (var item in allNames)
+                    {
+                        <button type="button" class="rt-picked @(routineInfoId == item.RoutineInfoID ? "is-on" : null)"
+                                disabled="@busy" @onclick="() => SelectAsync(item)">
+                            <span class="rt-picked-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3V2zm13 8H4v10h16V10z"/></svg>
+                            </span>
+                            <span>
+                                <strong>@item.Name</strong>
+                                <small>@(item.PeriodCount > 0 ? $"{item.PeriodCount} {Locale.T("rt.periodCount")}" : Locale.T("rt.noPeriodsYet"))</small>
+                            </span>
+                        </button>
+                    }
+                </div>
             }
-        </select>
+            <p class="rt-box-h">@Locale.T("rt.daysHelp")</p>
+            <div class="rt-days">
+                @foreach (var day in days)
+                {
+                    <button type="button" class="rt-chip @(day.On ? "is-on" : null)" disabled="@(busy || assigned || routineInfoId <= 0)"
+                            @onclick="() => ToggleDay(day)">
+                        @Locale.T("rt.d." + day.Code)
+                    </button>
+                }
+            </div>
+        </section>
+
+        <section class="rt-pane">
+            <p class="rt-box-h">@Locale.T("rt.periodHelp")</p>
+            @if (assigned)
+            {
+                <p class="rt-lock">@Locale.T("rt.lockedHint") <a href="/routine/assign">@Locale.T("rt.goAssign")</a></p>
+            }
+            else
+            {
+                <div class="rt-slot no-print">
+                    <label class="rt-field">
+                        <span>@Locale.T("rt.periodName")</span>
+                        <input type="text" @bind="periodName" disabled="@(busy || routineInfoId <= 0)" placeholder="@Locale.T("rt.periodHint")" />
+                    </label>
+                    <div class="rt-slot-times">
+                        <label class="rt-field">
+                            <span>@Locale.T("rt.start")</span>
+                            <RoutineTimePicker @bind-Value="startTime" Disabled="@(busy || routineInfoId <= 0)" Placeholder="@Locale.T("rt.start")" />
+                        </label>
+                        <label class="rt-field">
+                            <span>@Locale.T("rt.end")</span>
+                            <RoutineTimePicker @bind-Value="endTime" Disabled="@(busy || routineInfoId <= 0)" Placeholder="@Locale.T("rt.end")" />
+                        </label>
+                    </div>
+                    <label class="rt-off">
+                        <input type="checkbox" @bind="offTime" disabled="@(busy || routineInfoId <= 0)" />
+                        <span>@Locale.T("rt.offShort")</span>
+                    </label>
+                    <button type="button" class="rt-btn is-wide" disabled="@(busy || routineInfoId <= 0)" @onclick="AddPeriod">+ @Locale.T("rt.addList")</button>
+                </div>
+            }
+        </section>
     </div>
-    <div class="rt-days no-print">
-        @foreach (var day in days)
-        {
-            <label><input type="checkbox" checked="@day.On" disabled="@busy" @onchange="e => day.On = IsOn(e)" /> @day.Code</label>
-        }
-    </div>
-    <div class="filter-row no-print">
-        <input type="text" @bind="periodName" disabled="@busy" placeholder="@Locale.T("rt.periodName")" />
-        <input type="time" @bind="startTime" disabled="@busy" />
-        <input type="time" @bind="endTime" disabled="@busy" />
-        <label class="choice-inline"><input type="checkbox" @bind="offTime" disabled="@busy" /> @Locale.T("rt.offTime")</label>
-        <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="AddPeriod">@Locale.T("rt.addList")</button>
-    </div>
-    <table class="mgrid">
+
+    <table class="mgrid rt-list">
         <thead>
             <tr>
+                <th>#</th>
                 <th>@Locale.T("rt.period")</th>
                 <th>@Locale.T("rt.start")</th>
                 <th>@Locale.T("rt.end")</th>
                 <th>@Locale.T("rt.duration")</th>
-                <th>@Locale.T("rt.offTime")</th>
-                <th></th>
+                <th>@Locale.T("rt.offShort")</th>
+                <th>@Locale.T("rt.action")</th>
             </tr>
         </thead>
         <tbody>
         @if (periods.Count == 0)
         {
-            <tr><td colspan="6" class="empty-row">@Locale.T("rt.emptyPeriods")</td></tr>
+            <tr><td colspan="7" class="empty-row">@Locale.T("rt.emptyPeriods")</td></tr>
         }
-        @foreach (var row in periods)
+        else
         {
-            <tr>
-                <td>@row.Period</td>
-                <td>@row.StartTime</td>
-                <td>@row.EndTime</td>
-                <td>@row.Duration</td>
-                <td>@(row.OffTime ? Locale.T("rt.yes") : "")</td>
-                <td><button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="() => periods.Remove(row)">@Locale.T("sms.delete")</button></td>
-            </tr>
+            var n = 0;
+            @foreach (var row in periods)
+            {
+                n++;
+                <tr>
+                    <td>@n</td>
+                    <td>@row.Period</td>
+                    <td>@row.StartTime</td>
+                    <td>@row.EndTime</td>
+                    <td>@row.Duration</td>
+                    <td>
+                        <label class="rt-off-cell">
+                            <input type="checkbox" checked="@row.OffTime" disabled="@(busy || assigned)"
+                                   @onchange="e => row.OffTime = IsOn(e)" />
+                        </label>
+                    </td>
+                    <td>
+                        @if (!assigned)
+                        {
+                            <button type="button" class="rt-del" disabled="@busy" @onclick="() => periods.Remove(row)">@Locale.T("sms.delete")</button>
+                        }
+                    </td>
+                </tr>
+            }
         }
         </tbody>
     </table>
-    @if (periods.Count > 0)
+    @if (!assigned && periods.Count > 0)
     {
-        <div class="filter-row no-print">
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.saveContinue")</button>
+        <div class="rt-save no-print">
+            <button type="button" class="rt-btn" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.saveContinue")</button>
+            <a class="rt-btn is-ghost" href="/routine/assign">@Locale.T("rt.goAssign")</a>
         </div>
     }
 </div>
@@ -69,16 +151,18 @@
 {
     <div class="acc-result-back" @onclick="() => showNames = false">
         <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
-            <h3>@Locale.T("rt.addName")</h3>
-            <label>@Locale.T("rt.routineName")</label>
-            <input type="text" @bind="newName" disabled="@busy" />
-            <div class="filter-row">
-                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveNameAsync">@Locale.T("sms.addGroup")</button>
-                <button type="button" class="acc-btn" @onclick="() => showNames = false">@Locale.T("acc.ok")</button>
+            <h3>@Locale.T("rt.manageNames")</h3>
+            <div class="rt-name-add">
+                <input type="text" @bind="newName" disabled="@busy" placeholder="@Locale.T("rt.examNameHint")" />
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveNameAsync">@Locale.T("rt.add")</button>
             </div>
             <table class="mgrid">
                 <thead><tr><th>@Locale.T("rt.routineName")</th><th></th></tr></thead>
                 <tbody>
+                @if (allNames.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("rt.needName")</td></tr>
+                }
                 @foreach (var item in allNames)
                 {
                     <tr>
@@ -94,6 +178,9 @@
                 }
                 </tbody>
             </table>
+            <div class="filter-row">
+                <button type="button" class="acc-btn" @onclick="() => showNames = false">@Locale.T("acc.ok")</button>
+            </div>
         </div>
     </div>
 }
@@ -106,30 +193,85 @@
 
 @code {
     private readonly List<DayPick> days = new[] { "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri" }.Select(x => new DayPick(x)).ToList();
-    private readonly List<RoutineNameDto> unused = [];
     private readonly List<RoutineNameDto> allNames = [];
     private readonly List<RoutinePeriodDraft> periods = [];
     private int routineInfoId;
     private string periodName = "", newName = "";
     private TimeOnly? startTime, endTime;
-    private bool offTime, busy, popupError, showNames;
+    private bool offTime, busy, popupError, showNames, assigned;
     private string? popupText, busyTitle;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(int keepId = 0, string? selectName = null)
     {
         await SetBusyAsync(Locale.T("sms.loading"));
         try
         {
             if (!await OnlineAsync()) return;
-            unused.Clear();
-            unused.AddRange(await Api.GetRoutineNamesAsync(Session.AccessToken!, true));
             allNames.Clear();
             allNames.AddRange(await Api.GetRoutineNamesAsync(Session.AccessToken!, false));
+            var keep = keepId > 0
+                ? allNames.FirstOrDefault(x => x.RoutineInfoID == keepId)
+                : !string.IsNullOrWhiteSpace(selectName)
+                    ? allNames.FirstOrDefault(x => string.Equals(x.Name, selectName, StringComparison.OrdinalIgnoreCase))
+                    : allNames.FirstOrDefault(x => x.RoutineInfoID == routineInfoId);
+            if (keep is not null)
+                await SelectAsync(keep, reloadNames: false);
+            else if (routineInfoId > 0 && allNames.All(x => x.RoutineInfoID != routineInfoId))
+                ClearSelection();
+            else if (routineInfoId == 0 && allNames.Count > 0)
+                await SelectAsync(allNames.FirstOrDefault(x => x.PeriodCount > 0) ?? allNames[0], reloadNames: false);
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
+    }
+
+    private async Task SelectAsync(RoutineNameDto item, bool reloadNames = true)
+    {
+        routineInfoId = item.RoutineInfoID;
+        assigned = item.Assigned;
+        periods.Clear();
+        foreach (var day in days)
+            day.On = false;
+
+        if (reloadNames)
+            await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var template = await Api.GetRoutineTemplateAsync(Session.AccessToken!, item.RoutineInfoID);
+            assigned = template.Assigned;
+            foreach (var day in days)
+                day.On = template.Days.Contains(day.Code, StringComparer.OrdinalIgnoreCase);
+            if (template.Days.Count == 0 && !assigned)
+            {
+                foreach (var day in days)
+                    day.On = day.Code is not "Fri";
+            }
+            foreach (var row in template.Periods)
+            {
+                periods.Add(new RoutinePeriodDraft
+                {
+                    Period = row.Period,
+                    StartTime = row.StartTime,
+                    EndTime = row.EndTime,
+                    Duration = row.Duration,
+                    OffTime = row.OffTime
+                });
+            }
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { if (reloadNames) busy = false; }
+    }
+
+    private void ClearSelection()
+    {
+        routineInfoId = 0;
+        assigned = false;
+        periods.Clear();
+        foreach (var day in days)
+            day.On = false;
     }
 
     private void AddPeriod()
@@ -189,8 +331,7 @@
             });
             if (!result.Succeeded) { Show(FormatErr(result), true); return; }
             Show(Locale.T(result.Message ?? "rt.created"));
-            periods.Clear();
-            await LoadAsync();
+            await LoadAsync(routineInfoId);
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
@@ -198,14 +339,16 @@
 
     private async Task SaveNameAsync()
     {
+        var name = newName.Trim();
+        if (name.Length == 0) { Show(Locale.T("rt.needName"), true); return; }
         await SetBusyAsync(Locale.T("rt.saving"));
         try
         {
             if (!await OnlineAsync()) return;
-            var result = await Api.SaveRoutineNameAsync(Session.AccessToken!, new SaveRoutineNameRequest { Name = newName });
+            var result = await Api.SaveRoutineNameAsync(Session.AccessToken!, new SaveRoutineNameRequest { Name = name });
             if (!result.Succeeded) { Show(FormatErr(result), true); return; }
             newName = "";
-            await LoadAsync();
+            await LoadAsync(selectName: name);
             Show(Locale.T(result.Message ?? "rt.nameAdded"));
         }
         catch (Exception ex) { Show(ex.Message, true); }
@@ -233,6 +376,8 @@
         {
             var result = await Api.DeleteRoutineNameAsync(Session.AccessToken!, item.RoutineInfoID);
             if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (routineInfoId == item.RoutineInfoID)
+                ClearSelection();
             await LoadAsync();
             Show(Locale.T(result.Message ?? "rt.nameDeleted"));
         }
@@ -240,7 +385,13 @@
         finally { busy = false; }
     }
 
-    private static bool IsOn(ChangeEventArgs e) => e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+    private void ToggleDay(DayPick day)
+    {
+        if (busy || assigned || routineInfoId <= 0) return;
+        day.On = !day.On;
+    }
+    private static bool IsOn(ChangeEventArgs e) =>
+        e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
     private void Show(string value, bool err = false) { popupText = value; popupError = err; }
     private void ClosePopup() => popupText = null;
     private string FormatErr(RoutineResult result) =>

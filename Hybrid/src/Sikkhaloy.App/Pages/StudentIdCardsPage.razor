@@ -402,7 +402,7 @@
     }
 
     private async Task PrintAsync() =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", true);
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "", true);
 
     private async Task<bool> EnsureOnlineAsync()
     {

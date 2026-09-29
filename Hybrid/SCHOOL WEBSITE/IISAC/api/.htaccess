@@ -1,0 +1,13 @@
+# Block direct download of secrets even if rewrite is misconfigured
+<FilesMatch "(?i)^(config\.json|config\.local\.php|\.env|\.env\..*)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Do not list directory contents
+Options -Indexes

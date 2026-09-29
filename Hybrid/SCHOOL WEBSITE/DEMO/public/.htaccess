@@ -1,0 +1,30 @@
+DirectoryIndex index.php index.html
+
+<IfModule mod_authz_core.c>
+  <Files "install.lock">
+    Require all denied
+  </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+  <Files "install.lock">
+    Order allow,deny
+    Deny from all
+  </Files>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
+  RewriteRule ^uploads/ - [L]
+  RewriteRule ^install/ - [L]
+
+  RewriteCond %{DOCUMENT_ROOT}/install.lock !-f
+  RewriteCond %{REQUEST_URI} !^/install
+  RewriteRule ^ install/ [R=302,L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.php [L]
+</IfModule>

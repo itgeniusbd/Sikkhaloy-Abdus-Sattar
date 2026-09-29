@@ -151,20 +151,17 @@
             <div class="sm-tc-print no-print">
                 <div class="sm-tc-print-h">
                     <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
-                    <div>
-                        <h4>@Locale.T("att.printSettings")</h4>
-                        <p>@Locale.T("sm.tcPadHint")</p>
-                    </div>
-                </div>
-                <div class="sm-tc-print-b">
-                    <label class="choice-inline">
+                    <h4>@Locale.T("att.printSettings")</h4>
+                    <label class="acc-check">
                         <input type="checkbox" checked="@hideIns" @onchange="OnHideIns" />
                         <span>@Locale.T("att.hideSchool")</span>
                     </label>
-                    <label>@Locale.T("att.topSpace")
-                        <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                    <label class="sm-tc-space">
+                        <span>@Locale.T("att.topSpace")</span>
+                        <input type="number" min="0" step="10" @bind="topSpace" @bind:after="PersistOptsAsync" disabled="@(!hideIns)" />
                     </label>
                 </div>
+                <p class="sm-tc-print-hint">@Locale.T("sm.tcPadHint")</p>
             </div>
 
             <article class="cert-sheet tc-sheet" style="@SheetStyle">
@@ -324,7 +321,7 @@ else if (!string.IsNullOrWhiteSpace(popupText))
     private int ListClassId => int.TryParse(listClassInput, out var n) ? n : 0;
     private bool IsMale => string.Equals(student?.Gender, "Male", StringComparison.OrdinalIgnoreCase);
     private bool IsRejected => string.Equals(student?.Status, "Rejected", StringComparison.OrdinalIgnoreCase);
-    private string SheetStyle => topSpace > 0 ? $"padding-top:{topSpace}px" : "";
+    private string SheetStyle => hideIns && topSpace > 0 ? $"padding-top:{topSpace}px" : "";
 
     protected override async Task OnInitializedAsync()
     {

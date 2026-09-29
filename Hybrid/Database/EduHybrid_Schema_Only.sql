@@ -3934,6 +3934,15 @@ CREATE NONCLUSTERED INDEX [IX_Income_MoneyReceipt_PrintedReceiptNo]
 
 
 GO
+PRINT N'Creating Index [dbo].[Income_MoneyReceipt].[UX_Income_MoneyReceipt_School_SN]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_Income_MoneyReceipt_School_SN]
+    ON [dbo].[Income_MoneyReceipt]([SchoolID] ASC, [MoneyReceipt_SN] ASC) WHERE ([MoneyReceipt_SN] IS NOT NULL AND [SchoolID] IS NOT NULL);
+
+
+GO
 PRINT N'Creating Table [dbo].[Income_PaymentRecord]...';
 
 
@@ -15765,6 +15774,169 @@ WHERE (Income_PaymentRecord.SchoolID = @SchoolID) AND (Income_PaymentRecord.Educ
 ORDER BY CreateClass.ClassID
 END;
 GO
+PRINT N'Creating Procedure [dbo].[usp_NextMoneyReceiptSN]...';
+
+
+GO
+/* ---------------------------------------------------------------------
+   dbo.usp_NextMoneyReceiptSN  @SchoolID, @SN OUTPUT
+   Returns the next receipt number of one school from its own SEQUENCE
+   dbo.Seq_MoneyReceipt_<SchoolID> (CACHE 50).
+   * First call for a school creates the sequence at MAX(MoneyReceipt_SN)+1
+     (minimum 100001, same as the old F_MoneyReceipt_SN).
+   * Works inside the caller's transaction (opens its own only if none).
+   * Self-heal: if the drawn number already exists in Income_MoneyReceipt
+     (old MAX+1 code / manual insert) or the sequence is >= 1000 behind MAX,
+     the sequence is restarted past MAX and past every value already issued.
+   * A number drawn inside a transaction that later rolls back is consumed
+     (sequences are not transactional): that leaves a gap, never a duplicate.
+   --------------------------------------------------------------------- */
+CREATE OR ALTER PROCEDURE dbo.usp_NextMoneyReceiptSN
+    @SchoolID int,
+    @SN       int OUTPUT
+WITH EXECUTE AS OWNER
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @SchoolID IS NULL OR @SchoolID <= 0
+        THROW 51000, N'usp_NextMoneyReceiptSN: @SchoolID must be greater than 0.', 1;
+
+    DECLARE @SeqName  sysname       = N'Seq_MoneyReceipt_' + CONVERT(nvarchar(11), @SchoolID);
+    DECLARE @Seq      nvarchar(300) = N'dbo.' + QUOTENAME(@SeqName);
+    DECLARE @LockRes  nvarchar(255) = N'MoneyReceiptSN:' + CONVERT(nvarchar(11), @SchoolID);
+    DECLARE @NextSql  nvarchar(400) = N'SET @v = NEXT VALUE FOR ' + @Seq + N';';
+    DECLARE @OwnTran  bit = 0, @rc int, @Max int, @Used bigint, @Start bigint, @sql nvarchar(max);
+
+    IF @@TRANCOUNT = 0
+    BEGIN
+        BEGIN TRANSACTION;
+        SET @OwnTran = 1;
+    END;
+
+    BEGIN TRY
+        /* 1) lazy, race-safe creation (normally done once by the setup script) */
+        IF OBJECT_ID(@Seq, N'SO') IS NULL
+        BEGIN
+            EXEC @rc = sys.sp_getapplock @Resource = @LockRes, @LockMode = N'Exclusive',
+                                         @LockOwner = N'Transaction', @LockTimeout = 15000;
+            IF @rc < 0
+                THROW 51001, N'usp_NextMoneyReceiptSN: timeout while creating the receipt counter. Please try again.', 1;
+
+            IF OBJECT_ID(@Seq, N'SO') IS NULL
+            BEGIN
+                SELECT @Max = MAX(MoneyReceipt_SN)
+                FROM dbo.Income_MoneyReceipt WITH (UPDLOCK, HOLDLOCK)
+                WHERE SchoolID = @SchoolID;
+
+                SET @Start = CASE WHEN ISNULL(@Max, 0) < 100000 THEN 100001 ELSE @Max + 1 END;
+                SET @sql = N'CREATE SEQUENCE ' + @Seq + N' AS int START WITH ' + CONVERT(nvarchar(20), @Start)
+                         + N' INCREMENT BY 1 MINVALUE 1 NO MAXVALUE NO CYCLE CACHE 50;';
+                EXEC (@sql);
+            END;
+        END;
+
+        /* 2) draw */
+        EXEC sys.sp_executesql @NextSql, N'@v int OUTPUT', @v = @SN OUTPUT;
+
+        /* 3) self-heal check (index seek on SchoolID, MoneyReceipt_SN; NOLOCK = never blocks,
+              also sees an uncommitted row of old code that took the same number) */
+        SELECT @Max = MAX(MoneyReceipt_SN)
+        FROM dbo.Income_MoneyReceipt WITH (NOLOCK)
+        WHERE SchoolID = @SchoolID;
+
+        IF EXISTS (SELECT 1 FROM dbo.Income_MoneyReceipt WITH (NOLOCK)
+                   WHERE SchoolID = @SchoolID AND MoneyReceipt_SN = @SN)
+           OR ISNULL(@Max, 0) - @SN >= 1000
+        BEGIN
+            EXEC @rc = sys.sp_getapplock @Resource = @LockRes, @LockMode = N'Exclusive',
+                                         @LockOwner = N'Transaction', @LockTimeout = 15000;
+            IF @rc < 0
+                THROW 51002, N'usp_NextMoneyReceiptSN: timeout while repairing the receipt counter. Please try again.', 1;
+
+            /* freeze the sequence (schema lock until the transaction ends) so no other
+               session can draw between reading its state and restarting it */
+            SET @sql = N'ALTER SEQUENCE ' + @Seq + N' CACHE 50;';
+            EXEC (@sql);
+
+            SELECT @Max = MAX(MoneyReceipt_SN)
+            FROM dbo.Income_MoneyReceipt WITH (UPDLOCK, HOLDLOCK)
+            WHERE SchoolID = @SchoolID;
+
+            SELECT @Used = CONVERT(bigint, ISNULL(last_used_value, current_value))
+            FROM sys.sequences WHERE object_id = OBJECT_ID(@Seq);
+
+            SET @Start = CASE WHEN ISNULL(@Max, 100000) > ISNULL(@Used, 100000)
+                              THEN ISNULL(@Max, 100000) ELSE @Used END + 1;
+            IF @Start < 100001 SET @Start = 100001;
+
+            SET @sql = N'ALTER SEQUENCE ' + @Seq + N' RESTART WITH ' + CONVERT(nvarchar(20), @Start) + N';';
+            EXEC (@sql);
+            EXEC sys.sp_executesql @NextSql, N'@v int OUTPUT', @v = @SN OUTPUT;
+        END;
+
+        IF @OwnTran = 1 COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @OwnTran = 1 AND @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+PRINT N'Creating Procedure [dbo].[usp_SkipMoneyReceiptSN]...';
+
+
+GO
+/* ---------------------------------------------------------------------
+   dbo.usp_SkipMoneyReceiptSN  @SchoolID = NULL (all schools), @Skip = 50
+   Manual tool for AFTER an incident in which the database itself went back
+   in time (restore from backup, VM snapshot revert, lost writes): the
+   sequences went back too, so push every counter @Skip past both the
+   current MAX and the last issued value. Never changes existing rows.
+   --------------------------------------------------------------------- */
+CREATE OR ALTER PROCEDURE dbo.usp_SkipMoneyReceiptSN
+    @SchoolID int = NULL,
+    @Skip     int = 50
+WITH EXECUTE AS OWNER
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @Skip IS NULL OR @Skip < 0 OR @Skip > 100000
+        THROW 51010, N'usp_SkipMoneyReceiptSN: @Skip must be between 0 and 100000.', 1;
+
+    DECLARE @Out TABLE (SchoolID int, OldLastIssued bigint, MaxSN int, NewNext bigint);
+    DECLARE @rc int, @sid int, @res nvarchar(255), @Seq nvarchar(300), @Max int, @Used bigint, @Start bigint, @sql nvarchar(max);
+
+    DECLARE c CURSOR LOCAL FAST_FORWARD FOR
+        SELECT TRY_CONVERT(int, SUBSTRING(s.name, 18, 20))
+        FROM sys.sequences s
+        WHERE s.schema_id = SCHEMA_ID(N'dbo') AND s.name LIKE N'Seq[_]MoneyReceipt[_]%'
+          AND TRY_CONVERT(int, SUBSTRING(s.name, 18, 20)) IS NOT NULL
+          AND (@SchoolID IS NULL OR s.name = N'Seq_MoneyReceipt_' + CONVERT(nvarchar(11), @SchoolID));
+    OPEN c;
+    FETCH NEXT FROM c INTO @sid;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @Seq = N'dbo.' + QUOTENAME(N'Seq_MoneyReceipt_' + CONVERT(nvarchar(11), @sid));
+        BEGIN TRANSACTION;
+            SET @res = N'MoneyReceiptSN:' + CONVERT(nvarchar(11), @sid);
+            EXEC @rc = sys.sp_getapplock @Resource = @res, @LockMode = N'Exclusive', @LockOwner = N'Transaction', @LockTimeout = 30000;
+            IF @rc < 0 BEGIN ROLLBACK TRANSACTION; CLOSE c; DEALLOCATE c; THROW 51011, N'usp_SkipMoneyReceiptSN: lock timeout, try again when no collection is running.', 1; END;
+            SET @sql = N'ALTER SEQUENCE ' + @Seq + N' CACHE 50;';
+            EXEC (@sql);
+            SELECT @Max = MAX(MoneyReceipt_SN) FROM dbo.Income_MoneyReceipt WITH (UPDLOCK, HOLDLOCK) WHERE SchoolID = @sid;
+            SELECT @Used = CONVERT(bigint, ISNULL(last_used_value, CONVERT(bigint, current_value) - 1))
+            FROM sys.sequences WHERE object_id = OBJECT_ID(@Seq);
+            SET @Start = CASE WHEN ISNULL(@Max, 100000) > ISNULL(@Used, 100000) THEN ISNULL(@Max, 100000) ELSE @Used END + @Skip + 1;
+            SET @sql = N'ALTER SEQUENCE ' + @Seq + N' RESTART WITH ' + CONVERT(nvarchar(20), @Start) + N';';
+            EXEC (@sql);
+        COMMIT TRANSACTION;
+        INSERT @Out VALUES (@sid, @Used, @Max, @Start);
+        FETCH NEXT FROM c INTO @sid;
+    END;
+    CLOSE c; DEALLOCATE c;
+    SELECT * FROM @Out ORDER BY SchoolID;
+END;
+GO
 PRINT N'Creating Procedure [dbo].[MoneyReceipt]...';
 
 
@@ -15782,7 +15954,11 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @MoneyReceipt_SN INT
-    SET @MoneyReceipt_SN = [dbo].[F_MoneyReceipt_SN](@SchoolID)
+    -- Per-school sequence (receipt_sn_setup.sql); old MAX+1 only if not installed
+    IF OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL
+        EXEC dbo.usp_NextMoneyReceiptSN @SchoolID = @SchoolID, @SN = @MoneyReceipt_SN OUTPUT
+    ELSE
+        SET @MoneyReceipt_SN = [dbo].[F_MoneyReceipt_SN](@SchoolID)
 
     INSERT INTO Income_MoneyReceipt
         (StudentID, RegistrationID, StudentClassID, PaidDate, EducationYearID, PaymentBy, SchoolID, MoneyReceipt_SN, CollectionDate)

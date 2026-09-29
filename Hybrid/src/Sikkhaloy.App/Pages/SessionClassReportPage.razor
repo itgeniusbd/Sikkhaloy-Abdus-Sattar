@@ -278,7 +278,7 @@
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false).AsTask();
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
     private static string Tk(decimal n) => n.ToString("N0");

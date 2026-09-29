@@ -13,6 +13,18 @@ public sealed class RoutineNameDto
     public int RoutineInfoID { get; set; }
     public string Name { get; set; } = "";
     public bool Used { get; set; }
+    public bool Assigned { get; set; }
+    public int PeriodCount { get; set; }
+    public int DayCount { get; set; }
+}
+
+public sealed class RoutineTemplateDto
+{
+    public int RoutineInfoID { get; set; }
+    public string Name { get; set; } = "";
+    public bool Assigned { get; set; }
+    public List<string> Days { get; set; } = [];
+    public List<RoutinePeriodDto> Periods { get; set; } = [];
 }
 
 public sealed class SaveRoutineNameRequest
@@ -117,6 +129,8 @@ public sealed class ExamRoutineCellDto
     public int ColumnIndex { get; set; }
     public int SubjectID { get; set; }
     public string SubjectText { get; set; } = "";
+    public string ExtraInfo { get; set; } = "";
+    public string TimeText { get; set; } = "";
 }
 
 public sealed class ExamRoutineRowDto

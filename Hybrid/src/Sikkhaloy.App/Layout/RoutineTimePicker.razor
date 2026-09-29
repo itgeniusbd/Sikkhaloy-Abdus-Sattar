@@ -1,0 +1,151 @@
+@inherits LocaleAwareComponent
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<button type="button" class="rtp-field" disabled="@Disabled" @onclick="OpenAsync">
+    @(Display.Length == 0 ? Placeholder : Display)
+</button>
+
+<dialog @ref="dialogRef" class="rtp-dialog" @onclose="OnDialogClose">
+    <div class="rtp-box" @onclick:stopPropagation="true">
+        <div class="rtp-head">
+            <button type="button" class="@HourStepClass" @onclick="ShowHours">@Hour12</button>
+            <span>:</span>
+            <button type="button" class="@MinuteStepClass" @onclick="ShowMinutes">@minute.ToString("00")</button>
+            <em>@ampm</em>
+        </div>
+        <div class="rtp-clock">
+            @if (step == 0)
+            {
+                @for (var h = 1; h <= 12; h++)
+                {
+                    var hour = h;
+                    <button type="button" class="rtp-num @(Hour12 == hour ? "is-on" : null)"
+                            style="@Deg(hour % 12 * 30)" @onclick="@(() => PickHour(hour))">@hour</button>
+                }
+            }
+            else
+            {
+                @for (var m = 0; m < 60; m += 5)
+                {
+                    var min = m;
+                    <button type="button" class="rtp-num @(minute == min ? "is-on" : null)"
+                            style="@Deg(min * 6)" @onclick="@(() => PickMinute(min))">@min.ToString("00")</button>
+                }
+            }
+            <span class="rtp-dot"></span>
+            <button type="button" class="rtp-ampm is-am @AmClass" @onclick="SetAm">AM</button>
+            <button type="button" class="rtp-ampm is-pm @PmClass" @onclick="SetPm">PM</button>
+        </div>
+        <div class="rtp-act">
+            <button type="button" @onclick="CloseAsync">@Locale.T("acc.close")</button>
+            <button type="button" class="is-ok" @onclick="OkAsync">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+</dialog>
+
+@code {
+    [Parameter] public TimeOnly? Value { get; set; }
+    [Parameter] public EventCallback<TimeOnly?> ValueChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "";
+    [Parameter] public bool Disabled { get; set; }
+
+    private ElementReference dialogRef;
+    private int step;
+    private int hour24;
+    private int minute;
+    private string ampm = "AM";
+
+    private int Hour12 => hour24 % 12 == 0 ? 12 : hour24 % 12;
+    private string Display => Value is null ? "" : DateTime.Today.Add(Value.Value.ToTimeSpan()).ToString("h:mm tt");
+    private string HourStepClass => step == 0 ? "is-on" : null!;
+    private string MinuteStepClass => step == 1 ? "is-on" : null!;
+    private string AmClass => ampm == "AM" ? "is-on" : null!;
+    private string PmClass => ampm == "PM" ? "is-on" : null!;
+
+    private void ShowHours() => step = 0;
+    private void ShowMinutes() => step = 1;
+
+    private async Task OpenAsync()
+    {
+        if (Disabled)
+            return;
+        var time = Value ?? new TimeOnly(8, 0);
+        hour24 = time.Hour;
+        minute = time.Minute - time.Minute % 5;
+        ampm = hour24 < 12 ? "AM" : "PM";
+        step = 0;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyRtp.show", dialogRef);
+        }
+        catch
+        {
+        }
+    }
+
+    private void PickHour(int hour)
+    {
+        hour24 = To24(hour, ampm);
+        step = 1;
+    }
+
+    private void PickMinute(int min)
+    {
+        minute = min;
+        hour24 = To24(Hour12, ampm);
+    }
+
+    private void SetAm()
+    {
+        ampm = "AM";
+        hour24 = To24(Hour12, "AM");
+    }
+
+    private void SetPm()
+    {
+        ampm = "PM";
+        hour24 = To24(Hour12, "PM");
+    }
+
+    private async Task OkAsync()
+    {
+        hour24 = To24(Hour12, ampm);
+        await ValueChanged.InvokeAsync(new TimeOnly(hour24, minute));
+        await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyRtp.close", dialogRef);
+        }
+        catch
+        {
+        }
+    }
+
+    private void OnDialogClose()
+    {
+    }
+
+    private static int To24(int hour12, string mer) =>
+        mer == "PM"
+            ? (hour12 == 12 ? 12 : hour12 + 12)
+            : (hour12 == 12 ? 0 : hour12);
+
+    private static string Deg(int deg) => $"--deg:{deg}deg";
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyRtp.close", dialogRef);
+        }
+        catch
+        {
+        }
+    }
+}

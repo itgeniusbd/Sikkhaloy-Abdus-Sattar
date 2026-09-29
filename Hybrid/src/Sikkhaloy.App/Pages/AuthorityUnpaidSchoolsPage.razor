@@ -1,0 +1,117 @@
+@page "/authority/unpaid-schools"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page ab-page-full">
+    <h1>@Locale.T("ai.unpaidSchools")</h1>
+    <p class="muted"><a href="authority/accounts">@Locale.T("auth.m.accounts")</a></p>
+    <div class="filter-row no-print">
+        <input type="date" @bind="from" disabled="@busy" />
+        <input type="date" @bind="to" disabled="@busy" />
+        <input type="number" @bind="schoolIdInput" placeholder="@Locale.T("ab.schoolId")" disabled="@busy" />
+        <input type="search" @bind="query" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+    </div>
+    <div class="ai-cards">
+        <div class="ai-card is-orange"><h5>@data.TotalSchools</h5><p>@Locale.T("ai.unpaidSchools")</p></div>
+        <div class="ai-card is-purple"><h5>@data.TotalInvoices</h5><p>@Locale.T("ai.unpaidInvoices")</p></div>
+        <div class="ai-card is-red"><h5>@Tk(data.TotalDue)</h5><p>@Locale.T("ai.due")</p></div>
+    </div>
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("ab.schoolId")</th>
+                    <th>@Locale.T("ai.institution")</th>
+                    <th>@Locale.T("ai.unpaidInvoices")</th>
+                    <th>@Locale.T("ai.totalAmt")</th>
+                    <th>@Locale.T("ai.paidAmt")</th>
+                    <th>@Locale.T("ai.due")</th>
+                    <th>@Locale.T("ai.issue")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (data.Rows.Count == 0)
+                {
+                    <tr><td colspan="7">@Locale.T("ab.empty")</td></tr>
+                }
+                @foreach (var row in data.Rows)
+                {
+                    <tr>
+                        <td>@row.SchoolID</td>
+                        <td>@row.SchoolName</td>
+                        <td>
+                            <a href="@($"authority/unpaid-invoices?schoolId={row.SchoolID}")">@row.InvoiceCount</a>
+                        </td>
+                        <td>@Tk(row.TotalAmount)</td>
+                        <td>@Tk(row.PaidAmount)</td>
+                        <td>@Tk(row.Due)</td>
+                        <td>
+                            @if (row.OldestIssue is not null || row.NewestIssue is not null)
+                            {
+                                <span>@row.OldestIssue?.ToString("d MMM yy") - @row.NewestIssue?.ToString("d MMM yy")</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private AuthUnpaidSchoolsPageDto data = new();
+    private DateTime? from, to;
+    private string query = "";
+    private int? schoolIdInput;
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        from = null; to = null; query = ""; schoolIdInput = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityUnpaidSchoolsAsync(Session.AccessToken!, from, to, query, schoolIdInput);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Tk(decimal n) => n.ToString("N0");
+}

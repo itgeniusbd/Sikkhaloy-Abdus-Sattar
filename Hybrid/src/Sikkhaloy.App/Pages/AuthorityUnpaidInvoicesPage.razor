@@ -1,0 +1,158 @@
+@page "/authority/unpaid-invoices"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page ab-page-full">
+    <h1>@Locale.T("ai.unpaidInvoices")</h1>
+    <p class="muted"><a href="authority/accounts">@Locale.T("auth.m.accounts")</a> - @Locale.T("ai.monthFilterHint")</p>
+    <div class="filter-row no-print">
+        <select @bind="year" disabled="@(busy || month == 0)">
+            @foreach (var y in Years)
+            {
+                <option value="@y">@y</option>
+            }
+        </select>
+        <select @bind="month" disabled="@busy">
+            <option value="0">@Locale.T("ai.allMonths")</option>
+            @for (var m = 1; m <= 12; m++)
+            {
+                <option value="@m">@MonthLabel(m)</option>
+            }
+        </select>
+        <input type="number" @bind="schoolIdInput" placeholder="@Locale.T("ab.schoolId")" disabled="@busy" />
+        <input type="search" @bind="query" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+    </div>
+    <div class="ai-cards">
+        <div class="ai-card is-purple"><h5>@data.TotalInvoices</h5><p>@Locale.T("ai.unpaidInvoices")</p></div>
+        <div class="ai-card is-orange"><h5>@data.TotalSchools</h5><p>@Locale.T("ai.unpaidSchools")</p></div>
+        <div class="ai-card is-red"><h5>@Tk(data.TotalDue)</h5><p>@Locale.T("ai.due")</p></div>
+    </div>
+
+    @if (data.Groups.Count == 0)
+    {
+        <p class="muted">@Locale.T("ab.empty")</p>
+    }
+    @foreach (var group in data.Groups)
+    {
+        <section class="card ad-table-card" style="margin-top:1rem;">
+            <div class="ad-table-head">
+                <h3>@group.SchoolID - @group.SchoolName</h3>
+                <span>@Locale.T("auth.rows", group.InvoiceCount) - @Locale.T("ai.due"): @Tk(group.Due)</span>
+            </div>
+            <div class="ab-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("ai.sn")</th>
+                            <th>@Locale.T("ai.category")</th>
+                            <th>@Locale.T("ai.invoiceFor")</th>
+                            <th>@Locale.T("ai.month")</th>
+                            <th>@Locale.T("ai.issue")</th>
+                            <th>@Locale.T("ai.totalAmt")</th>
+                            <th>@Locale.T("ai.paidAmt")</th>
+                            <th>@Locale.T("ai.due")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in group.Invoices)
+                        {
+                            <tr>
+                                <td>@row.InvoiceSn</td>
+                                <td>@row.Category</td>
+                                <td>@row.InvoiceFor</td>
+                                <td>@row.MonthName?.ToString("MMM yyyy")</td>
+                                <td>@row.IssueDate?.ToString("d MMM yyyy")</td>
+                                <td>@Tk(row.TotalAmount)</td>
+                                <td>@Tk(row.PaidAmount)</td>
+                                <td>@Tk(row.Due)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private AuthUnpaidInvoicesPageDto data = new();
+    private int year = DateTime.Today.Year;
+    private int month = 0; // all months by default so card total matches
+    private string query = "";
+    private int? schoolIdInput;
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    private IEnumerable<int> Years => Enumerable.Range(DateTime.Today.Year - 5, 8).Reverse();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+
+        var queryString = Nav.ToAbsoluteUri(Nav.Uri).Query;
+        if (!string.IsNullOrEmpty(queryString))
+        {
+            foreach (var part in queryString.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = part.Split('=', 2);
+                if (kv.Length == 2
+                    && kv[0].Equals("schoolId", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(Uri.UnescapeDataString(kv[1]), out var schoolId)
+                    && schoolId > 0)
+                {
+                    schoolIdInput = schoolId;
+                    break;
+                }
+            }
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        year = DateTime.Today.Year;
+        month = 0;
+        query = "";
+        schoolIdInput = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityUnpaidInvoicesAsync(Session.AccessToken!, year, month, query, schoolIdInput);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Tk(decimal n) => n.ToString("N0");
+    private static string MonthLabel(int m) => new DateTime(2000, m, 1).ToString("MMM");
+}

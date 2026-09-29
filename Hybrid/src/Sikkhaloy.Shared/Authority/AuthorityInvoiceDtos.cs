@@ -1,4 +1,4 @@
-namespace Sikkhaloy.Shared.Authority;
+﻿namespace Sikkhaloy.Shared.Authority;
 
 public sealed class AuthAccountsPageDto
 {
@@ -94,6 +94,9 @@ public sealed class AuthInvoiceLineDto
     public decimal Due { get; set; }
     public bool Selected { get; set; }
     public decimal PayAmount { get; set; }
+    public DateTime? GraceUntil { get; set; }
+    public bool InGrace { get; set; }
+    public bool AccessLocked { get; set; }
 }
 
 public sealed class AuthManagePageDto
@@ -359,4 +362,49 @@ public sealed class AuthOnlinePayRowDto
     public string CollectedBy { get; set; } = "";
     public string Reference { get; set; } = "";
     public DateTime? PaymentDate { get; set; }
+}
+
+public sealed class AuthUnpaidSchoolsPageDto
+{
+    public DateTime? From { get; set; }
+    public DateTime? To { get; set; }
+    public string Query { get; set; } = "";
+    public int? SchoolID { get; set; }
+    public int TotalSchools { get; set; }
+    public int TotalInvoices { get; set; }
+    public decimal TotalDue { get; set; }
+    public List<AuthUnpaidSchoolRowDto> Rows { get; set; } = [];
+}
+
+public sealed class AuthUnpaidSchoolRowDto
+{
+    public int SchoolID { get; set; }
+    public string SchoolName { get; set; } = "";
+    public int InvoiceCount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal Due { get; set; }
+    public DateTime? OldestIssue { get; set; }
+    public DateTime? NewestIssue { get; set; }
+}
+
+public sealed class AuthUnpaidInvoicesPageDto
+{
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public string Query { get; set; } = "";
+    public int? SchoolID { get; set; }
+    public int TotalSchools { get; set; }
+    public int TotalInvoices { get; set; }
+    public decimal TotalDue { get; set; }
+    public List<AuthUnpaidInvoiceGroupDto> Groups { get; set; } = [];
+}
+
+public sealed class AuthUnpaidInvoiceGroupDto
+{
+    public int SchoolID { get; set; }
+    public string SchoolName { get; set; } = "";
+    public int InvoiceCount { get; set; }
+    public decimal Due { get; set; }
+    public List<AuthInvoiceLineDto> Invoices { get; set; } = [];
 }

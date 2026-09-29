@@ -100,8 +100,8 @@ public sealed partial class SyncEngine
     public async Task ImportSyncedStudentAsync(
         StudentDto dto, SessionSnapshot session, CancellationToken cancellationToken = default)
     {
-        if (dto.EducationYearID != session.EducationYearID)
-            return;
+        if (dto.EducationYearID <= 0)
+            dto.EducationYearID = session.EducationYearID;
 
         dto.SchoolID = session.SchoolID;
         dto.UpdatedUtc = DateTime.UtcNow;

@@ -3,6 +3,39 @@ namespace Sikkhaloy.Shared.Menu;
 public sealed class MenuTreeDto
 {
     public List<MenuCategoryDto> Categories { get; set; } = [];
+
+    public bool ContainsRoute(string? route)
+    {
+        var want = (route ?? "").Trim().TrimStart('/');
+        if (string.IsNullOrWhiteSpace(want))
+            return false;
+        foreach (var category in Categories ?? [])
+        {
+            foreach (var link in category.Links ?? [])
+            {
+                if (RouteMatches(link.Route, want))
+                    return true;
+            }
+            foreach (var sub in category.Subs ?? [])
+            {
+                foreach (var link in sub.Links ?? [])
+                {
+                    if (RouteMatches(link.Route, want))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static bool RouteMatches(string? linkRoute, string want)
+    {
+        // Exact route only — parent /students must NOT grant /students/new (per-page access).
+        var have = (linkRoute ?? "").Trim().TrimStart('/');
+        if (string.IsNullOrWhiteSpace(have))
+            return false;
+        return have.Equals(want, StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 public sealed class MenuCategoryDto
@@ -927,6 +960,16 @@ public static class HybridMenuRoutes
             return;
         }
 
+        if (lower.Contains("allclasstopmeritbangla.aspx")
+            || title.Equals("All Class Top Merit", StringComparison.OrdinalIgnoreCase)
+            || title.Contains("সেরাদের তালিকা", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/merit-top";
+            link.Title = "All Class Top Merit";
+            link.Ready = true;
+            return;
+        }
+
         if (lower.Contains("banglaresult.aspx")
             || lower.Contains("exmampositionbangla.aspx")
             || title.Contains("result card (bangla)", StringComparison.OrdinalIgnoreCase)
@@ -1066,7 +1109,7 @@ public static class HybridMenuRoutes
             || title.Contains("পরীক্ষার রুটিন", StringComparison.OrdinalIgnoreCase)
             || title.Equals("Exam Routine Bangla", StringComparison.OrdinalIgnoreCase))
         {
-            link.Route = "/routine/exam-bn";
+            link.Route = "/routine/exam";
             link.Ready = true;
             return;
         }
@@ -1279,7 +1322,34 @@ public static class HybridMenuRoutes
         }
 
         EnsureInventory(tree);
+        EnsureAttendanceGuideline(tree);
     }
+
+    private const string AttendanceGuidelineRoute = "/attendance/guideline";
+
+    /// <summary>
+    /// Hybrid-only page (no legacy .aspx menu row): add "Punch Guideline" right after the student
+    /// attendance links (Attendances > Student) for every user who already sees those links.
+    /// Being in the tree also lets sub-admins pass MainLayout's per-page access check.
+    /// </summary>
+    private static void EnsureAttendanceGuideline(MenuTreeDto tree)
+    {
+        var lists = tree.Categories
+            .SelectMany(c => (c.Subs ?? []).Select(s => s.Links ?? []).Prepend(c.Links ?? []))
+            .ToList();
+        if (lists.Any(links => links.Any(link => RouteIs(link, AttendanceGuidelineRoute))))
+            return;
+
+        var target = lists.FirstOrDefault(links => links.Any(IsStudentAttendanceLink));
+        if (target is null)
+            return;
+
+        var at = target.FindLastIndex(IsStudentAttendanceLink);
+        target.Insert(at + 1, Link(-9301, "Punch Guideline", AttendanceGuidelineRoute));
+    }
+
+    private static bool IsStudentAttendanceLink(MenuLinkDto link) =>
+        (link.Route ?? "").Trim().StartsWith("/attendance/student/", StringComparison.OrdinalIgnoreCase);
 
     private static void EnsureInventory(MenuTreeDto tree)
     {

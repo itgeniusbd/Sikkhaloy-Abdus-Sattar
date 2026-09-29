@@ -5,38 +5,71 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="sp-page">
+<div class="sp-page sp-exam-routine">
     <h1>@Locale.T("stu.examRoutine")</h1>
-    <article class="sp-card">
-        @if (loading)
+    @if (loading)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
+    }
+    else if (groups.Count == 0)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+    }
+    else
+    {
+        @foreach (var group in groups)
         {
-            <p class="sp-empty">@Locale.T("stu.loading")</p>
-        }
-        else if (rows.Count == 0)
-        {
-            <p class="sp-empty">@Locale.T("stu.empty")</p>
-        }
-        else
-        {
-            @foreach (var exam in rows)
-            {
-                <div class="sp-exam">
-                    <div class="sp-exam-date">
-                        <strong>@(exam.Date?.Day.ToString() ?? "—")</strong>
-                        <span>@(exam.Date?.ToString("MMM")?.ToUpperInvariant() ?? "")</span>
-                    </div>
-                    <div>
-                        <b>@exam.Name</b>
-                        <small>@(exam.Date?.ToString("d MMM yyyy") ?? "")</small>
-                    </div>
+            <article class="sp-er-block">
+                <h2>@group.Name</h2>
+                <div class="sp-er-wrap">
+                    <table class="sp-er-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("rt.date")</th>
+                                <th>@Locale.T("rt.day")</th>
+                                <th>@Locale.T("rt.time")</th>
+                                <th>@Locale.T("stu.colSubject")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var exam in group.Rows)
+                        {
+                            <tr>
+                                <td>@(exam.Date?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                <td>@DayText(exam)</td>
+                                <td>
+                                    <span>@exam.Comment</span>
+                                    @if (!string.IsNullOrWhiteSpace(exam.Duration))
+                                    {
+                                        <em>@exam.Duration</em>
+                                    }
+                                </td>
+                                <td class="is-sub">
+                                    @if (!string.IsNullOrWhiteSpace(exam.Subject))
+                                    {
+                                        <strong>@exam.Subject</strong>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(exam.ExtraInfo))
+                                    {
+                                        <small>@exam.ExtraInfo</small>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(exam.CellTime))
+                                    {
+                                        <b class="is-cell-time">@exam.CellTime</b>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
                 </div>
-            }
+            </article>
         }
-    </article>
+    }
 </div>
 
 @code {
-    private IReadOnlyList<StudentPortalExamDto> rows = [];
+    private readonly List<ExamGroup> groups = [];
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -45,9 +78,35 @@
         try
         {
             if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-                rows = await Api.GetStudentPortalUpcomingExamsAsync(Session.AccessToken);
+            {
+                var rows = await Api.GetStudentPortalUpcomingExamsAsync(Session.AccessToken);
+                groups.AddRange(rows
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Name) ? Locale.T("stu.examRoutine") : x.Name)
+                    .Select(g => new ExamGroup(g.Key, g.ToList())));
+            }
         }
         catch { }
         loading = false;
     }
+
+    private string DayText(StudentPortalExamDto row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.DayName))
+            return row.DayName;
+        if (row.Date is null)
+            return "";
+        var key = row.Date.Value.DayOfWeek switch
+        {
+            DayOfWeek.Saturday => "Sat",
+            DayOfWeek.Sunday => "Sun",
+            DayOfWeek.Monday => "Mon",
+            DayOfWeek.Tuesday => "Tue",
+            DayOfWeek.Wednesday => "Wed",
+            DayOfWeek.Thursday => "Thu",
+            _ => "Fri"
+        };
+        return Locale.T("stu.day." + key);
+    }
+
+    private sealed record ExamGroup(string Name, List<StudentPortalExamDto> Rows);
 }

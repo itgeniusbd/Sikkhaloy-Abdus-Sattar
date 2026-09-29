@@ -1,0 +1,90 @@
+@page "/teacher/cv/print"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<div class="sp-page tch-cv-print">
+    <h1 class="no-print">@Locale.T("tch.cvPrint")</h1>
+    <button type="button" class="sp-card-go no-print" @onclick="PrintAsync">@Locale.T("tch.print")</button>
+    @if (cv is null)
+    {
+        <p class="sp-empty">@(loading ? Locale.T("stu.loading") : Locale.T("stu.empty"))</p>
+    }
+    else
+    {
+        <article class="tch-cv-sheet">
+            <header class="tch-cv-head">
+                <div class="sp-hero-photo">
+                    @if (!string.IsNullOrWhiteSpace(cv.PhotoDataUrl))
+                    {
+                        <img src="@cv.PhotoDataUrl" alt="" />
+                    }
+                </div>
+                <div>
+                    <h2>@cv.Name</h2>
+                    <p>@cv.Designation</p>
+                    <small>@cv.Phone</small>
+                    <small>@cv.Email</small>
+                </div>
+            </header>
+            @foreach (var row in cv.Objectives)
+            {
+                <p class="tch-cv-obj">@row.Text</p>
+            }
+            @if (cv.Jobs.Count > 0)
+            {
+                <h3>@Locale.T("tch.experience")</h3>
+                @foreach (var row in cv.Jobs)
+                {
+                    <div class="tch-cv-line"><b>@row.InstitutionName</b><span>@row.JobYear</span><small>@row.Position</small></div>
+                }
+            }
+            @if (cv.Education.Count > 0)
+            {
+                <h3>@Locale.T("tch.education")</h3>
+                @foreach (var row in cv.Education)
+                {
+                    <div class="tch-cv-line"><b>@row.InstitutionName</b><span>@row.ExamYear</span><small>@row.ExamName · @row.Result</small></div>
+                }
+            }
+            @if (cv.Skills.Count > 0)
+            {
+                <h3>@Locale.T("tch.skills")</h3>
+                @foreach (var row in cv.Skills)
+                {
+                    <div class="tch-cv-line"><b>@row.Name</b><small>@row.Description</small></div>
+                }
+            }
+            @if (cv.Languages.Count > 0)
+            {
+                <h3>@Locale.T("tch.languages")</h3>
+                @foreach (var row in cv.Languages)
+                {
+                    <div class="tch-cv-line"><b>@row.Name</b><small>@row.Level</small></div>
+                }
+            }
+        </article>
+    }
+</div>
+
+@code {
+    private TeacherPortalCvDto? cv;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                cv = await Api.GetTeacherPortalCvAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+
+    private async Task PrintAsync() => await Js.InvokeVoidAsync("window.print");
+}

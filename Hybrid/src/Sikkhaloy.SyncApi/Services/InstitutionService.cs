@@ -4,7 +4,7 @@ using Sikkhaloy.Shared.Institution;
 
 namespace Sikkhaloy.SyncApi.Services;
 
-public sealed class InstitutionService
+public sealed partial class InstitutionService
 {
     private const int MaxLogoBytes = 1_500_000;
     private readonly EduConnectionFactory _connections;

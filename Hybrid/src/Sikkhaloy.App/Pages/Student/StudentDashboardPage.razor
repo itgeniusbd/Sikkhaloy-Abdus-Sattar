@@ -4,6 +4,7 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
+@inject StudentNoticeInbox Inbox
 
 <div class="sp-dash">
     @if (dash is null && loading)
@@ -21,13 +22,13 @@
                         <span class="sp-bill-label">@Locale.T("stu.tabDue")</span>
                         <strong class="sp-bill-amount">@accounts.TotalDue.ToString("N2") <small>Tk</small></strong>
                     </div>
-                    <button type="button" class="sp-bill-pay"
-                            disabled="@(!accounts.OnlinePaymentEnabled)"
-                            @onclick="GoToAccountsDue">
-                        @PayIco @Locale.T("dash.studentPayOnline") <span class="sp-bill-chevron">›</span>
-                    </button>
+                    <a class="sp-bill-detail" href="student/accounts?tab=0">@InfoIco @Locale.T("dash.studentPayDetails") <span class="sp-bill-chevron">›</span></a>
                 </div>
-                <a class="sp-bill-detail" href="student/accounts?tab=0">@InfoIco @Locale.T("dash.studentPayDetails") <span class="sp-bill-chevron">›</span></a>
+                <button type="button" class="sp-bill-pay"
+                        disabled="@(!accounts.OnlinePaymentEnabled)"
+                        @onclick="GoToAccountsDue">
+                    @PayIco @Locale.T("dash.studentPayOnline") <span class="sp-bill-chevron">›</span>
+                </button>
             </section>
         }
 
@@ -52,37 +53,71 @@
             <span class="sp-hero-badge">@ShortClass(dash)</span>
         </section>
 
-        @* ── 3. Quick-action icons ── *@
+        @* ── 3. Quick-action icons (unique from bottom nav) ── *@
         <div class="sp-actions">
-            <a class="sp-act" href="student/profile"><i class="is-green">@UserIco</i><span>@Locale.T("stu.profile")</span></a>
-            <a class="sp-act" href="student/report"><i class="is-purple">@BookIco</i><span>@Locale.T("stu.academic")</span></a>
+            <a class="sp-act" href="student/sms">
+                <span class="sp-act-ico">
+                    <i class="is-teal">@SmsIco</i>
+                    @if (Inbox.SmsUnread > 0)
+                    {
+                        <em class="sp-nbadge">@Inbox.SmsBadgeText</em>
+                    }
+                </span>
+                <span>@Locale.T("stu.sms")</span>
+            </a>
+            <a class="sp-act" href="student/report">
+                <span class="sp-act-ico">
+                    <i class="is-purple">@ReportIco</i>
+                    @if (Inbox.ReportUnread > 0)
+                    {
+                        <em class="sp-nbadge">@Inbox.ReportBadgeText</em>
+                    }
+                </span>
+                <span>@Locale.T("stu.report")</span>
+            </a>
+            <a class="sp-act" href="student/notice">
+                <span class="sp-act-ico">
+                    <i class="is-amber">@BellIco</i>
+                    @if (Inbox.NoticeUnread > 0)
+                    {
+                        <em class="sp-nbadge">@Inbox.NoticeBadgeText</em>
+                    }
+                </span>
+                <span>@Locale.T("stu.hwNotice")</span>
+            </a>
+            <a class="sp-act" href="student/feedback"><i class="is-slate">@ChatIco</i><span>@Locale.T("stu.feedback")</span></a>
             <a class="sp-act" href="student/attendance"><i class="is-blue">@CalIco</i><span>@Locale.T("stu.attendance")</span></a>
-            <a class="sp-act" href="student/exam"><i class="is-orange">@ClipIco</i><span>@Locale.T("stu.exam")</span></a>
-            <a class="sp-act" href="student/result"><i class="is-pink">@ChartIco</i><span>@Locale.T("stu.result")</span></a>
+            <a class="sp-act" href="student/exam"><i class="is-pink">@ResultIco</i><span>@Locale.T("stu.result")</span></a>
         </div>
 
-        @* ── 4. Subject Performance (full-width) ── *@
+        @* ── 4. Last exam ── *@
         <article class="sp-card">
             <div class="sp-card-h">
-                <h3>@SubIco @Locale.T("stu.subjects")</h3>
-                <a href="student/result">@Locale.T("stu.viewAll")</a>
+                <h3>@SubIco @Locale.T("stu.lastExam")</h3>
+                <a href="student/exam">@Locale.T("stu.viewAll")</a>
             </div>
-            @if (dash.Subjects.Count == 0)
+            @if (lastExam is null)
             {
                 <p class="sp-empty">@Locale.T("stu.empty")</p>
             }
             else
             {
-                @foreach (var row in dash.Subjects.Take(5))
-                {
-                    <div class="sp-sub">
-                        <b>@row.Name</b>
-                        <em>@row.Avg.ToString("0.##")%</em>
-                        <span class="sp-grade @GradeClass(row.Grade)">@row.Grade</span>
-                    </div>
-                }
+                <a class="sp-last" href="student/exam">
+                    <b>@lastExam.Name</b>
+                    <small>@(lastExam.Date?.ToString("d MMM yyyy") ?? "")</small>
+                </a>
+                <div class="sp-last-bar">
+                    <span>@MarksText(lastExam.ObtainedMarks, lastExam.TotalMarks)</span>
+                    <span>@lastExam.Percentage.ToString("0.##")%</span>
+                    <span>@(string.IsNullOrWhiteSpace(lastExam.Grade) ? "—" : lastExam.Grade)</span>
+                    <span>@Locale.T("stu.gpaShort") @lastExam.Point.ToString("0.##")</span>
+                    @if (!string.IsNullOrWhiteSpace(lastExam.PositionClass))
+                    {
+                        <span>@lastExam.PositionClass</span>
+                    }
+                    <a href="student/exam">@Locale.T("stu.fullResult") →</a>
+                </div>
             }
-            <a class="sp-card-go" href="student/result">@Locale.T("stu.fullResult") →</a>
         </article>
 
         @* ── 5. Attendance donut (left) + 4 KPI tiles (right 2×2) ── *@
@@ -139,35 +174,7 @@
             </div>
         </div>
 
-        @* ── 6. Upcoming Exams (full-width) ── *@
-        <article class="sp-card" style="margin-top:0.85rem">
-            <div class="sp-card-h">
-                <h3>@Locale.T("stu.upcoming")</h3>
-                <a href="student/exam-routine">@Locale.T("stu.viewAll")</a>
-            </div>
-            @if (dash.UpcomingExams.Count == 0)
-            {
-                <p class="sp-empty">@Locale.T("stu.empty")</p>
-            }
-            else
-            {
-                @foreach (var exam in dash.UpcomingExams.Take(5))
-                {
-                    <div class="sp-exam">
-                        <div class="sp-exam-date">
-                            <strong>@(exam.Date?.Day.ToString() ?? "—")</strong>
-                            <span>@(exam.Date?.ToString("MMM")?.ToUpperInvariant() ?? "")</span>
-                        </div>
-                        <div>
-                            <b>@exam.Name</b>
-                            <small>@(string.IsNullOrWhiteSpace(exam.Subject) ? exam.Grade : exam.Subject)</small>
-                        </div>
-                    </div>
-                }
-            }
-        </article>
-
-        @* ── 7. Today's Routine ── *@
+        @* ── 6. Today's Routine ── *@
         <article class="sp-card" style="margin-top:0.85rem">
             <div class="sp-card-h">
                 <h3>@Locale.T("stu.routine")</h3>
@@ -186,6 +193,41 @@
                         <span class="sp-num">@(i + 1)</span>
                         <b>@period.Period @period.Subject</b>
                         <span>@period.Time</span>
+                    </div>
+                }
+            }
+        </article>
+
+        @* ── 7. Upcoming Exams ── *@
+        <article class="sp-card" style="margin-top:0.85rem">
+            <div class="sp-card-h">
+                <h3>@Locale.T("stu.upcoming")</h3>
+                <a href="student/exam-routine">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.UpcomingExams.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                @foreach (var exam in dash.UpcomingExams.Take(5))
+                {
+                    <div class="sp-exam">
+                        <div class="sp-exam-date">
+                            <strong>@(exam.Date?.Day.ToString() ?? "—")</strong>
+                            <span>@(exam.Date?.ToString("MMM")?.ToUpperInvariant() ?? "")</span>
+                        </div>
+                        <div class="sp-exam-body">
+                            <b>@exam.Name</b>
+                            @if (!string.IsNullOrWhiteSpace(exam.Subject))
+                            {
+                                <span>@exam.Subject</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(exam.Comment))
+                            {
+                                <small>@exam.Comment</small>
+                            }
+                        </div>
                     </div>
                 }
             }
@@ -219,16 +261,19 @@
 @code {
     private StudentPortalDashboardDto? dash;
     private StudentPortalAccountsBundleDto? accounts;
+    private StudentPortalExamDto? lastExam;
     private bool loading = true;
 
     private static readonly MarkupString CapIco = Icon("M22 10 12 5 2 10l10 5 10-5Zm-6.5 3.3v4.2L12 20l-3.5-2.5v-4.2");
     private static readonly MarkupString BookIco = Icon("M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z");
     private static readonly MarkupString TrophyIco = Icon("M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM4 8h3M17 8h3");
     private static readonly MarkupString StarIco = Icon("M12 3 14.6 9H21l-5.2 3.8L18 19l-6-4.2L6 19l2.2-6.2L3 9h6.4L12 3Z");
-    private static readonly MarkupString UserIco = Icon("M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z");
-    private static readonly MarkupString CalIco = Icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z");
-    private static readonly MarkupString ClipIco = Icon("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2");
-    private static readonly MarkupString ChartIco = Icon("M4 19V5m4 14V9m4 10v-6m4 6V7m4 12V4");
+    private static readonly MarkupString SmsIco = ActIcon("""<rect x="3" y="5" width="18" height="14" rx="3" fill="currentColor" opacity=".2"/><path d="M5 8.2 12 13l7-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="3.6" y="5.6" width="16.8" height="12.8" rx="2.4" stroke="currentColor" stroke-width="1.8"/>""");
+    private static readonly MarkupString ReportIco = ActIcon("""<path d="M7 3.5h7.2L20 9.2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5.5A2 2 0 0 1 7 3.5Z" fill="currentColor" opacity=".2"/><path d="M14 3.6V8a1.5 1.5 0 0 0 1.5 1.5H20M8.5 13h7M8.5 16.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 3.5h7.2L20 9.2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5.5A2 2 0 0 1 7 3.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>""");
+    private static readonly MarkupString BellIco = ActIcon("""<path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6Z" fill="currentColor" opacity=".2"/><path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6ZM10.2 19.2a2 2 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>""");
+    private static readonly MarkupString ChatIco = ActIcon("""<path d="M4.4 6.2h15.2A1.8 1.8 0 0 1 21.4 8v8.2a1.8 1.8 0 0 1-1.8 1.8H9.2L4.2 21.2V8A1.8 1.8 0 0 1 6 6.2Z" fill="currentColor" opacity=".2"/><path d="M4.4 6.2h15.2A1.8 1.8 0 0 1 21.4 8v8.2a1.8 1.8 0 0 1-1.8 1.8H9.2L4.2 21.2V8A1.8 1.8 0 0 1 6 6.2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 10.4h8M8 13.6h5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>""");
+    private static readonly MarkupString CalIco = ActIcon("""<rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="currentColor" opacity=".2"/><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v3.4M16 3.5v3.4M3.5 10h17M9 14.2l2 2 4.2-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>""");
+    private static readonly MarkupString ResultIco = ActIcon("""<circle cx="12" cy="8.2" r="4.2" fill="currentColor" opacity=".2"/><circle cx="12" cy="8.2" r="4.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.4 11.8 7 20l5-2.4L17 20l-1.4-8.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6.4v1.8l1.3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>""");
     private static readonly MarkupString PayIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>""";
     private static readonly MarkupString InfoIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>""";
     private static readonly MarkupString SubIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>""";
@@ -241,6 +286,7 @@
         if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
         if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
 
+        Inbox.Changed += OnInboxChanged;
         dash = await Api.PeekStudentPortalDashboardAsync();
         if (dash is not null) loading = false;
 
@@ -250,8 +296,29 @@
         {
             var dashTask = Api.GetStudentPortalDashboardAsync(Session.AccessToken);
             var accountsTask = Api.GetStudentPortalAccountsAsync(Session.AccessToken);
+            var examTask = Api.GetStudentPortalExamsAsync(Session.AccessToken);
+            var upcomingTask = Api.GetStudentPortalUpcomingExamsAsync(Session.AccessToken);
             dash = await dashTask;
+            try
+            {
+                var upcoming = await upcomingTask;
+                if (dash is not null && upcoming.Count > 0)
+                    dash.UpcomingExams = upcoming
+                        .Where(x => x.Date is null || x.Date.Value.Date >= DateTime.Today)
+                        .Take(8)
+                        .ToList();
+            }
+            catch { }
             try { accounts = await accountsTask; } catch { accounts = null; }
+            try
+            {
+                var exams = await examTask;
+                lastExam = exams
+                    .OrderByDescending(x => x.Date ?? DateTime.MinValue)
+                    .ThenByDescending(x => x.ExamID)
+                    .FirstOrDefault();
+            }
+            catch { lastExam = null; }
         }
         catch { }
         finally { loading = false; }
@@ -295,20 +362,28 @@
 
     private static string TrimBody(string body) { var t = (body ?? "").Trim(); return t.Length <= 140 ? t : t[..140] + "…"; }
 
+    private static string MarksText(decimal obtained, decimal total)
+    {
+        var o = obtained % 1m == 0 ? obtained.ToString("0") : obtained.ToString("0.##");
+        var t = total % 1m == 0 ? total.ToString("0") : total.ToString("0.##");
+        return $"{o}/{t}";
+    }
+
     private static MarkupString Icon(string d) =>
         (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
 
-    private void GoToAccountsDue() => Nav.NavigateTo("student/accounts?tab=0");
+    private static MarkupString ActIcon(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none">{inner}</svg>""";
 
-    private static string GradeClass(string? grade)
+    private void OnInboxChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
     {
-        var g = (grade ?? "").Trim().ToUpperInvariant();
-        if (g.StartsWith("A")) return "is-a";
-        if (g.StartsWith("B")) return "is-b";
-        if (g.StartsWith("C")) return "is-c";
-        if (g.StartsWith("D")) return "is-d";
-        return "";
+        Inbox.Changed -= OnInboxChanged;
+        base.Dispose();
     }
+
+    private void GoToAccountsDue() => Nav.NavigateTo("student/accounts?tab=0");
 
     private static decimal PositionBarPct(StudentPortalDashboardDto d)
     {

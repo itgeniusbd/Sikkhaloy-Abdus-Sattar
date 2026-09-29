@@ -11,6 +11,8 @@
         <p class="sa-lead">@Locale.T("inst.lead")</p>
     </header>
 
+    <p class="sa-lead"><a href="basic-settings/website-api-key">@Locale.T("wak.openLink")</a></p>
+
     @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
         <NetBanner Text="@error" />

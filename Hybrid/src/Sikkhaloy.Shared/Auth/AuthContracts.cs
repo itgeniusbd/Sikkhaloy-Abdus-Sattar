@@ -32,6 +32,8 @@ public sealed class SessionSnapshot
     public string StudentCode { get; set; } = "";
     public string ClassName { get; set; } = "";
     public string SectionName { get; set; } = "";
+    public int TeacherID { get; set; }
+    public int EmployeeID { get; set; }
 
     public bool IsAuthority =>
         string.Equals(Role, "Authority", StringComparison.OrdinalIgnoreCase)
@@ -39,4 +41,7 @@ public sealed class SessionSnapshot
 
     public bool IsStudent =>
         string.Equals(Role, "Student", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsTeacher =>
+        string.Equals(Role, "Teacher", StringComparison.OrdinalIgnoreCase);
 }

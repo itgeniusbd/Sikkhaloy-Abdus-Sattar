@@ -1,0 +1,260 @@
+@page "/feedback"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject AdminFeedbackInbox Inbox
+
+<div class="card fb-page">
+    <div class="fb-head">
+        <div>
+            <h1>@Locale.T("fb.title")</h1>
+            <p class="muted">@(isMainAdmin ? Locale.T("fb.adminHint") : Locale.T("fb.subHint"))</p>
+        </div>
+    </div>
+    <FeedbackInboxView Rows="rows"
+                       Recipients="recipients"
+                       CanAssign="true"
+                       CanReply="true"
+                       EnableSearch="true"
+                       Busy="busy"
+                       Loading="loading"
+                       Error="@error"
+                       OnOpened="OpenAsync"
+                       OnMarkProcessing="MarkProcessing"
+                       OnMarkSolved="MarkSolved"
+                       OnAssign="AssignAsync"
+                       OnReply="ReplyAsync"
+                       OnOpenReplies="OpenRepliesAsync" />
+</div>
+
+@code {
+    private bool loading = true;
+    private bool busy;
+    private bool isMainAdmin;
+    private string? error;
+    private IReadOnlyList<StudentFeedbackItemDto> rows = [];
+    private IReadOnlyList<StudentFeedbackRecipientDto> recipients = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.IsStudent || Session.IsTeacher || Session.IsAuthority)
+        {
+            Nav.NavigateTo(Session.HomePath, replace: true);
+            return;
+        }
+
+        Inbox.Changed += OnInbox;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                isMainAdmin = string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+                try
+                {
+                    var unread = await Api.GetOfficeFeedbackUnreadAsync(Session.AccessToken);
+                    isMainAdmin = unread.IsMainAdmin || isMainAdmin;
+                }
+                catch
+                {
+                }
+
+                rows = await Api.GetOfficeFeedbackAsync(Session.AccessToken);
+                try
+                {
+                    recipients = await Api.GetOfficeFeedbackRecipientsAsync(Session.AccessToken);
+                }
+                catch
+                {
+                    recipients = [];
+                }
+                Inbox.SetUnread(rows.Count(x => string.Equals(x.Status, "Pending", StringComparison.OrdinalIgnoreCase)));
+                isMainAdmin = isMainAdmin || string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            rows = [];
+        }
+        loading = false;
+    }
+
+    private async Task OpenAsync(StudentFeedbackItemDto row)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        if (row.Status == "Pending")
+            await MarkProcessing(row);
+    }
+
+    private Task MarkProcessing(StudentFeedbackItemDto row) => SetStatusAsync(row, "Processing");
+    private Task MarkSolved(StudentFeedbackItemDto row) => SetStatusAsync(row, "Solved");
+
+    private async Task SetStatusAsync(StudentFeedbackItemDto row, string status)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || busy)
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.SetOfficeFeedbackStatusAsync(Session.AccessToken, row.FeedbackID, status);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            row.Status = status;
+            row.IsRead = true;
+            ApplyStatusActor(row, status);
+            Inbox.SetUnread(rows.Count(x => x.Status == "Pending"));
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ReplyAsync((StudentFeedbackItemDto Row, string Body) args)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || busy)
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.ReplyOfficeFeedbackAsync(Session.AccessToken, args.Row.FeedbackID, args.Body);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            var me = recipients.FirstOrDefault(x => x.RegistrationID == (Session.Current?.RegistrationID ?? 0));
+            args.Row.Replies.Add(new StudentFeedbackReplyDto
+            {
+                ReplyID = result.ReplyID,
+                FeedbackID = args.Row.FeedbackID,
+                FromRegistrationID = Session.Current?.RegistrationID ?? 0,
+                FromName = me?.Name ?? Session.Current?.DisplayName ?? Session.Current?.UserName ?? "",
+                FromDesignation = me?.Designation ?? "",
+                FromCategory = isMainAdmin ? "Admin" : "Sub-Admin",
+                Body = args.Body,
+                CreatedAt = DateTime.Now
+            });
+            args.Row.ReplyCount = args.Row.Replies.Count;
+            args.Row.UnreadReplyCount = 0;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OpenRepliesAsync(StudentFeedbackItemDto row)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            var result = await Api.MarkOfficeFeedbackRepliesReadAsync(Session.AccessToken, row.FeedbackID);
+            if (result.Succeeded)
+                row.UnreadReplyCount = 0;
+        }
+        catch
+        {
+        }
+    }
+
+    private void ApplyStatusActor(StudentFeedbackItemDto row, string status)
+    {
+        var me = recipients.FirstOrDefault(x => x.RegistrationID == (Session.Current?.RegistrationID ?? 0));
+        var name = me?.Name ?? Session.Current?.DisplayName ?? Session.Current?.UserName ?? "";
+        var desig = me?.Designation ?? "";
+        var id = Session.Current?.RegistrationID ?? 0;
+        if (status == "Processing")
+        {
+            row.ProcessingByRegistrationID = id;
+            row.ProcessingByName = name;
+            row.ProcessingByDesignation = desig;
+            row.ProcessingAt = DateTime.Now;
+        }
+        else if (status == "Solved")
+        {
+            row.SolvedByRegistrationID = id;
+            row.SolvedByName = name;
+            row.SolvedByDesignation = desig;
+            row.SolvedAt = DateTime.Now;
+        }
+    }
+
+    private async Task AssignAsync((StudentFeedbackItemDto Row, int ToId) args)
+    {
+        var row = args.Row;
+        var to = args.ToId;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || to <= 0)
+        {
+            error = Locale.T("fb.needTo");
+            return;
+        }
+
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.AssignOfficeFeedbackAsync(Session.AccessToken, row.FeedbackID, to);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            var person = recipients.FirstOrDefault(x => x.RegistrationID == to);
+            if (person is not null)
+            {
+                row.ToRegistrationID = person.RegistrationID;
+                row.ToName = person.Name;
+                row.ToDesignation = person.Designation;
+                row.ToCategory = person.Category;
+            }
+            var me = recipients.FirstOrDefault(x => x.RegistrationID == (Session.Current?.RegistrationID ?? 0));
+            row.AssignedByRegistrationID = Session.Current?.RegistrationID ?? 0;
+            row.AssignedByName = !string.IsNullOrWhiteSpace(me?.Name)
+                ? me!.Name
+                : (Session.Current?.DisplayName ?? Session.Current?.UserName ?? "");
+            row.AssignedByDesignation = me?.Designation ?? "";
+            if (!isMainAdmin)
+                rows = rows.Where(x => x.FeedbackID != row.FeedbackID).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OnInbox() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Inbox.Changed -= OnInbox;
+        base.Dispose();
+    }
+}

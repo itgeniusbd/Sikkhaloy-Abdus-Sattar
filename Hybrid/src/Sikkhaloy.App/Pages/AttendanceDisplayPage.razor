@@ -1,0 +1,447 @@
+@page "/attendance/display"
+@layout EmptyLayout
+@inherits LocaleAwareComponent
+@implements IDisposable
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="att-disp-page">
+    <header class="att-disp-top@(hasNameLogo ? " has-nameplate" : null)" style="background-color: @headerColor">
+        @if (hasNameLogo)
+        {
+            <div class="att-disp-nameplate">
+                <img class="name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                <p>@Locale.T("att.displayTitle") - @clock</p>
+            </div>
+        }
+        else
+        {
+            <div class="att-disp-brand">
+                @if (!string.IsNullOrWhiteSpace(logoUrl))
+                {
+                    <img class="logo" src="@logoUrl" alt="" />
+                }
+                <div>
+                    <h1>@schoolName</h1>
+                    <p>@schoolAddress @schoolPhone - @Locale.T("att.displayTitle") - @clock</p>
+                </div>
+            </div>
+        }
+        <div class="att-disp-actions">
+            <button type="button" class="is-primary" @onclick="LoadAsync" disabled="@busy">@Locale.T("att.displayRefresh")</button>
+            <a href="dashboard">@Locale.T("att.displayBack")</a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="att-display-error" style="margin:8px;padding:10px;background:#7f1d1d;color:#fecaca;border-radius:8px;">@error</div>
+    }
+
+    <div class="att-one-view">
+        <aside class="summary-column">
+            <section class="summary-group">
+                <div class="group-header">STUDENT</div>
+                <div class="att-schedule-cards">
+                    @foreach (var (item, idx) in data.StudentSchedules.Select((x, i) => (x, i)))
+                    {
+                        <div class="schedule-card tone-@(idx % 4)" data-schedule-id="@item.ScheduleID">
+                            <div class="schedule-head">
+                                <span class="schedule-title">@item.ScheduleName</span>
+                                <span class="schedule-time">@item.TimeRange</span>
+                                <span class="schedule-users">@item.TotalUser</span>
+                            </div>
+                            <div class="schedule-stats compact">
+                                <span class="chip">In <b>@item.CurrentIn</b></span>
+                                <span class="chip">Out <b>@item.TotalOut</b></span>
+                                <span class="chip pre">Pre <b>@item.TotalPresent</b></span>
+                                <span class="chip late">Late <b>@item.TotalLate</b></span>
+                                <span class="chip late-abs">L.Abs <b>@item.TotalLateAbsent</b></span>
+                                <span class="chip abs">Abs <b>@item.TotalAbsent</b></span>
+                                <span class="chip leave" title="ছুটি">Leave <b>@item.TotalLeave</b></span>
+                            </div>
+                        </div>
+                    }
+                    @if (data.StudentSchedules.Count == 0)
+                    {
+                        <p class="att-display-empty" style="padding:8px;">@Locale.T("att.displayEmpty")</p>
+                    }
+                </div>
+            </section>
+            <section class="summary-group">
+                <div class="group-header employee">TEACHER / STAFF</div>
+                <div class="att-schedule-cards">
+                    @foreach (var (item, idx) in data.EmployeeSchedules.Select((x, i) => (x, i)))
+                    {
+                        <div class="schedule-card tone-@(idx % 4)" data-schedule-id="@item.ScheduleID">
+                            <div class="schedule-head">
+                                <span class="schedule-title">@item.ScheduleName</span>
+                                <span class="schedule-time">@item.TimeRange</span>
+                                <span class="schedule-users">@item.TotalUser</span>
+                            </div>
+                            <div class="schedule-stats compact">
+                                <span class="chip">In <b>@item.CurrentIn</b></span>
+                                <span class="chip">Out <b>@item.TotalOut</b></span>
+                                <span class="chip pre">Pre <b>@item.TotalPresent</b></span>
+                                <span class="chip late">Late <b>@item.TotalLate</b></span>
+                                <span class="chip late-abs">L.Abs <b>@item.TotalLateAbsent</b></span>
+                                <span class="chip abs">Abs <b>@item.TotalAbsent</b></span>
+                                <span class="chip leave" title="ছুটি">Leave <b>@item.TotalLeave</b></span>
+                            </div>
+                        </div>
+                    }
+                    @if (data.EmployeeSchedules.Count == 0)
+                    {
+                        <p class="att-display-empty" style="padding:8px;">@Locale.T("att.displayEmpty")</p>
+                    }
+                </div>
+            </section>
+        </aside>
+
+        <div class="main-column">
+            <section class="board-block">
+                <div class="board-head">
+                    <span>STUDENT ATTENDANCE</span>
+                    <div class="board-filters">
+                        @foreach (var status in StudentFilters)
+                        {
+                            <label class="board-filter">
+                                <span>@status.Label</span>
+                                <input type="checkbox" checked="@status.On" @onchange="e => ToggleFilter(status, e)" />
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="att-logs-compact">
+                    <div class="att-log-row">
+                        @CardStrip(Filtered(data.StudentIn, StudentFilters), employee: false, isOut: false)
+                    </div>
+                    <div class="att-log-row">
+@CardStrip(Filtered(data.StudentOut, StudentFilters), employee: false, isOut: true)
+                    </div>
+                </div>
+            </section>
+
+            <section class="board-block">
+                <div class="board-head employee">
+                    <span>TEACHER / STAFF ATTENDANCE</span>
+                    <div class="board-filters">
+                        @foreach (var status in EmployeeFilters)
+                        {
+                            <label class="board-filter">
+                                <span>@status.Label</span>
+                                <input type="checkbox" checked="@status.On" @onchange="e => ToggleFilter(status, e)" />
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="att-logs-compact">
+                    <div class="att-log-row">
+@CardStrip(Filtered(data.EmployeeIn, EmployeeFilters), employee: true, isOut: false)
+                    </div>
+                    <div class="att-log-row">
+@CardStrip(Filtered(data.EmployeeOut, EmployeeFilters), employee: true, isOut: true)
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool busy;
+    private string? error;
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private string schoolPhone = "";
+    private string? logoUrl;
+    private string? nameLogoUrl;
+    private bool hasNameLogo;
+    private string headerColor = "#0d47a1";
+    private string clock = "";
+    private string apiBase = "";
+    private int schoolId;
+    private AttendanceDisplayDto data = new();
+    private System.Threading.Timer? timer;
+    private const string DefaultAvatarUrl = "_content/Sikkhaloy.App/img/default-avatar.svg";
+    private readonly List<FilterChip> StudentFilters =
+    [
+        new("Pre", "Pre", true),
+        new("Abs", "Abs", true),
+        new("Late", "Late", true),
+        new("Late Abs", "Late Abs", true)
+    ];
+    private readonly List<FilterChip> EmployeeFilters =
+    [
+        new("Pre", "Pre", true),
+        new("Abs", "Abs", true),
+        new("Late", "Late", true),
+        new("Late Abs", "Late Abs", true)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+        if (Session.IsStudent || Session.IsTeacher || Session.IsAuthority)
+        {
+            Nav.NavigateTo(Session.IsStudent ? "/student" : Session.IsTeacher ? "/teacher" : "/authority", replace: true);
+            return;
+        }
+
+        var current = Session.Current;
+        if (current is null)
+            return;
+
+        schoolId = current.SchoolID;
+        var header = Sync.GetSchoolHeader(schoolId);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? (current.SchoolName ?? "SIKKHALOY") : header.SchoolName;
+        schoolAddress = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        logoUrl = Sync.GetSchoolLogoDataUrl(schoolId);
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(schoolId);
+        hasNameLogo = !string.IsNullOrWhiteSpace(nameLogoUrl);
+        headerColor = IsHexColor(header.HeaderColor) ? header.HeaderColor! : "#0d47a1";
+        apiBase = string.IsNullOrWhiteSpace(Api.ApiBaseUrl) ? "http://127.0.0.1:5135" : Api.ApiBaseUrl.TrimEnd('/');
+        clock = DateTime.Now.ToString("dd MMMM yyyy - hh:mm:ss tt");
+        await LoadAsync();
+        timer = new System.Threading.Timer(_ => _ = InvokeAsync(TickAsync), null, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20));
+    }
+
+    private async Task TickAsync()
+    {
+        clock = DateTime.Now.ToString("dd MMMM yyyy - hh:mm:ss tt");
+        // A slow API call must not let 20s ticks pile up into several concurrent loads.
+        if (busy)
+        {
+            StateHasChanged();
+            return;
+        }
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private IJSObjectReference? marqueeModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        try
+        {
+            // One JS rAF loop for the page (constant px/s, pause on hover / at loop end);
+            // later re-renders and 20s refreshes keep the same loop and scroll offset.
+            marqueeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Sikkhaloy.App/attendance-marquee.js?v=1");
+            await marqueeModule.InvokeVoidAsync("start");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }        // CSS fallback animation keeps working
+        catch (InvalidOperationException) { }
+    }
+
+    private async Task StopMarqueeAsync(IJSObjectReference module)
+    {
+        try
+        {
+            await module.InvokeVoidAsync("stop");
+            await module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+        catch (InvalidOperationException) { }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            data = await Api.GetAttendanceDisplayAsync(Session.AccessToken!) ?? new();
+            data.StudentSchedules ??= [];
+            data.EmployeeSchedules ??= [];
+            data.StudentIn ??= [];
+            data.StudentOut ??= [];
+            data.EmployeeIn ??= [];
+            data.EmployeeOut ??= [];
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.Message ?? "";
+            if (msg.Contains("404", StringComparison.OrdinalIgnoreCase) || msg.Contains("Not Found", StringComparison.OrdinalIgnoreCase))
+                error = Locale.T("att.displayApiMissing");
+            else
+                error = Locale.SyncError(msg);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ToggleFilter(FilterChip chip, ChangeEventArgs e)
+    {
+        chip.On = e.Value is true or "true";
+    }
+
+    private static List<AttendanceDisplayCardDto> Filtered(List<AttendanceDisplayCardDto> rows, List<FilterChip> filters)
+    {
+        var on = filters.Where(x => x.On).Select(x => x.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (on.Count == 0 || on.Count == filters.Count)
+            return rows;
+        return rows.Where(x => on.Contains(x.Attendance)).ToList();
+    }
+
+    private RenderFragment CardStrip(List<AttendanceDisplayCardDto> rows, bool employee, bool isOut) => builder =>
+    {
+        var wrapClass = (isOut ? "OUT str_wrap" : "IN str_wrap") + (rows.Count == 0 ? " is-empty" : "");
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", wrapClass);
+        // CSS fallback only (used if the JS marquee module cannot load): ~2.5s per card
+        // (150px card + 18px gap => ~67 px/s) instead of a fixed 38s for any number of cards.
+        builder.AddAttribute(2, "style", $"--marquee-duration:{Math.Max(20, rows.Count * 5 / 2)}s");
+        if (rows.Count == 0)
+        {
+            builder.AddContent(3, Locale.T("att.displayEmpty"));
+        }
+        else
+        {
+            builder.OpenElement(4, "div");
+            builder.AddAttribute(5, "class", "marquee-track");
+            builder.AddAttribute(6, "data-marquee-key", (employee ? "employee" : "student") + (isOut ? "-out" : "-in"));
+            var seq = rows.Concat(rows).ToList();
+            var i = 7;
+            foreach (var row in seq)
+            {
+                builder.OpenElement(i++, "div");
+                builder.AddAttribute(i++, "class", "Info_block");
+                builder.OpenElement(i++, "div");
+                builder.AddAttribute(i++, "class", "card");
+
+                builder.OpenElement(i++, "span");
+                builder.AddAttribute(i++, "class", "schedule-badge");
+                builder.AddContent(i++, string.IsNullOrWhiteSpace(row.ScheduleName) ? (row.ClassOrDesignation ?? "") : row.ScheduleName);
+                builder.CloseElement();
+
+                var photo = PhotoUrl(row, employee) ?? DefaultAvatarUrl;
+                builder.OpenElement(i++, "img");
+                builder.AddAttribute(i++, "class", "card-img-top");
+                builder.AddAttribute(i++, "src", photo);
+                builder.AddAttribute(i++, "alt", "");
+                builder.AddAttribute(i++, "onerror", "this.onerror=null;this.src='" + DefaultAvatarUrl + "'");
+                builder.CloseElement();
+
+                builder.OpenElement(i++, "span");
+                builder.AddAttribute(i++, "class", NotifyClass(row.Attendance));
+                builder.AddContent(i++, row.Attendance);
+                builder.CloseElement();
+
+                builder.OpenElement(i++, "div");
+                builder.AddAttribute(i++, "class", "EntryDate");
+                builder.AddContent(i++, FormatClock(row.EntryTime));
+                builder.CloseElement();
+
+                builder.OpenElement(i++, "div");
+                builder.AddAttribute(i++, "class", "ExitDate");
+                builder.AddContent(i++, FormatClock(row.ExitTime));
+                builder.CloseElement();
+
+                builder.OpenElement(i++, "div");
+                builder.AddAttribute(i++, "class", "name-title");
+                builder.OpenElement(i++, "span");
+                builder.AddContent(i++, row.Name);
+                builder.CloseElement();
+                builder.CloseElement();
+
+                builder.CloseElement();
+                builder.CloseElement();
+            }
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private static string FormatClock(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.StartsWith("00:00", StringComparison.Ordinal))
+            return "-";
+        return value.Trim();
+    }
+
+    private static string NotifyClass(string attendance)
+    {
+        var a = attendance ?? "";
+        if (a.Equals("Late Abs", StringComparison.OrdinalIgnoreCase))
+            return "notify-badge Late Abs";
+        if (a.Equals("LateAbs", StringComparison.OrdinalIgnoreCase))
+            return "notify-badge Late Abs";
+        return $"notify-badge {a}";
+    }
+    private string? PhotoUrl(AttendanceDisplayCardDto row, bool employee)
+    {
+        if (row.PersonID <= 0 || schoolId <= 0)
+            return null;
+        if (!employee)
+        {
+            var local = Sync.GetStudentPhotoDataUrl(schoolId, row.PersonID);
+            if (!string.IsNullOrWhiteSpace(local))
+                return local;
+            return $"{apiBase}/api/public/website/{schoolId}/students/{row.PersonID}/photo";
+        }
+        return $"{apiBase}/api/public/website/{schoolId}/teachers/{row.PersonID}/photo";
+    }
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 1)
+            return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[^1][0])}";
+    }
+
+    public override void Dispose()
+    {
+        timer?.Dispose();
+        if (marqueeModule is not null)
+        {
+            var module = marqueeModule;
+            marqueeModule = null;
+            _ = StopMarqueeAsync(module);
+        }
+        base.Dispose();
+    }
+
+
+    private static bool IsHexColor(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (value[0] != '#') return false;
+        if (value.Length is not (4 or 7)) return false;
+        for (var i = 1; i < value.Length; i++)
+        {
+            var c = value[i];
+            var ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+            if (!ok) return false;
+        }
+        return true;
+    }
+
+    private sealed class FilterChip(string value, string label, bool on)
+    {
+        public string Value { get; } = value;
+        public string Label { get; } = label;
+        public bool On { get; set; } = on;
+    }
+}

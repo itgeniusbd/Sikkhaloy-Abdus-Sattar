@@ -5,12 +5,26 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="sp-page">
+<div class="sp-page sp-routine">
     <h1>@Locale.T("stu.classRoutine")</h1>
+    @if (!loading && days.Count > 0)
+    {
+        <div class="sp-days" role="tablist">
+            @foreach (var day in days)
+            {
+                <button type="button" class="@(day == selected ? "is-on" : null) @(day == today ? "is-today" : null)"
+                        @onclick="() => selected = day">@Locale.T("stu.day." + day)</button>
+            }
+        </div>
+    }
     <article class="sp-card">
         @if (loading)
         {
             <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else if (days.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
         }
         else if (rows.Count == 0)
         {
@@ -23,7 +37,13 @@
                 var period = rows[i];
                 <div class="sp-period">
                     <span class="sp-num">@(i + 1)</span>
-                    <b>@period.Period @period.Subject</b>
+                    <div class="sp-period-txt">
+                        <b>@period.Period @period.Subject</b>
+                        @if (!string.IsNullOrWhiteSpace(period.Teacher))
+                        {
+                            <small>@period.Teacher</small>
+                        }
+                    </div>
                     <span>@period.Time</span>
                 </div>
             }
@@ -32,8 +52,15 @@
 </div>
 
 @code {
-    private IReadOnlyList<StudentPortalPeriodDto> rows = [];
+    private static readonly string[] Week = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+    private readonly List<StudentPortalPeriodDto> all = [];
+    private readonly List<string> days = [];
+    private string selected = "";
+    private readonly string today = TodayKey();
     private bool loading = true;
+
+    private List<StudentPortalPeriodDto> rows =>
+        all.Where(x => string.Equals(x.Day, selected, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -41,9 +68,31 @@
         try
         {
             if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-                rows = await Api.GetStudentPortalRoutineAsync(Session.AccessToken);
+            {
+                all.AddRange(await Api.GetStudentPortalRoutineAsync(Session.AccessToken));
+                foreach (var row in all)
+                    row.Day = NormalizeDay(row.Day);
+                days.AddRange(Week.Where(d => all.Any(x => string.Equals(x.Day, d, StringComparison.OrdinalIgnoreCase))));
+                if (days.Count == 0)
+                    days.AddRange(all.Select(x => x.Day).Where(x => x.Length > 0).Distinct());
+                selected = days.Contains(today) ? today : days.FirstOrDefault() ?? "";
+            }
         }
         catch { }
         loading = false;
+    }
+
+    private static string TodayKey() => NormalizeDay(DateTime.Today.DayOfWeek.ToString());
+
+    private static string NormalizeDay(string? raw)
+    {
+        var text = (raw ?? "").Trim();
+        if (text.Length >= 3)
+        {
+            var key = text[..3];
+            if (key is "Sat" or "Sun" or "Mon" or "Tue" or "Wed" or "Thu" or "Fri")
+                return key;
+        }
+        return text;
     }
 }

@@ -1,9 +1,13 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Sikkhaloy.SyncApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Local secrets (gitignored, optional): ShurjoPay merchant login etc. Keep real values out of tracked files.
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -21,6 +25,7 @@ builder.Services.AddScoped<SubAdminService>();
 builder.Services.AddScoped<SubjectService>();
 builder.Services.AddScoped<SubjectAssignService>();
 builder.Services.AddScoped<InstitutionService>();
+builder.Services.AddScoped<WebsitePublicService>();
 builder.Services.AddScoped<HolidayService>();
 builder.Services.AddScoped<EducationYearService>();
 builder.Services.AddScoped<EmployeeService>();
@@ -37,12 +42,15 @@ builder.Services.AddScoped<MasterDataService>();
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<StudentPortalService>();
+builder.Services.AddScoped<StudentFeedbackService>();
+builder.Services.AddScoped<TeacherPortalService>();
 builder.Services.AddScoped<SmsOfficeService>();
 builder.Services.AddScoped<SmsTemplateService>();
 builder.Services.AddScoped<RoutineService>();
 builder.Services.AddScoped<CommitteeService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PlatformInvoiceService>();
+builder.Services.AddScoped<ShurjoPayCallbackService>();
 builder.Services.AddScoped<SupportService>();
 builder.Services.AddScoped<AuthorityService>();
 builder.Services.AddScoped<AuthorityBasicService>();
@@ -56,6 +64,7 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "sikkhaloy-hybrid";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -64,7 +73,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtIssuer,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = JwtTokenService.RoleClaim
         };
     });
 builder.Services.AddAuthorization();
@@ -105,6 +116,16 @@ app.Use(async (context, next) =>
         if (string.Equals(role, "Student", StringComparison.OrdinalIgnoreCase)
             && path.StartsWith("/api/sync", StringComparison.OrdinalIgnoreCase)
             && !path.StartsWith("/api/sync/student-portal", StringComparison.OrdinalIgnoreCase)
+            && !path.Equals("/api/sync/profile/password", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { error = "auth.forbidden" });
+            return;
+        }
+
+        if (string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase)
+            && path.StartsWith("/api/sync", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/api/sync/teacher-portal", StringComparison.OrdinalIgnoreCase)
             && !path.Equals("/api/sync/profile/password", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

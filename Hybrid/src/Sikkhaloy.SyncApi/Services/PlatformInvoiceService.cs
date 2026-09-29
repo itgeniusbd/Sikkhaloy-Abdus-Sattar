@@ -12,8 +12,8 @@ public sealed class PlatformInvoiceService
     private const string ShurjoPayUser = "sikkhaloy";
     private const string ShurjoPayPassword = "sikkp22tmxq3499z";
     private const string ShurjoPayPrefix = "SIK";
-    private const string ReturnUrl = "https://sikkhaloy.com/Profile/Invoice/ShurjoPayCallback.aspx";
-    private const string CancelUrl = "https://sikkhaloy.com/Profile/Invoice/Due_Invoice.aspx";
+    private const string ReturnUrl = "https://hybrid.sikkhaloy.com/payment/callback";
+    private const string CancelUrl = "https://hybrid.sikkhaloy.com/payment/cancel";
 
     // Access due date is the 15th of the issue month (next month if issued after the 15th).
     private const string AccessDueDateSql = """
@@ -94,6 +94,7 @@ ORDER BY i.InvoiceID
 
         var status = await ReadStatusAsync(con, session.SchoolID, ct);
         dto.IsBlocked = status.IsBlocked;
+        dto.InGrace = status.InGrace;
         dto.DaysUntilExpiry = status.DaysUntilExpiry;
         return dto;
     }
@@ -118,14 +119,14 @@ ORDER BY i.InvoiceID
         var phone = FirstPhone(due.Phone) ?? "01700000000";
         var email = string.IsNullOrWhiteSpace(due.Email) ? "info@school.com" : due.Email;
         var address = string.IsNullOrWhiteSpace(due.Address) ? "Dhaka" : due.Address;
-        var note = "Sikkhaloy Invoice - SchoolID:" + session.SchoolID;
+        var note = "Sikkhaloy Invoice - SchoolID:" + session.SchoolID + "|RegID:" + session.RegistrationID;
         try
         {
-            var url = await CreateShurjoPayOrderAsync(
-                session.SchoolID, due.TotalPayable, due.Due, name, phone, email, address, note, ct);
+            var (url, spOrderId) = await CreateShurjoPayOrderAsync(
+                session.SchoolID, session.RegistrationID, due.TotalPayable, due.Due, name, phone, email, address, note, ct);
             if (string.IsNullOrWhiteSpace(url))
                 return Fail("inv.payFail");
-            return new InvoiceResult { Succeeded = true, CheckoutUrl = url };
+            return new InvoiceResult { Succeeded = true, CheckoutUrl = url, SpOrderId = spOrderId };
         }
         catch (Exception ex)
         {
@@ -369,11 +370,13 @@ WHERE i.SchoolID = @SID AND i.IsPaid = 0
         return null;
     }
 
-    private static async Task<string?> CreateShurjoPayOrderAsync(
-        int schoolId, decimal amount, decimal invoiceAmt, string name, string phone, string email, string address,
+    private static async Task<(string? CheckoutUrl, string? SpOrderId)> CreateShurjoPayOrderAsync(
+        int schoolId, int registrationId, decimal amount, decimal invoiceAmt, string name, string phone, string email, string address,
         string note, CancellationToken ct)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
+        http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "SikkhaloyHybrid/1.0");
+        http.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
         using var tokenBody = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["username"] = ShurjoPayUser,
@@ -417,7 +420,7 @@ WHERE i.SchoolID = @SID AND i.IsPaid = 0
                 ["value1"] = schoolId.ToString(),
                 ["value2"] = note.Length > 250 ? note[..250] : note,
                 ["value3"] = invoiceAmt.ToString("F2"),
-                ["value4"] = ""
+                ["value4"] = registrationId > 0 ? registrationId.ToString() : ""
             })
         };
         payReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -425,7 +428,14 @@ WHERE i.SchoolID = @SID AND i.IsPaid = 0
         var payJson = await payRes.Content.ReadAsStringAsync(ct);
         var trimmed = payJson.Trim();
         if (!trimmed.StartsWith('{') && !trimmed.StartsWith('['))
-            throw new InvalidOperationException("ShurjoPay গেটওয়ে একটি অকার্যকর রেসপন্স দিয়েছে।");
+            {
+                var preview = trimmed.Length > 180 ? trimmed[..180] + "..." : trimmed;
+                preview = preview.Replace("\r", " ").Replace("\n", " ");
+                throw new InvalidOperationException(
+                    (int)payRes.StatusCode == 403
+                        ? "ShurjoPay blocked this payment request (HTTP 403). Please try again."
+                        : "ShurjoPay gateway error (HTTP " + (int)payRes.StatusCode + ").");
+            }
         using var payDoc = JsonDocument.Parse(trimmed);
         var pay = payDoc.RootElement;
         var checkout = JsonText(pay, "checkout_url") ?? JsonText(pay, "payment_url");
@@ -434,7 +444,10 @@ WHERE i.SchoolID = @SID AND i.IsPaid = 0
             var msg = JsonText(pay, "message") ?? JsonText(pay, "sp_massage") ?? "checkout_url পাওয়া যায়নি।";
             throw new InvalidOperationException("ShurjoPay গেটওয়ে এরর: " + msg);
         }
-        return checkout;
+                    var spOrderId = JsonText(pay, "sp_order_id")
+                          ?? JsonText(pay, "order_id")
+                          ?? orderId;
+            return (checkout, spOrderId);
     }
 
     private static void ParseGateway(string message, decimal opAmount, decimal total, out decimal charge, out decimal customer)

@@ -4,45 +4,53 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 
 <div class="card structure-page emp-page acc-page exam-page routine-page exam-routine-page">
     <div class="rt-exam-head">
-        <h1>@(Bangla ? Locale.T("rt.examBn") : Locale.T("rt.examEn"))</h1>
-        <a class="rt-lang-btn @(Bangla ? "is-en" : "is-bn")" href="@(Bangla ? "routine/exam" : "routine/exam-bn")">
-            @(Bangla ? Locale.T("rt.switchEn") : Locale.T("rt.switchBn"))
-        </a>
+        <h1>@Locale.T("rt.examEn")</h1>
     </div>
-    <div class="filter-row no-print">
-        <span>@(Bangla ? Locale.T("rt.classCol") : Locale.T("rt.classCol"))</span>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="AddColumn">@Locale.T("rt.add")</button>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveColumn">@Locale.T("rt.remove")</button>
-        <span>(@sheet.Columns.Count)</span>
-        <span>@Locale.T("rt.row")</span>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="AddRow">@Locale.T("rt.add")</button>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveRow">@Locale.T("rt.remove")</button>
-        <span>(@sheet.Rows.Count)</span>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="RefreshSubjectsAsync">@Locale.T("rt.refresh")</button>
+    <div class="rt-exam-bar rt-exam-bar-grid no-print">
+        <div class="rt-exam-group">
+            <span>@Locale.T("rt.classCol")</span>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="AddColumn">@Locale.T("rt.add")</button>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveColumn">@Locale.T("rt.remove")</button>
+            <em>(@sheet.Columns.Count)</em>
+        </div>
+        <div class="rt-exam-group">
+            <span>@Locale.T("rt.row")</span>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="AddRow">@Locale.T("rt.add")</button>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveRow">@Locale.T("rt.remove")</button>
+            <em>(@sheet.Rows.Count)</em>
+        </div>
+        <div class="rt-exam-group">
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="RefreshSubjectsAsync">@Locale.T("rt.refresh")</button>
+        </div>
     </div>
-    <div class="filter-row no-print">
-        <input type="text" @bind="sheet.RoutineName" disabled="@busy" placeholder="@Locale.T("rt.examNameHint")" />
-        <select @bind="loadId" disabled="@busy">
-            <option value="0">@Locale.T("rt.selectExam")</option>
-            @foreach (var item in sheet.Saved)
-            {
-                <option value="@item.RoutineID">@item.Name (@item.CreatedDate.ToString("dd MMM yyyy"))</option>
-            }
-        </select>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="LoadSavedAsync">@Locale.T("rt.load")</button>
-        <button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="DeleteAsync">@Locale.T("sms.delete")</button>
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.save")</button>
-        <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+    <div class="rt-exam-bar no-print">
+        <button type="button" class="acc-btn rt-exam-load" disabled="@busy" @onclick="LoadSavedAsync">@Locale.T("rt.load")</button>
+        <button type="button" class="acc-btn rt-exam-del" disabled="@busy" @onclick="DeleteAsync">@Locale.T("sms.delete")</button>
+        <button type="button" class="acc-btn rt-exam-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.save")</button>
+        <button type="button" class="acc-btn rt-exam-print" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+        <label class="rt-exam-field">
+            <span>@Locale.T("rt.routineName")</span>
+            <input type="text" @bind="sheet.RoutineName" disabled="@busy" placeholder="@Locale.T("rt.examNameHint")" />
+        </label>
+        <label class="rt-exam-field">
+            <span>@Locale.T("rt.routineList")</span>
+            <select @bind="loadId" disabled="@busy">
+                <option value="0">@Locale.T("rt.selectExam")</option>
+                @foreach (var item in sheet.Saved)
+                {
+                    <option value="@item.RoutineID">@item.Name (@item.CreatedDate.ToString("dd MMM yyyy"))</option>
+                }
+            </select>
+        </label>
     </div>
 
-    <PrintHeader Subtitle="@(string.IsNullOrWhiteSpace(sheet.RoutineName) ? (Bangla ? Locale.T("rt.examBn") : Locale.T("rt.examEn")) : sheet.RoutineName)" />
+    <PrintHeader Subtitle="@(string.IsNullOrWhiteSpace(sheet.RoutineName) ? Locale.T("rt.examEn") : sheet.RoutineName)" />
 
     <div class="rt-exam-wrap">
-        <table class="rt-exam-table">
+        <table class="rt-exam-table" style="@($"--er-rows:{Math.Max(sheet.Rows.Count, 1)}")">
             <thead>
                 <tr>
                     <th>@Locale.T("rt.date")</th>
@@ -51,14 +59,17 @@
                     @foreach (var col in sheet.Columns)
                     {
                         <th>
-                            <select class="no-print" value="@col.ClassID" disabled="@busy" @onchange="e => OnClassColAsync(col, e)">
-                                <option value="0">@Locale.T("si.selectClass")</option>
-                                @foreach (var item in sheet.Classes)
-                                {
-                                    <option value="@item.Id">@item.Name</option>
-                                }
-                            </select>
-                            <span class="print-only">@(col.ClassName)</span>
+                            <div class="rt-exam-class no-print">
+                                <span>@Locale.T("rt.classLabel"):</span>
+                                <select value="@col.ClassID" disabled="@busy" @onchange="e => OnClassColAsync(col, e)">
+                                    <option value="0">@Locale.T("si.selectClass")</option>
+                                    @foreach (var item in sheet.Classes)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <span class="print-only">@ClassTitle(col)</span>
                         </th>
                     }
                 </tr>
@@ -72,15 +83,17 @@
                                @onchange="e => SetDate(row, e.Value?.ToString())" />
                         <span class="print-only">@row.ExamDate</span>
                     </td>
-                    <td>@row.DayName</td>
+                    <td>@DisplayDay(row)</td>
                     <td>
-                        <div class="rt-exam-time no-print">
-                            <input type="time" value="@ToTime(row.StartTime)" disabled="@busy" @onchange="e => SetStart(row, e.Value?.ToString())" />
-                            <span>-</span>
-                            <input type="time" value="@ToTime(row.EndTime)" disabled="@busy" @onchange="e => SetEnd(row, e.Value?.ToString())" />
+                        <div class="rt-exam-slot">
+                            <div class="rt-exam-time no-print">
+                                <RoutineTimePicker Value="@ParseTime(row.StartTime)" ValueChanged="t => SetStart(row, t)" Disabled="busy" Placeholder="@Locale.T("rt.start")" />
+                                <span>-</span>
+                                <RoutineTimePicker Value="@ParseTime(row.EndTime)" ValueChanged="t => SetEnd(row, t)" Disabled="busy" Placeholder="@Locale.T("rt.end")" />
+                            </div>
+                            <div class="rt-exam-range print-only">@row.StartTime – @row.EndTime</div>
+                            <div class="rt-exam-dur">@DisplayDuration(row)</div>
                         </div>
-                        <div class="print-only">@row.StartTime - @row.EndTime</div>
-                        <div class="rt-exam-dur">@row.Duration</div>
                     </td>
                     @foreach (var col in sheet.Columns)
                     {
@@ -88,14 +101,40 @@
                         <td>
                             @if (cell is not null)
                             {
-                                <select class="no-print" @bind="cell.SubjectID" @bind:after="() => SyncSubjectText(cell, col)" disabled="@busy">
-                                    <option value="0">@Locale.T("rt.selectSubject")</option>
-                                    @foreach (var item in col.Subjects)
+                                <div class="rt-exam-cell no-print">
+                                    <select @bind="cell.SubjectID" @bind:after="() => SyncSubjectText(cell, col)" disabled="@busy">
+                                        <option value="0">@Locale.T("rt.selectSubject")</option>
+                                        @foreach (var item in col.Subjects)
+                                        {
+                                            <option value="@item.Id">@item.Name</option>
+                                        }
+                                    </select>
+                                    <div class="rt-exam-meta">
+                                        <input type="text" class="rt-exam-extra" @bind="cell.ExtraInfo" disabled="@busy"
+                                               placeholder="@Locale.T("rt.extraInfo")" />
+                                        <input type="text" class="rt-exam-cell-time" @bind="cell.TimeText" disabled="@busy"
+                                               placeholder="@Locale.T("rt.cellTimeHint")" />
+                                    </div>
+                                </div>
+                                <div class="rt-exam-print-cell print-only">
+                                    @if (!string.IsNullOrWhiteSpace(SubjectName(cell, col)))
                                     {
-                                        <option value="@item.Id">@item.Name</option>
+                                        <div class="rt-exam-print-sub">@SubjectName(cell, col)</div>
                                     }
-                                </select>
-                                <span class="print-only">@cell.SubjectText</span>
+                                    @if (!string.IsNullOrWhiteSpace(cell.ExtraInfo) || !string.IsNullOrWhiteSpace(cell.TimeText))
+                                    {
+                                        <div class="rt-exam-print-meta">
+                                            @if (!string.IsNullOrWhiteSpace(cell.ExtraInfo))
+                                            {
+                                                <span class="rt-exam-print-extra">@cell.ExtraInfo</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(cell.TimeText))
+                                            {
+                                                <span class="rt-exam-print-time">@cell.TimeText</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
                             }
                         </td>
                     }
@@ -117,7 +156,6 @@
     private int loadId;
     private bool busy, popupError;
     private string? popupText, busyTitle;
-    private bool Bangla => Nav.Uri.Contains("exam-bn", StringComparison.OrdinalIgnoreCase);
 
     protected override Task OnInitializedAsync() => BootAsync();
 
@@ -153,7 +191,7 @@
 
     private void AddRow()
     {
-        var row = new ExamRoutineRowDto { Duration = Bangla ? "৩ ঘন্টা" : "3 hours" };
+        var row = new ExamRoutineRowDto { Duration = DefaultDuration() };
         foreach (var col in sheet.Columns)
             row.Cells.Add(new ExamRoutineCellDto { ColumnIndex = col.ColumnIndex });
         sheet.Rows.Add(row);
@@ -254,7 +292,7 @@
         if (sheet.Columns.Count == 0)
             sheet.Columns.Add(new ExamRoutineColumnDto { ColumnIndex = 0 });
         if (sheet.Rows.Count == 0)
-            sheet.Rows.Add(new ExamRoutineRowDto { Duration = Bangla ? "৩ ঘন্টা" : "3 hours" });
+            sheet.Rows.Add(new ExamRoutineRowDto { Duration = DefaultDuration() });
         foreach (var row in sheet.Rows)
         {
             foreach (var col in sheet.Columns)
@@ -286,6 +324,12 @@
         cell.SubjectText = col.Subjects.FirstOrDefault(x => x.Id == cell.SubjectID)?.Name ?? "";
     }
 
+    private string ClassTitle(ExamRoutineColumnDto col) =>
+        string.IsNullOrWhiteSpace(col.ClassName) ? Locale.T("rt.classLabel") : Locale.T("rt.classLabel") + ": " + col.ClassName;
+
+    private static string SubjectName(ExamRoutineCellDto cell, ExamRoutineColumnDto col) =>
+        col.Subjects.FirstOrDefault(x => x.Id == cell.SubjectID)?.Name ?? cell.SubjectText ?? "";
+
     private void SetDate(ExamRoutineRowDto row, string? iso)
     {
         if (!DateTime.TryParse(iso, out var dt))
@@ -295,28 +339,100 @@
             return;
         }
         row.ExamDate = dt.ToString("dd/MM/yyyy");
-        row.DayName = Bangla ? BnDay(dt.DayOfWeek) : dt.DayOfWeek.ToString();
+        row.DayName = Locale.IsBengali ? BnDay(dt.DayOfWeek) : dt.DayOfWeek.ToString();
     }
 
-    private void SetStart(ExamRoutineRowDto row, string? value)
+    private void SetStart(ExamRoutineRowDto row, TimeOnly? value)
     {
-        row.StartTime = FromTime(value);
+        row.StartTime = FormatTime(value);
         row.Duration = DurationText(row.StartTime, row.EndTime);
     }
 
-    private void SetEnd(ExamRoutineRowDto row, string? value)
+    private void SetEnd(ExamRoutineRowDto row, TimeOnly? value)
     {
-        row.EndTime = FromTime(value);
+        row.EndTime = FormatTime(value);
         row.Duration = DurationText(row.StartTime, row.EndTime);
     }
+
+    private string DisplayDay(ExamRoutineRowDto row)
+    {
+        if (TryParseExamDate(row.ExamDate, out var dt))
+            return Locale.IsBengali ? BnDay(dt.DayOfWeek) : dt.DayOfWeek.ToString();
+        return Locale.IsBengali ? BnDayName(row.DayName) : row.DayName;
+    }
+
+    private string DisplayDuration(ExamRoutineRowDto row)
+    {
+        if (DateTime.TryParse(row.StartTime, out var a) && DateTime.TryParse(row.EndTime, out var b) && b > a)
+            return FormatHours((b - a).TotalHours);
+        return FormatHours(ParseHours(row.Duration) ?? 3);
+    }
+
+    private string DefaultDuration() => FormatHours(3);
 
     private string DurationText(string start, string end)
     {
         if (!DateTime.TryParse(start, out var a) || !DateTime.TryParse(end, out var b) || b <= a)
-            return Bangla ? "৩ ঘন্টা" : "3 hours";
-        var hours = (b - a).TotalHours;
-        return Bangla ? hours.ToString("0.##") + " ঘন্টা" : hours.ToString("0.##") + " hours";
+            return DefaultDuration();
+        return FormatHours((b - a).TotalHours);
     }
+
+    private string FormatHours(double hours)
+    {
+        var n = hours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        if (!Locale.IsBengali)
+            return n + (Math.Abs(hours - 1) < 0.001 ? " hour" : " hours");
+        return ToBnDigits(n) + " ঘণ্টা";
+    }
+
+    private static double? ParseHours(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(FromBnDigits(text), @"\d+(\.\d+)?");
+        return match.Success && double.TryParse(match.Value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var n)
+            ? n : null;
+    }
+
+    private static bool TryParseExamDate(string date, out DateTime dt)
+    {
+        if (DateTime.TryParseExact(date, ["dd/MM/yyyy", "d/M/yyyy", "dd-MMM-yyyy"], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+            return true;
+        return DateTime.TryParse(date, out dt);
+    }
+
+    private static string ToBnDigits(string value)
+    {
+        var chars = value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '0' and <= '9')
+                chars[i] = (char)('০' + (chars[i] - '0'));
+        }
+        return new string(chars);
+    }
+
+    private static string FromBnDigits(string value)
+    {
+        var chars = value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '০' and <= '৯')
+                chars[i] = (char)('0' + (chars[i] - '০'));
+        }
+        return new string(chars);
+    }
+
+    private static string BnDayName(string day) => day?.Trim() switch
+    {
+        "Saturday" or "Sat" => "শনিবার",
+        "Sunday" or "Sun" => "রবিবার",
+        "Monday" or "Mon" => "সোমবার",
+        "Tuesday" or "Tue" => "মঙ্গলবার",
+        "Wednesday" or "Wed" => "বুধবার",
+        "Thursday" or "Thu" => "বৃহস্পতিবার",
+        "Friday" or "Fri" => "শুক্রবার",
+        _ => day ?? ""
+    };
 
     private static string ToIso(string date)
     {
@@ -325,17 +441,11 @@
         return DateTime.TryParse(date, out var any) ? any.ToString("yyyy-MM-dd") : "";
     }
 
-    private static string ToTime(string text)
-    {
-        return DateTime.TryParse(text, out var dt) ? dt.ToString("HH:mm") : "";
-    }
+    private static TimeOnly? ParseTime(string text) =>
+        DateTime.TryParse(text, out var dt) ? TimeOnly.FromDateTime(dt) : null;
 
-    private static string FromTime(string? value)
-    {
-        if (TimeSpan.TryParse(value, out var ts))
-            return DateTime.Today.Add(ts).ToString("h:mm tt");
-        return value ?? "";
-    }
+    private static string FormatTime(TimeOnly? value) =>
+        value is null ? "" : DateTime.Today.Add(value.Value.ToTimeSpan()).ToString("h:mm tt");
 
     private static string BnDay(DayOfWeek day) => day switch
     {
@@ -348,7 +458,7 @@
         _ => "শুক্রবার"
     };
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("print").AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintExamRoutine").AsTask();
     private void Show(string value, bool err = false) { popupText = value; popupError = err; }
     private string FormatErr(RoutineResult result) =>
         string.IsNullOrWhiteSpace(result.Error) ? Locale.T("rt.fail")

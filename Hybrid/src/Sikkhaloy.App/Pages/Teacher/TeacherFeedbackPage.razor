@@ -1,0 +1,202 @@
+@page "/teacher/feedback"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject TeacherFeedbackInbox Inbox
+
+<div class="sp-page">
+    <div class="fbx-hero">
+        <span class="fbx-hero-ico">@HeroIco</span>
+        <div>
+            <h1>@Locale.T("fb.title")</h1>
+            <p>@Locale.T("fb.heroHint")</p>
+        </div>
+    </div>
+    <FeedbackInboxView Rows="rows"
+                       CanAssign="false"
+                       CanReply="true"
+                       Busy="busy"
+                       Loading="loading"
+                       Error="@error"
+                       HighlightUnread="true"
+                       OnOpened="OpenAsync"
+                       OnMarkProcessing="MarkProcessing"
+                       OnMarkSolved="MarkSolved"
+                       OnReply="ReplyAsync"
+                       OnOpenReplies="OpenRepliesAsync" />
+</div>
+
+@code {
+    private bool loading = true;
+    private bool busy;
+    private string? error;
+    private IReadOnlyList<StudentFeedbackItemDto> rows = [];
+    private static readonly MarkupString HeroIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>""";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher)
+        {
+            Nav.NavigateTo(Session.HomePath, replace: true);
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                rows = await Api.GetTeacherFeedbackAsync(Session.AccessToken);
+                SyncUnreadBadge();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            rows = [];
+        }
+        loading = false;
+    }
+
+    private async Task OpenAsync(StudentFeedbackItemDto row)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+
+        if (!row.IsRead)
+            await MarkReadAsync(row);
+
+        if (row.Status == "Pending")
+            await MarkProcessing(row);
+    }
+
+    private async Task MarkReadAsync(StudentFeedbackItemDto row)
+    {
+        try
+        {
+            var result = await Api.MarkTeacherFeedbackReadAsync(Session.AccessToken!, row.FeedbackID);
+            if (!result.Succeeded)
+                return;
+            row.IsRead = true;
+            SyncUnreadBadge();
+        }
+        catch
+        {
+        }
+    }
+
+    private Task MarkProcessing(StudentFeedbackItemDto row) => SetStatusAsync(row, "Processing");
+    private Task MarkSolved(StudentFeedbackItemDto row) => SetStatusAsync(row, "Solved");
+
+    private async Task SetStatusAsync(StudentFeedbackItemDto row, string status)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || busy)
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.SetTeacherFeedbackStatusAsync(Session.AccessToken, row.FeedbackID, status);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            row.Status = status;
+            row.IsRead = true;
+            ApplyStatusActor(row, status);
+            SyncUnreadBadge();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ReplyAsync((StudentFeedbackItemDto Row, string Body) args)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || busy)
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.ReplyTeacherFeedbackAsync(Session.AccessToken, args.Row.FeedbackID, args.Body);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            args.Row.Replies.Add(new StudentFeedbackReplyDto
+            {
+                ReplyID = result.ReplyID,
+                FeedbackID = args.Row.FeedbackID,
+                FromRegistrationID = Session.Current?.RegistrationID ?? 0,
+                FromName = Session.Current?.DisplayName ?? Session.Current?.UserName ?? "",
+                FromDesignation = "",
+                FromCategory = "Teacher",
+                Body = args.Body,
+                CreatedAt = DateTime.Now
+            });
+            args.Row.ReplyCount = args.Row.Replies.Count;
+            args.Row.UnreadReplyCount = 0;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OpenRepliesAsync(StudentFeedbackItemDto row)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            var result = await Api.MarkTeacherFeedbackRepliesReadAsync(Session.AccessToken, row.FeedbackID);
+            if (result.Succeeded)
+                row.UnreadReplyCount = 0;
+        }
+        catch
+        {
+        }
+    }
+
+    private void ApplyStatusActor(StudentFeedbackItemDto row, string status)
+    {
+        var name = Session.Current?.DisplayName ?? Session.Current?.UserName ?? "";
+        var id = Session.Current?.RegistrationID ?? 0;
+        if (status == "Processing")
+        {
+            row.ProcessingByRegistrationID = id;
+            row.ProcessingByName = name;
+            row.ProcessingAt = DateTime.Now;
+        }
+        else if (status == "Solved")
+        {
+            row.SolvedByRegistrationID = id;
+            row.SolvedByName = name;
+            row.SolvedAt = DateTime.Now;
+        }
+    }
+
+    private void SyncUnreadBadge() =>
+        Inbox.SetUnread(rows.Count(x =>
+            !x.IsRead && !string.Equals(x.Status, "Solved", StringComparison.OrdinalIgnoreCase)));
+}

@@ -1,0 +1,564 @@
+@page "/teacher/marks"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<div class="sp-page tch-marks-page" id="tm-top">
+    <section class="tm-hero">
+        <span class="tm-hero-ico" aria-hidden="true">@DocIco</span>
+        <div class="tm-hero-txt">
+            <h1>@Locale.T("exam.inputTitle")</h1>
+            <p>
+                @Locale.T("tch.totalStudentLbl")
+                <b>@sheet.Students.Count</b>
+            </p>
+        </div>
+        <span class="tm-hero-cap" aria-hidden="true">@CapIco</span>
+    </section>
+
+    @if (sheet.MarksLocked)
+    {
+        <p class="tm-lock">@Locale.T("tch.marksLocked")</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <p class="tm-msg is-err">@error</p>
+    }
+
+    <article class="tm-filters">
+        <label class="tm-field">
+            <span class="tm-ico" aria-hidden="true">@CalIco</span>
+            <select @bind="examId" @bind:after="OnExamAsync" disabled="@filterBusy" aria-label="@Locale.T("tch.exam")">
+                <option value="0">@Locale.T("exam.selectExamName")</option>
+                @foreach (var item in filters.Exams)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        </label>
+        <div class="tm-row @ClassRowClass">
+            <label class="tm-field">
+                <span class="tm-ico" aria-hidden="true">@CapIco</span>
+                <select @bind="classId" @bind:after="OnClassAsync" disabled="@filterBusy" aria-label="@Locale.T("stu.class")">
+                    <option value="0">@Locale.T("tch.pickClass")</option>
+                    @foreach (var item in filters.Classes)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            </label>
+            @if (classId > 0 && filters.Sections.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@UserIco</span>
+                    <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@filterBusy" aria-label="@Locale.T("si.section")">
+                        <option value="0">@Locale.T("exam.allSection")</option>
+                        @foreach (var item in filters.Sections)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (classId > 0 && filters.Groups.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@UsersIco</span>
+                    <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@filterBusy" aria-label="@Locale.T("si.group")">
+                        <option value="0">@Locale.T("tch.allGroup")</option>
+                        @foreach (var item in filters.Groups)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (classId > 0 && filters.Shifts.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@ClockIco</span>
+                    <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@filterBusy" aria-label="@Locale.T("si.shift")">
+                        <option value="0">@Locale.T("exam.allShift")</option>
+                        @foreach (var item in filters.Shifts)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+        <div class="tm-row @(filters.SubExams.Count > 0 ? "is-2" : "is-1")">
+            <label class="tm-field">
+                <span class="tm-ico" aria-hidden="true">@LeafIco</span>
+                <select @bind="subjectId" @bind:after="OnSubjectAsync" disabled="@filterBusy" aria-label="@Locale.T("tch.subject")">
+                    <option value="0">@Locale.T("exam.selectSubject")</option>
+                    @foreach (var item in filters.Subjects)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            </label>
+            @if (filters.SubExams.Count > 0)
+            {
+                <label class="tm-field">
+                    <span class="tm-ico" aria-hidden="true">@LayersIco</span>
+                    <select @bind="subExamId" @bind:after="OnSubExamAsync" disabled="@filterBusy" aria-label="@Locale.T("tch.subExam")">
+                        <option value="0">@Locale.T("exam.selectSub")</option>
+                        @foreach (var item in filters.SubExams)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+        @if (!shown && (filterBusy || sheetBusy))
+        {
+            <div class="tm-save-wrap">
+                <div class="tch-progress" role="progressbar" aria-label="@Locale.T("stu.loading")"><span></span></div>
+                @if (sheetBusy)
+                {
+                    <button type="button" class="tm-save is-busy" disabled>
+                        <span class="tm-save-spin" aria-hidden="true"></span>
+                        @Locale.T("stu.loading")
+                    </button>
+                }
+            </div>
+        }
+    </article>
+
+    @if (shown)
+    {
+        @if (!AllSubs && sheet.Students.Count > 0)
+        {
+            <div class="tm-stats">
+                <div class="is-fm">
+                    <span aria-hidden="true">@TargetIco</span>
+                    <p>@Locale.T("exam.fullMarkLbl", sheet.FullMark)</p>
+                </div>
+                <div class="is-pm">
+                    <span aria-hidden="true">@CheckIco</span>
+                    <p>@Locale.T("exam.passMarkLbl", sheet.PassMark)</p>
+                </div>
+                <div class="is-pp">
+                    <span aria-hidden="true">@StarIco</span>
+                    <p>@Locale.T("exam.passPctLbl", sheet.PassPercentage)</p>
+                </div>
+            </div>
+        }
+
+        @if (sheet.Students.Count == 0)
+        {
+            <article class="tm-empty"><p>@Locale.T("stu.empty")</p></article>
+        }
+        else
+        {
+            <div class="tm-toolbar">
+                <label class="tm-check">
+                    <input type="checkbox" @bind="hideName" />
+                    <span>@Locale.T("exam.hideName")</span>
+                </label>
+            </div>
+            <div class="tm-table-wrap @(sheetBusy ? "is-loading" : null)">
+                <table class="tm-table">
+                    <thead>
+                        <tr>
+                            <th class="is-id"><button type="button" @onclick='() => SortBy("id")'>@Locale.T("exam.id") @SortMark("id")</button></th>
+                            @if (!hideName)
+                            {
+                                <th class="is-name"><button type="button" @onclick='() => SortBy("name")'>@Locale.T("exam.name") @SortMark("name")</button></th>
+                            }
+                            <th class="is-roll"><button type="button" @onclick='() => SortBy("roll")'>@Locale.T("exam.roll") @SortMark("roll")</button></th>
+                            <th class="is-mark">@Locale.T("exam.obtain")</th>
+                            @if (!AllSubs)
+                            {
+                                <th class="is-abs">@Locale.T("exam.absence")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var student in Rows)
+                    {
+                        <tr @key="student.StudentClassID">
+                            <td class="is-id">@student.ID</td>
+                            @if (!hideName)
+                            {
+                                <td class="is-name">@student.Name</td>
+                            }
+                            <td class="is-roll">@student.RollNo</td>
+                            <td class="is-mark">
+                                @if (AllSubs)
+                                {
+                                    <div class="tm-subs">
+                                        @foreach (var sub in student.Subs)
+                                        {
+                                            <div class="tm-sub">
+                                                <small>@LocalizeSubExam(sub.SubExamName) @Locale.T("exam.fmShort", sub.FullMark)</small>
+                                                <div class="tm-sub-in">
+                                                    <input class="tm-mark-in" type="number" step="0.01" inputmode="decimal" enterkeyhint="next"
+                                                           @bind="sub.MarksObtained" disabled="@(InputBusy || sheet.MarksLocked || sub.Absent)" />
+                                                    <label title="@Locale.T("exam.abs")">
+                                                        <input type="checkbox" tabindex="-1" checked="@sub.Absent" disabled="@(InputBusy || sheet.MarksLocked)"
+                                                               @onchange="e => OnSubAbs(sub, e)" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input class="tm-mark-in" type="number" step="0.01" inputmode="decimal" enterkeyhint="next"
+                                           @bind="student.MarksObtained" disabled="@(InputBusy || sheet.MarksLocked || student.Absent)" />
+                                }
+                            </td>
+                            @if (!AllSubs)
+                            {
+                                <td class="is-abs">
+                                    <input type="checkbox" tabindex="-1" checked="@student.Absent" disabled="@(InputBusy || sheet.MarksLocked)"
+                                           @onchange="e => OnRowAbs(student, e)" />
+                                </td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tm-save-wrap is-sticky">
+                @if (InputBusy)
+                {
+                    <div class="tch-progress" role="progressbar" aria-label="@Locale.T("stu.loading")"><span></span></div>
+                }
+                <div class="tm-save-row">
+                    <button type="button" class="tm-next" disabled="@InputBusy" @onmousedown:preventDefault @onclick="FocusNextMark">@DownIco @Locale.T("tch.nextBox")</button>
+                    <button type="button" class="tm-save @(InputBusy ? "is-busy" : null)" disabled="@(InputBusy || sheet.MarksLocked)" @onclick="SaveAsync">
+                        @if (InputBusy)
+                        {
+                            <span class="tm-save-spin" aria-hidden="true"></span>
+                            @Locale.T("stu.loading")
+                        }
+                        else
+                        {
+                            @PenIco @Locale.T("tch.saveMarks")
+                        }
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="tm-fab" @onclick="ScrollTop">@PenIco @Locale.T("tch.top")</button>
+        }
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
+}
+
+@code {
+    private static readonly RenderFragment DocIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>;
+    private static readonly RenderFragment CapIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c1.5 1.3 3.6 2 6 2s4.5-.7 6-2v-5"/></svg>;
+    private static readonly RenderFragment CalIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>;
+    private static readonly RenderFragment UserIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 14.5-4 16 0"/></svg>;
+    private static readonly RenderFragment UsersIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.8-3.2 6.2-3.2 8 0M14 19c.5-2.2 4.5-2.4 6 0"/></svg>;
+    private static readonly RenderFragment ClockIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>;
+    private static readonly RenderFragment LeafIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c8-1 14-8 14-16-8 0-15 6-16 14 3-1 6-1 9 0"/><path d="M5 19s1-6 7-10"/></svg>;
+    private static readonly RenderFragment LayersIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/></svg>;
+    private static readonly RenderFragment TargetIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>;
+    private static readonly RenderFragment CheckIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>;
+    private static readonly RenderFragment StarIco = @<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.4 6 .9-4.3 4.2 1 5.9L12 16.8 6.7 19.4l1-5.9L3.4 9.3l6-.9z"/></svg>;
+    private static readonly RenderFragment PenIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>;
+    private static readonly RenderFragment DownIco = @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg>;
+
+    private ExamFilterDto filters = new();
+    private InputSheetDto sheet = new();
+    private int examId, classId, subjectId, subExamId, groupId, sectionId, shiftId;
+    private bool filterBusy, sheetBusy, saveBusy, shown, hideName, popupError;
+    private int loadTick;
+    private string? error, popupText;
+    private string sortKey = "roll";
+    private bool sortAsc = true;
+    private bool AllSubs => sheet.HasSubExams && subExamId <= 0;
+    private bool InputBusy => sheetBusy || saveBusy;
+
+    private string ClassRowClass
+    {
+        get
+        {
+            if (classId <= 0)
+                return "is-1";
+            var n = 1;
+            if (filters.Sections.Count > 0) n++;
+            if (filters.Groups.Count > 0) n++;
+            if (filters.Shifts.Count > 0) n++;
+            return n switch { 4 => "is-4", 3 => "is-3", 2 => "is-2", _ => "is-1" };
+        }
+    }
+
+    private IEnumerable<InputStudentDto> Rows
+    {
+        get
+        {
+            IEnumerable<InputStudentDto> rows = sheet.Students;
+            rows = sortKey switch
+            {
+                "id" => sortAsc ? rows.OrderBy(s => s.ID) : rows.OrderByDescending(s => s.ID),
+                "name" => sortAsc ? rows.OrderBy(s => s.Name) : rows.OrderByDescending(s => s.Name),
+                _ => sortAsc ? rows.OrderBy(RollKey) : rows.OrderByDescending(RollKey)
+            };
+            return rows;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        filterBusy = true;
+        try
+        {
+            filters = await Api.GetTeacherPortalMarksFiltersAsync(
+                Session.AccessToken, examId, classId, subjectId, G(groupId), G(sectionId), G(shiftId));
+        }
+        catch (Exception ex)
+        {
+            error = LoadError(ex);
+        }
+        finally
+        {
+            filterBusy = false;
+        }
+    }
+
+    private async Task OnExamAsync()
+    {
+        classId = subjectId = subExamId = groupId = sectionId = shiftId = 0;
+        ClearSheet();
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnClassAsync()
+    {
+        subjectId = subExamId = groupId = sectionId = shiftId = 0;
+        ClearSheet();
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadJoinAsync()
+    {
+        await Task.WhenAll(LoadFiltersAsync(), LoadStudentsIfReadyAsync());
+    }
+
+    private async Task OnSubjectAsync()
+    {
+        subExamId = 0;
+        await Task.WhenAll(LoadFiltersAsync(), LoadStudentsIfReadyAsync());
+    }
+
+    private Task OnSubExamAsync() => LoadStudentsIfReadyAsync();
+
+    private void ClearSheet()
+    {
+        loadTick++;
+        shown = false;
+        sheet = new();
+        error = null;
+    }
+
+    private async Task LoadStudentsIfReadyAsync()
+    {
+        error = null;
+        if (examId <= 0 || classId <= 0 || subjectId <= 0)
+        {
+            shown = false;
+            sheet = new();
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        var tick = ++loadTick;
+        sheetBusy = true;
+        try
+        {
+            var data = await Api.GetTeacherPortalMarksAsync(
+                Session.AccessToken, examId, classId, subjectId, subExamId, G(groupId), G(sectionId), G(shiftId));
+            if (tick != loadTick)
+                return;
+            sheet = data;
+            ClearAbsentMarks();
+            shown = true;
+        }
+        catch (Exception ex)
+        {
+            if (tick != loadTick)
+                return;
+            error = LoadError(ex);
+            shown = false;
+            sheet = new();
+        }
+        finally
+        {
+            if (tick == loadTick)
+                sheetBusy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        if (sheet.MarksLocked)
+        {
+            error = Locale.T("tch.marksLocked");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        saveBusy = true;
+        try
+        {
+            var result = await Api.SaveTeacherPortalMarksAsync(Session.AccessToken, new SaveInputMarksRequest
+            {
+                ClassID = classId,
+                ExamID = examId,
+                SubjectID = subjectId,
+                SubExamID = subExamId,
+                AllSubExams = AllSubs,
+                Students = sheet.Students
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "exam.failed");
+                popupText = error;
+                popupError = true;
+                return;
+            }
+            popupText = Locale.T(result.Queued ? "sync.savedOffline" : "exam.inputOk");
+            popupError = false;
+        }
+        catch (Exception ex)
+        {
+            error = LoadError(ex);
+            popupText = error;
+            popupError = true;
+        }
+        finally
+        {
+            saveBusy = false;
+        }
+    }
+
+    private void SortBy(string key)
+    {
+        if (sortKey == key)
+            sortAsc = !sortAsc;
+        else
+        {
+            sortKey = key;
+            sortAsc = true;
+        }
+    }
+
+    private string SortMark(string key) => sortKey == key ? (sortAsc ? "▲" : "▼") : "⇅";
+
+    private static int RollKey(InputStudentDto row) =>
+        int.TryParse(row.RollNo?.Replace("$", "").Replace(",", ""), out var n) ? n : 0;
+
+    private static string? G(int id) => id <= 0 ? null : id.ToString();
+
+    private string LoadError(Exception ex) =>
+        IsTimeout(ex) ? Locale.T("exam.loadFailed") : ex.Message;
+
+    private static bool IsTimeout(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is TimeoutException or TaskCanceledException)
+                return true;
+            if (current.Message.Contains("Timeout", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool IsChecked(ChangeEventArgs e) =>
+        e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+
+    private static void OnSubAbs(InputSubMarkDto sub, ChangeEventArgs e)
+    {
+        sub.Absent = IsChecked(e);
+        if (sub.Absent)
+            sub.MarksObtained = null;
+    }
+
+    private static void OnRowAbs(InputStudentDto row, ChangeEventArgs e)
+    {
+        row.Absent = IsChecked(e);
+        if (row.Absent)
+            row.MarksObtained = null;
+    }
+
+    private void ClearAbsentMarks()
+    {
+        foreach (var student in sheet.Students)
+        {
+            if (student.Absent)
+                student.MarksObtained = null;
+            foreach (var sub in student.Subs)
+            {
+                if (sub.Absent)
+                    sub.MarksObtained = null;
+            }
+        }
+    }
+
+    private string LocalizeSubExam(string name)
+    {
+        if (!Locale.IsBengali || string.IsNullOrWhiteSpace(name))
+            return name;
+        return name.Trim().ToUpperInvariant() switch
+        {
+            "SUB" or "SUBJECTIVE" => Locale.T("exam.sub"),
+            "OBJ" or "OBJECTIVE" => Locale.T("exam.obj"),
+            "CQ" => Locale.T("exam.cq"),
+            "MCQ" => Locale.T("exam.mcq"),
+            "WRITTEN" => Locale.T("exam.written"),
+            "PRACTICAL" => Locale.T("exam.practical"),
+            "ORAL" => Locale.T("exam.oral"),
+            "THEORY" => Locale.T("exam.theory"),
+            _ => name
+        };
+    }
+
+    private async Task ScrollTop()
+    {
+        try { await Js.InvokeVoidAsync("sikkhaloyGoTop.scroll"); }
+        catch { }
+    }
+
+    private async Task FocusNextMark()
+    {
+        try { await Js.InvokeVoidAsync("sikkhaloyMarkNav.next"); }
+        catch { }
+    }
+
+    private void ClosePopup() => popupText = null;
+}

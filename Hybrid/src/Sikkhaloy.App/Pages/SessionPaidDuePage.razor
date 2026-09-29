@@ -22,41 +22,45 @@
             <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "Paid")" @onchange="SetPaid" /> @Locale.T("rpt.paid")</label>
             <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "Due")" @onchange="SetDue" /> @Locale.T("rpt.due")</label>
         </div>
-        <select @bind="classId" @bind:after="OnClassAsync">
-            <option value="%">@Locale.T("rpt.allClass")</option>
-            @foreach (var item in classes)
+        <div class="pd-filter-fields">
+            <select @bind="classId" @bind:after="OnClassAsync">
+                <option value="%">@Locale.T("rpt.allClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+            @if (sections.Count > 0)
             {
-                <option value="@item.ClassID">@item.Name</option>
+                <select @bind="sectionId">
+                    <option value="%">@Locale.T("rpt.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
             }
-        </select>
-        @if (sections.Count > 0)
-        {
-            <select @bind="sectionId">
-                <option value="%">@Locale.T("rpt.allSection")</option>
-                @foreach (var item in sections)
+            <select @bind="roleId" @bind:after="OnRoleAsync">
+                <option value="%">@Locale.T("rpt.allRoleOpt")</option>
+                @foreach (var item in roles)
                 {
                     <option value="@item.Id">@item.Name</option>
                 }
             </select>
-        }
-        <select @bind="roleId" @bind:after="OnRoleAsync">
-            <option value="%">@Locale.T("rpt.allRoleOpt")</option>
-            @foreach (var item in roles)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </select>
-        <select @bind="payFor">
-            <option value="%">@Locale.T("rpt.allPayFor")</option>
-            @foreach (var item in payFors)
-            {
-                <option value="@item.Name">@item.Name</option>
-            }
-        </select>
-        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
-        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
-        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+            <select @bind="payFor">
+                <option value="%">@Locale.T("rpt.allPayFor")</option>
+                @foreach (var item in payFors)
+                {
+                    <option value="@item.Name">@item.Name</option>
+                }
+            </select>
+            <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+            <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+            <div class="pd-filter-actions">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+                <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+            </div>
+        </div>
     </div>
     <NetBanner Text="@error" />
     @if (data is not null)
@@ -256,7 +260,7 @@
     private void SetDue() => status = "Due";
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false).AsTask();
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
     private static string Tk(decimal n) => n.ToString("N0");

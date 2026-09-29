@@ -1,0 +1,83 @@
+@page "/payment-result"
+@inherits LocaleAwareComponent
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="pay-result @StatusClass">
+    <div class="pay-result-card">
+        <div class="pay-result-icon" aria-hidden="true">@StatusIcon</div>
+        <h1>@Title</h1>
+        <p class="pay-result-lead">@Lead</p>
+
+        @if (!string.IsNullOrWhiteSpace(OrderId) || !string.IsNullOrWhiteSpace(Amount) || !string.IsNullOrWhiteSpace(Trx))
+        {
+            <dl class="pay-result-meta">
+                @if (!string.IsNullOrWhiteSpace(OrderId))
+                {
+                    <div><dt>@Locale.T("pay.order")</dt><dd><code>@OrderId</code></dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Amount))
+                {
+                    <div><dt>@Locale.T("pay.amount")</dt><dd>@Amount ৳</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Trx))
+                {
+                    <div><dt>@Locale.T("pay.trx")</dt><dd>@Trx</dd></div>
+                }
+            </dl>
+        }
+
+        <div class="pay-result-actions">
+            <button type="button" class="pay-result-btn primary" @onclick="GoPrimary">@PrimaryLabel</button>
+            <button type="button" class="pay-result-btn" @onclick="GoHome">@Locale.T("pay.home")</button>
+        </div>
+
+        @if (IsCancelOrFail)
+        {
+            <p class="pay-result-hint">@Locale.T("pay.waitHint")</p>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "status")] public string? Status { get; set; }
+    [SupplyParameterFromQuery(Name = "kind")] public string? Kind { get; set; }
+    [SupplyParameterFromQuery(Name = "order")] public string? OrderId { get; set; }
+    [SupplyParameterFromQuery(Name = "amount")] public string? Amount { get; set; }
+    [SupplyParameterFromQuery(Name = "trx")] public string? Trx { get; set; }
+    [SupplyParameterFromQuery(Name = "msg")] public string? Msg { get; set; }
+
+    private string Norm => (Status ?? "").Trim().ToLowerInvariant();
+    private bool IsSuccess => Norm is "success" or "ok" or "paid";
+    private bool IsCancel => Norm is "cancel" or "cancelled";
+    private bool IsCancelOrFail => !IsSuccess;
+    private bool IsSms => string.Equals(Kind, "sms", StringComparison.OrdinalIgnoreCase);
+
+    private string StatusClass => IsSuccess ? "is-ok" : IsCancel ? "is-cancel" : "is-fail";
+    private string StatusIcon => IsSuccess ? "✓" : IsCancel ? "!" : "×";
+
+    private string Title =>
+        !string.IsNullOrWhiteSpace(Msg) ? Msg! :
+        IsSuccess ? Locale.T("pay.successTitle") :
+        IsCancel ? Locale.T("pay.cancelTitle") :
+        Locale.T("pay.failTitle");
+
+    private string Lead =>
+        IsSuccess ? Locale.T("pay.successLead") :
+        IsCancel ? Locale.T("pay.cancelLead") :
+        Locale.T("pay.failLead");
+
+    private string PrimaryLabel => IsSms ? Locale.T("pay.backSms") : Locale.T("pay.backInvoice");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (IsSuccess || IsCancel)
+        {
+            try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+        }
+    }
+
+    private void GoPrimary() => Nav.NavigateTo(IsSms ? "/sms/recharge" : "/invoice/due");
+    private void GoHome() => Nav.NavigateTo("/");
+}

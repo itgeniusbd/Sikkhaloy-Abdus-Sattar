@@ -65,8 +65,11 @@
                 <label><input type="checkbox" checked="@(!hidden.Contains(col))" @onchange="() => Toggle(col)" /> @Locale.T(col)</label>
             }
             <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+            <span class="exam-sms-bal">@Locale.T("exam.smsBalance", smsBalance.ToString())</span>
+            <a class="exam-link" href="sms/templates">@Locale.T("exam.smsTemplates")</a>
+            <button type="button" class="acc-btn" disabled="@(busy || selected.Count == 0)" @onclick="SendMeritSmsAsync">@Locale.T("exam.smsSend")</button>
         </div>
-        <PrintHeader Centered="true" ShowDate="false" />
+        <PrintHeader Centered="true" ShowDate="false" ShowInstitutionId="false" />
         <h2 class="@(madrasaMode ? "exam-madrasa-title" : "exam-merit-title")">@ReportTitle</h2>
         @if (madrasaMode)
         {
@@ -74,6 +77,7 @@
                 <table class="mgrid">
                     <thead>
                         <tr>
+                            <th class="no-print"><input type="checkbox" checked="@allSelected" @onchange="ToggleAll" disabled="@busy" title="@Locale.T("exam.smsSelectAll")" /></th>
                             @if (On("exam.id")) { <th class="is-sort" @onclick='() => SortBy("id")'>@Locale.T("exam.id")<span class="no-print">@SortMark("id")</span></th> }
                             @if (On("exam.roll")) { <th class="is-sort" @onclick='() => SortBy("roll")'>@Locale.T("exam.roll")<span class="no-print">@SortMark("roll")</span></th> }
                             <th class="is-name is-sort" @onclick='() => SortBy("name")'>@Locale.T("exam.name")<span class="no-print">@SortMark("name")</span></th>
@@ -90,6 +94,7 @@
                             @if (On("exam.ps")) { <th class="is-sort is-pos" @onclick='() => SortBy("ps")'>@Locale.T("exam.ps")<span class="no-print">@SortMark("ps")</span></th> }
                         </tr>
                         <tr class="hdr-filter no-print">
+                            <th class="no-print"></th>
                             @if (On("exam.id")) { <th><input class="hdr-filter-in" value="@FilterOf("id")" @oninput='e => SetFilter("id", e.Value?.ToString())' /></th> }
                             @if (On("exam.roll")) { <th><input class="hdr-filter-in" value="@FilterOf("roll")" @oninput='e => SetFilter("roll", e.Value?.ToString())' /></th> }
                             <th class="is-name"><input class="hdr-filter-in" value="@FilterOf("name")" @oninput='e => SetFilter("name", e.Value?.ToString())' /></th>
@@ -110,6 +115,7 @@
                     @foreach (var row in VisibleRows)
                     {
                         <tr class="@(IsFailRow(row) ? "is-fail-row" : null)">
+                            <td class="no-print"><input type="checkbox" checked="@selected.Contains(row.StudentResultID)" @onchange="() => ToggleOne(row.StudentResultID)" disabled="@busy" /></td>
                             @if (On("exam.id")) { <td>@N(row.ID)</td> }
                             @if (On("exam.roll")) { <td>@N(row.RollNo)</td> }
                             <td class="is-name">@row.Name</td>
@@ -135,6 +141,7 @@
             <table class="mgrid">
                 <thead>
                     <tr>
+                        <th class="no-print"><input type="checkbox" checked="@allSelected" @onchange="ToggleAll" disabled="@busy" title="@Locale.T("exam.smsSelectAll")" /></th>
                         @if (On("exam.id")) { <th class="is-sort" @onclick='() => SortBy("id")'>@Locale.T("exam.id")<span class="no-print">@SortMark("id")</span></th> }
                         @if (On("exam.name")) { <th class="is-name is-sort" @onclick='() => SortBy("name")'>@Locale.T("exam.name")<span class="no-print">@SortMark("name")</span></th> }
                         @if (On("exam.roll")) { <th class="is-sort" @onclick='() => SortBy("roll")'>@Locale.T("exam.roll")<span class="no-print">@SortMark("roll")</span></th> }
@@ -147,6 +154,7 @@
                         @if (On("exam.ps")) { <th class="is-sort is-pos" @onclick='() => SortBy("ps")'>@Locale.T("exam.ps")<span class="no-print">@SortMark("ps")</span></th> }
                     </tr>
                     <tr class="hdr-filter no-print">
+                        <th class="no-print"></th>
                         @if (On("exam.id")) { <th><input class="hdr-filter-in" value="@FilterOf("id")" @oninput='e => SetFilter("id", e.Value?.ToString())' /></th> }
                         @if (On("exam.name")) { <th class="is-name"><input class="hdr-filter-in" value="@FilterOf("name")" @oninput='e => SetFilter("name", e.Value?.ToString())' /></th> }
                         @if (On("exam.roll")) { <th><input class="hdr-filter-in" value="@FilterOf("roll")" @oninput='e => SetFilter("roll", e.Value?.ToString())' /></th> }
@@ -163,6 +171,7 @@
                 @foreach (var row in VisibleRows)
                 {
                     <tr>
+                        <td class="no-print"><input type="checkbox" checked="@selected.Contains(row.StudentResultID)" @onchange="() => ToggleOne(row.StudentResultID)" disabled="@busy" /></td>
                         @if (On("exam.id")) { <td>@row.ID</td> }
                         @if (On("exam.name")) { <td class="is-name">@row.Name</td> }
                         @if (On("exam.roll")) { <td>@row.RollNo</td> }
@@ -203,7 +212,7 @@
 <ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingCuMerit")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <ResultPopup Text="@popupText" Error="true" ErrorTitle="exam.failed" OnClose="ClosePopup" />
+    <ResultPopup Text="@popupText" Error="@popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -219,7 +228,11 @@
     private string? sortCol;
     private bool sortAsc = true;
     private bool busy, madrasaMode;
+    private bool popupError = true;
     private string? popupText;
+    private int smsBalance;
+    private readonly HashSet<int> selected = [];
+    private bool allSelected => sheet.Rows.Count > 0 && VisibleRows.All(r => selected.Contains(r.StudentResultID));
     private string[] VisibleColumns => madrasaMode ? madrasaColumns : columns;
 
     private IEnumerable<ExamMeritRowDto> VisibleRows
@@ -270,10 +283,15 @@
 
     private async Task LoadFiltersAsync()
     {
-        if (!await OnlineAsync()) return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            popupText = Locale.T("subj.needOnline");
+            popupError = true;
+            return;
+        }
         await ShowBusyAsync();
         try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "cumulative-result", classId, examId, groupId, sectionId, shiftId); }
-        catch (Exception ex) { popupText = ex.Message; }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
         finally { busy = false; }
     }
 
@@ -295,17 +313,31 @@
         subjects.Clear();
         colFilters.Clear();
         sortCol = null;
+        selected.Clear();
         if (classId <= 0 || examId <= 0) return;
-        if (!await OnlineAsync()) return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            popupText = Locale.T("subj.needOnline");
+            popupError = true;
+            return;
+        }
         await ShowBusyAsync();
         try
         {
-            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "cumulative-result", classId, examId, groupId, sectionId, shiftId);
             sheet = await Api.GetCumulativeMeritAsync(Session.AccessToken!, classId, examId, groupId, sectionId, shiftId);
             RebuildSubjects();
         }
-        catch (Exception ex) { popupText = ex.Message; }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
         finally { busy = false; }
+
+        // Balance after the list is shown — do not keep the overlay waiting on SMS.
+        _ = RefreshSmsBalanceAsync();
+    }
+
+    private async Task RefreshSmsBalanceAsync()
+    {
+        try { smsBalance = (await Api.GetSmsBalanceAsync(Session.AccessToken!)).Balance; await InvokeAsync(StateHasChanged); }
+        catch { }
     }
 
     private void ToggleMadrasa()
@@ -481,7 +513,65 @@
         }
         return int.TryParse(digits.ToString(), out var n) ? n : 0;
     }
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintLandscape").AsTask();
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = e.Value is bool b && b || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        selected.Clear();
+        if (on)
+        {
+            foreach (var row in VisibleRows)
+                selected.Add(row.StudentResultID);
+        }
+    }
+    private void ToggleOne(int id)
+    {
+        if (!selected.Add(id)) selected.Remove(id);
+    }
+    private async Task SendMeritSmsAsync()
+    {
+        if (selected.Count == 0)
+        {
+            popupText = Locale.T("exam.smsNeedSelect");
+            popupError = true;
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("exam.smsConfirm")))
+            return;
+        if (!await OnlineAsync()) { popupError = true; return; }
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var result = await Api.SendExamCumulativeMeritSmsAsync(Session.AccessToken!, new ExamMeritSmsRequest
+            {
+                ExamID = examId,
+                StudentResultIDs = selected.ToList()
+            });
+            smsBalance = result.Balance;
+            if (result.Succeeded)
+            {
+                popupText = Locale.T("exam.smsOk", result.Sent.ToString(), result.Failed.ToString());
+                popupError = false;
+                selected.Clear();
+            }
+            else
+            {
+                popupText = string.IsNullOrWhiteSpace(result.Error) ? Locale.T("sms.fail")
+                    : (result.Error!.StartsWith("sms.", StringComparison.OrdinalIgnoreCase) || result.Error.StartsWith("exam.", StringComparison.OrdinalIgnoreCase)
+                        ? (result.Error == "sms.low" ? Locale.T("sms.low") + " " + result.Message : Locale.T(result.Error))
+                        : result.Error);
+                popupError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            popupText = ex.Message;
+            popupError = true;
+        }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintMerit").AsTask();
     private void ClosePopup() => popupText = null;
     private async Task ShowBusyAsync()
     {

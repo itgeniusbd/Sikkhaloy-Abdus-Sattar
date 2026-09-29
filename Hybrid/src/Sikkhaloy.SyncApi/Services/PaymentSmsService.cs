@@ -630,6 +630,8 @@ WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
     public async Task TrySendManualAttendanceAsync(
         SessionSnapshot session, SaveStudentManualRequest request, CancellationToken cancellationToken)
     {
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
         foreach (var row in request.Rows)
         {
             if (!row.SendSms)
@@ -639,13 +641,14 @@ WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
                 continue;
             try
             {
+                if (await AttendanceSmsAlreadySentAsync(con, session, row.StudentID, request.AttendanceDate, cancellationToken))
+                    continue;
+
                 var phone = (row.Phone ?? "").Trim();
                 var name = row.Name ?? "";
                 var code = row.ID ?? "";
                 if (string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(name))
                 {
-                    await using var con = _connections.Create();
-                    await con.OpenAsync(cancellationToken);
                     await using var cmd = new SqlCommand(
                         "SELECT ID, StudentsName, SMSPhoneNo FROM dbo.Student WHERE StudentID = @SID AND SchoolID = @SchoolID", con);
                     cmd.Parameters.AddWithValue("@SID", row.StudentID);
@@ -667,12 +670,67 @@ WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
                     "Bunk" => "Bunk",
                     _ => "Absent"
                 };
-                var msg = $"{name} (ID: {code}) is marked {label} on {request.AttendanceDate:dd MMM yyyy}. {session.SchoolName}";
-                await PostGatewayAsync(phone, msg, cancellationToken);
+                var reason = (row.Reason ?? "").Trim();
+                var school = (session.SchoolName ?? "").Trim();
+                var msg = string.IsNullOrWhiteSpace(reason)
+                    ? $"{name} (ID: {code}) is marked {label} on {request.AttendanceDate:dd MMM yyyy}. {school}".Trim()
+                    : (string.IsNullOrWhiteSpace(school) || reason.Contains(school, StringComparison.OrdinalIgnoreCase)
+                        ? reason
+                        : $"{reason} {school}");
+                var response = await PostGatewayAsync(phone, msg, cancellationToken);
+                if (string.IsNullOrWhiteSpace(response))
+                    continue;
+
+                var smsId = Guid.NewGuid();
+                var count = SmsCount(msg);
+                await using (var ins = new SqlCommand("""
+INSERT INTO dbo.SMS_Send_Record
+    (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
+VALUES
+    (@ID, @Phone, @Text, @Len, @Count, N'Attendance', @Status, GETDATE(), @Resp)
+""", con))
+                {
+                    ins.Parameters.AddWithValue("@ID", smsId);
+                    ins.Parameters.AddWithValue("@Phone", phone);
+                    ins.Parameters.AddWithValue("@Text", msg);
+                    ins.Parameters.AddWithValue("@Len", msg.Length);
+                    ins.Parameters.AddWithValue("@Count", count);
+                    ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
+                    ins.Parameters.AddWithValue("@Resp", response);
+                    await ins.ExecuteNonQueryAsync(cancellationToken);
+                }
+                await using var other = new SqlCommand("""
+INSERT INTO dbo.SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID)
+VALUES (@ID, @SchoolID, @SID, @TID, @YearID)
+""", con);
+                other.Parameters.AddWithValue("@ID", smsId);
+                other.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                other.Parameters.AddWithValue("@SID", row.StudentID);
+                other.Parameters.AddWithValue("@TID", session.TeacherID > 0 ? (object)session.TeacherID : DBNull.Value);
+                other.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                await other.ExecuteNonQueryAsync(cancellationToken);
             }
             catch
             {
             }
         }
+    }
+
+    private static async Task<bool> AttendanceSmsAlreadySentAsync(
+        SqlConnection con, SessionSnapshot session, int studentId, DateTime date, CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand("""
+SELECT TOP 1 1
+FROM dbo.SMS_OtherInfo AS oi
+INNER JOIN dbo.SMS_Send_Record AS sr ON sr.SMS_Send_ID = oi.SMS_Send_ID
+WHERE oi.SchoolID = @SchoolID AND oi.StudentID = @SID
+  AND CAST(sr.Date AS DATE) = @Date
+  AND (sr.PurposeOfSMS = N'Attendance' OR sr.PurposeOfSMS = N'Device Attendance')
+""", con);
+        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        cmd.Parameters.AddWithValue("@SID", studentId);
+        cmd.Parameters.AddWithValue("@Date", date.Date);
+        var value = await cmd.ExecuteScalarAsync(cancellationToken);
+        return value is not null and not DBNull;
     }
 }

@@ -1,0 +1,261 @@
+@page "/student/feedback"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <div class="fbx-hero">
+        <span class="fbx-hero-ico">@HeroIco</span>
+        <div>
+            <h1>@Locale.T("stu.feedback")</h1>
+            <p>@Locale.T("fb.heroHint")</p>
+        </div>
+    </div>
+
+    <button type="button" class="sp-card-go fbx-new-btn" @onclick="OpenForm">@Locale.T("stu.feedbackNew")</button>
+
+    @if (!string.IsNullOrWhiteSpace(error) && !formOpen)
+    {
+        <p class="sp-empty" style="color:#b91c1c">@error</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(message) && !formOpen)
+    {
+        <p class="sp-empty" style="color:#15803d">@message</p>
+    }
+
+    <h2 class="sp-fb-prev">@Locale.T("stu.feedbackMine")</h2>
+    <FeedbackInboxView Rows="rows"
+                       CanAssign="false"
+                       CanChangeStatus="false"
+                       CanReply="true"
+                       Busy="busy"
+                       Loading="loading"
+                       OnReply="ReplyAsync"
+                       OnOpenReplies="OpenRepliesAsync" />
+</div>
+
+@if (formOpen)
+{
+    <div class="fbx-pop-back" @onclick="CloseForm">
+        <div class="fbx-pop fbx-pop-form" @onclick:stopPropagation="true">
+            <div class="fbx-pop-head">
+                <div>
+                    <h3>@Locale.T("stu.feedbackNew")</h3>
+                    <small>@Locale.T("stu.feedbackLead")</small>
+                </div>
+                <button type="button" class="fbx-pop-x" @onclick="CloseForm" aria-label="@Locale.T("header.colorClose")">×</button>
+            </div>
+            <div class="fbx-pop-body">
+                <div class="sp-tabs">
+                    <button type="button" class="@(kind == "Complaint" ? "is-on" : null)" @onclick="SetComplaint">
+                        @Locale.T("stu.complaint")
+                    </button>
+                    <button type="button" class="@(kind == "Suggestion" ? "is-on" : null)" @onclick="SetSuggestion">
+                        @Locale.T("stu.suggestion")
+                    </button>
+                </div>
+                <label class="sp-fb-field">
+                    <span>@Locale.T("stu.feedbackTo")</span>
+                    <select @bind="toId" disabled="@busy">
+                        <option value="0">@Locale.T("stu.feedbackPick")</option>
+                        @foreach (var person in recipients)
+                        {
+                            <option value="@person.RegistrationID">@RecipientLabel(person)</option>
+                        }
+                    </select>
+                </label>
+                <label class="sp-fb-field">
+                    <span>@Locale.T("stu.feedbackTitle")</span>
+                    <input type="text" maxlength="200" @bind="title" disabled="@busy" />
+                </label>
+                <label class="sp-fb-field">
+                    <span>@Locale.T("stu.feedbackBody")</span>
+                    <textarea rows="5" maxlength="4000" @bind="body" disabled="@busy"></textarea>
+                </label>
+                @if (!string.IsNullOrWhiteSpace(error))
+                {
+                    <p class="sp-empty" style="color:#b91c1c">@error</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(message))
+                {
+                    <p class="sp-empty" style="color:#15803d">@message</p>
+                }
+            </div>
+            <div class="fbx-pop-foot">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">
+                    @Locale.T("stu.feedbackSend")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string kind = "Complaint";
+    private string toId = "0";
+    private string title = "";
+    private string body = "";
+    private bool busy;
+    private bool loading = true;
+    private bool formOpen;
+    private string? error;
+    private string? message;
+    private IReadOnlyList<StudentFeedbackRecipientDto> recipients = [];
+    private IReadOnlyList<StudentFeedbackItemDto> rows = [];
+    private static readonly MarkupString HeroIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>""";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent)
+        {
+            Nav.NavigateTo(Session.HomePath, replace: true);
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private void SetComplaint() => kind = "Complaint";
+    private void SetSuggestion() => kind = "Suggestion";
+    private void OpenForm()
+    {
+        error = null;
+        message = null;
+        formOpen = true;
+    }
+    private void CloseForm() => formOpen = false;
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                recipients = await Api.GetStudentFeedbackRecipientsAsync(Session.AccessToken);
+                rows = await Api.GetStudentFeedbackAsync(Session.AccessToken);
+            }
+        }
+        catch
+        {
+            recipients = [];
+            rows = [];
+        }
+        loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        message = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("profile.needOnline");
+            return;
+        }
+
+        if (!int.TryParse(toId, out var to) || to <= 0)
+        {
+            error = Locale.T("fb.needTo");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Api.SubmitStudentFeedbackAsync(Session.AccessToken, new SubmitStudentFeedbackRequest
+            {
+                Kind = kind,
+                ToRegistrationID = to,
+                Title = title,
+                Body = body
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+
+            title = "";
+            body = "";
+            toId = "0";
+            message = Locale.T("stu.feedbackSent");
+            rows = await Api.GetStudentFeedbackAsync(Session.AccessToken);
+            formOpen = false;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ReplyAsync((StudentFeedbackItemDto Row, string Body) args)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || busy)
+            return;
+        busy = true;
+        error = null;
+        message = null;
+        try
+        {
+            var result = await Api.ReplyStudentFeedbackAsync(Session.AccessToken, args.Row.FeedbackID, args.Body);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "fb.failed");
+                return;
+            }
+            args.Row.Replies.Add(new StudentFeedbackReplyDto
+            {
+                ReplyID = result.ReplyID,
+                FeedbackID = args.Row.FeedbackID,
+                FromRegistrationID = Session.Current?.RegistrationID ?? 0,
+                FromName = Session.Current?.DisplayName ?? Session.Current?.UserName ?? "",
+                FromDesignation = "",
+                FromCategory = "Student",
+                Body = args.Body,
+                CreatedAt = DateTime.Now
+            });
+            args.Row.ReplyCount = args.Row.Replies.Count;
+            args.Row.UnreadReplyCount = 0;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OpenRepliesAsync(StudentFeedbackItemDto row)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            var result = await Api.MarkStudentFeedbackRepliesReadAsync(Session.AccessToken, row.FeedbackID);
+            if (result.Succeeded)
+                row.UnreadReplyCount = 0;
+        }
+        catch
+        {
+        }
+    }
+
+    private string RecipientLabel(StudentFeedbackRecipientDto person)
+    {
+        var name = person.Name.Trim();
+        var post = person.Designation.Trim();
+        var admin = person.Category.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            ? $" ({Locale.T("fb.mainAdmin")})"
+            : "";
+        return string.IsNullOrWhiteSpace(post) ? name + admin : $"{name} — {post}{admin}";
+    }
+}

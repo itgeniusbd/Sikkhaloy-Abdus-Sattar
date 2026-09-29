@@ -331,6 +331,21 @@ public sealed class SyncController : ControllerBase
         return Ok(await _institution.SaveAsync(session, request, cancellationToken));
     }
 
+    [HttpGet("website-api-key")]
+    public async Task<ActionResult<WebsiteApiKeyDto>> WebsiteApiKey(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _institution.GetWebsiteApiKeyAsync(session, cancellationToken));
+    }
+
+    [HttpPost("website-api-key")]
+    public async Task<ActionResult<WebsiteApiKeyResult>> SaveWebsiteApiKey(
+        [FromBody] WebsiteApiKeySaveRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _institution.SaveWebsiteApiKeyAsync(session, request, cancellationToken));
+    }
+
     [HttpGet("holidays")]
     public async Task<ActionResult<IReadOnlyList<HolidayDto>>> Holidays(CancellationToken cancellationToken)
     {
@@ -876,10 +891,11 @@ public sealed class SyncController : ControllerBase
     }
 
     [HttpGet("student-info/photos")]
-    public async Task<ActionResult<IReadOnlyList<StudentPhotoDto>>> StudentPhotos(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<StudentPhotoDto>>> StudentPhotos(
+        [FromQuery] string? ids, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _studentInfo.ListPhotosAsync(session, cancellationToken));
+        return Ok(await _studentInfo.ListPhotosAsync(session, ids, cancellationToken));
     }
 
     [HttpGet("student-info/report")]
@@ -1384,6 +1400,13 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _attendance.ListLeaveReportAsync(session, type, from, to, cancellationToken));
+    }
+
+    [HttpGet("attendance/display")]
+    public async Task<ActionResult<AttendanceDisplayDto>> AttDisplay(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _attendance.GetDisplayAsync(session, cancellationToken));
     }
 
     [HttpGet("attendance/fine/months")]
@@ -2224,6 +2247,29 @@ public sealed class SyncController : ControllerBase
         return Ok(await _exams.GetMeritListAsync(session, classId, examId, groupId, sectionId, shiftId, passStatus, cancellationToken));
     }
 
+    [HttpPost("exam/merit/sms")]
+    public async Task<ActionResult<SmsResult>> ExamMeritSms([FromBody] ExamMeritSmsRequest? request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SendExamMeritSmsAsync(session, request, cancellationToken));
+    }
+
+    
+    [HttpPost("exam/cumulative-merit/sms")]
+    [Authorize]
+    public async Task<ActionResult<SmsResult>> SendExamCumulativeMeritSms([FromBody] ExamMeritSmsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SendExamCumulativeMeritSmsAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("exam/merit-top")]
+    public async Task<ActionResult<ExamTopMeritSheetDto>> ExamMeritTop(int examId, string? mode, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetTopMeritAsync(session, examId, mode, cancellationToken));
+    }
+
     [HttpGet("exam/merit-subject")]
     public async Task<ActionResult<ExamMeritListDto>> ExamMeritSubject(int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken)
     {
@@ -2485,6 +2531,13 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _routines.CreateAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("routine/template")]
+    public async Task<ActionResult<RoutineTemplateDto>> RoutineTemplate(int routineInfoId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetTemplateAsync(session, routineInfoId, cancellationToken));
     }
 
     [HttpGet("routine/assign")]
@@ -3406,6 +3459,24 @@ public sealed class SyncController : ControllerBase
         return Ok(await _authorityInvoice.GetAccountsAsync(session, cancellationToken));
     }
 
+
+    [HttpGet("authority/unpaid-schools")]
+    public async Task<ActionResult<AuthUnpaidSchoolsPageDto>> AuthorityUnpaidSchools(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? q, [FromQuery] int? schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetUnpaidSchoolsAsync(session, from, to, q, schoolId, cancellationToken));
+    }
+
+    [HttpGet("authority/unpaid-invoices")]
+    public async Task<ActionResult<AuthUnpaidInvoicesPageDto>> AuthorityUnpaidInvoices(
+        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] string? q, [FromQuery] int? schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        var y = year ?? 0;
+        var m = month ?? 0;
+        return Ok(await _authorityInvoice.GetUnpaidInvoicesAsync(session, y, m, q, schoolId, cancellationToken));
+    }
     [HttpGet("authority/progress")]
     public async Task<ActionResult<AuthProgressPageDto>> AuthorityProgress([FromQuery] string? filter, CancellationToken cancellationToken)
     {
@@ -3812,3 +3883,4 @@ public sealed class SyncController : ControllerBase
         return Ok(await _authority.DeleteContactAsync(session, request?.Id ?? 0, cancellationToken));
     }
 }
+

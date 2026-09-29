@@ -6,59 +6,140 @@
 @inject NavigationManager Nav
 
 <div class="sp-page">
-    <h1>@Locale.T("stu.result")</h1>
-    <article class="sp-card">
-        <div class="sp-card-h"><h3>@Locale.T("stu.subjects")</h3></div>
-        @if (dash?.Subjects.Count > 0)
+    <h1>@Locale.T("stu.cumulative")</h1>
+    @if (loading)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
+    }
+    else if (!HasContent)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+    }
+    else
+    {
+        <div class="sp-tabs is-3">
+            <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("stu.tabSummary")</button>
+            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("stu.tabDetails")</button>
+            <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("stu.subjects")</button>
+        </div>
+
+        @if (tab == 0)
         {
-            @foreach (var row in dash.Subjects)
+            @if (rows.Count == 0)
             {
-                <div class="sp-sub">
-                    <b>@row.Name</b>
-                    <em>@row.Avg.ToString("0.##")%</em>
-                    <span class="sp-grade">@row.Grade</span>
-                </div>
+                <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <article class="sp-card sp-exam-card">
+                        <button type="button" class="sp-exam-title" @onclick="() => OpenDetails(row.ExamID)">@row.Name</button>
+                        @SummaryGrid(row)
+                    </article>
+                }
             }
         }
-        else
+        else if (tab == 1)
         {
-            <p class="sp-empty">@Locale.T("stu.empty")</p>
-        }
-    </article>
-    <article class="sp-card" style="margin-top:0.85rem">
-        <div class="sp-card-h"><h3>@Locale.T("stu.cumulative")</h3></div>
-        @if (rows.Count == 0)
-        {
-            <p class="sp-empty">@Locale.T("stu.empty")</p>
-        }
-        else
-        {
-            <table class="sp-table">
-                <thead>
-                    <tr>
-                        <th>@Locale.T("stu.exam")</th>
-                        <th>@Locale.T("stu.point")</th>
-                        <th>@Locale.T("stu.grade")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in rows)
+            <article class="sp-card sp-exam-card">
+                @if (rows.Count == 0)
+                {
+                    <p class="sp-empty">@Locale.T("stu.empty")</p>
+                }
+                else
+                {
+                    <label class="sp-exam-pick">
+                        <span>@Locale.T("stu.exam")</span>
+                        <select @bind="selectedExamId">
+                            @foreach (var row in rows)
+                            {
+                                <option value="@row.ExamID">@row.Name</option>
+                            }
+                        </select>
+                    </label>
+                    @if (SelectedExam is not null)
                     {
-                        <tr>
-                            <td>@row.Name</td>
-                            <td>@row.Point.ToString("0.##")</td>
-                            <td><span class="sp-grade">@row.Grade</span></td>
-                        </tr>
+                        @SummaryGrid(SelectedExam)
                     }
-                </tbody>
-            </table>
+                    @if (SelectedSubjects.Count == 0)
+                    {
+                        <p class="sp-empty">@Locale.T("stu.empty")</p>
+                    }
+                    else
+                    {
+                        <div class="sp-table-wrap" style="margin-top:0.85rem">
+                            <table class="sp-table sp-table-fit sp-exam-subs">
+                                <thead>
+                                    <tr>
+                                        <th>@Locale.T("stu.subject")</th>
+                                        <th>@Locale.T("stu.obtained")</th>
+                                        <th>@Locale.T("stu.grade")</th>
+                                        <th>@Locale.T("stu.point")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sub in SelectedSubjects)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @sub.Subject
+                                                @if (IsOptional(sub.SubjectType))
+                                                {
+                                                    <small class="sp-opt">@Locale.T("stu.optional")</small>
+                                                }
+                                            </td>
+                                            <td>@MarksText(sub.ObtainedMarks, sub.TotalMarks)</td>
+                                            <td><span class="sp-grade">@(string.IsNullOrWhiteSpace(sub.Grade) ? "—" : sub.Grade)</span></td>
+                                            <td>@sub.Point.ToString("0.##")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                }
+            </article>
         }
-    </article>
+        else
+        {
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@Locale.T("stu.subjects")</h3></div>
+                @if (dash?.Subjects.Count > 0)
+                {
+                    @foreach (var row in dash.Subjects)
+                    {
+                        <div class="sp-sub">
+                            <b>@row.Name</b>
+                            <em>@row.Avg.ToString("0.##")%</em>
+                            <span class="sp-grade">@row.Grade</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="sp-empty">@Locale.T("stu.empty")</p>
+                }
+            </article>
+        }
+    }
 </div>
 
 @code {
     private StudentPortalDashboardDto? dash;
     private IReadOnlyList<StudentPortalExamDto> rows = [];
+    private IReadOnlyList<StudentPortalExamSubjectDto> subjects = [];
+    private bool loading = true;
+    private int tab;
+    private int selectedExamId;
+
+    private bool HasContent => rows.Count > 0 || dash?.Subjects.Count > 0;
+
+    private StudentPortalExamDto? SelectedExam =>
+        rows.FirstOrDefault(x => x.ExamID == selectedExamId) ?? rows.FirstOrDefault();
+
+    private IReadOnlyList<StudentPortalExamSubjectDto> SelectedSubjects =>
+        subjects.Where(x => x.ExamID == (SelectedExam?.ExamID ?? 0)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,10 +148,65 @@
         {
             if (!string.IsNullOrWhiteSpace(Session.AccessToken))
             {
-                dash = await Api.GetStudentPortalDashboardAsync(Session.AccessToken);
-                rows = await Api.GetStudentPortalCumulativeAsync(Session.AccessToken);
+                var examTask = Api.GetStudentPortalCumulativeAsync(Session.AccessToken);
+                var subTask = Api.GetStudentPortalCumulativeSubjectsAsync(Session.AccessToken);
+                var dashTask = Api.GetStudentPortalDashboardAsync(Session.AccessToken);
+                try { dash = await dashTask; } catch { dash = null; }
+                rows = await examTask;
+                try { subjects = await subTask; } catch { subjects = []; }
+                selectedExamId = rows.FirstOrDefault()?.ExamID ?? 0;
             }
         }
         catch { }
+        loading = false;
+    }
+
+    private void OpenDetails(int examId)
+    {
+        selectedExamId = examId;
+        tab = 1;
+    }
+
+    private RenderFragment SummaryGrid(StudentPortalExamDto row) => __builder =>
+    {
+        <div class="sp-exam-sum">
+            <div class="is-obt"><span>@Locale.T("stu.obtained")</span><strong>@MarksText(row.ObtainedMarks, row.TotalMarks)</strong></div>
+            <div class="is-pct"><span>@Locale.T("stu.percentage")</span><strong>@row.Percentage.ToString("0.##")%</strong></div>
+            <div class="is-avg"><span>@Locale.T("stu.average")</span><strong>@row.Average.ToString("0.##")</strong></div>
+            <div class="is-grd"><span>@Locale.T("stu.grade")</span><strong>@(string.IsNullOrWhiteSpace(row.Grade) ? "—" : row.Grade)</strong></div>
+            <div class="is-gpa"><span>@Locale.T("stu.gpaShort")</span><strong>@row.Point.ToString("0.00")</strong></div>
+            <div class="is-pc"><span>@Locale.T("stu.pc")</span><strong>@Dash(row.PositionClass)</strong></div>
+            <div class="is-ps"><span>@Locale.T("stu.ps")</span><strong>@Dash(row.PositionSection)</strong></div>
+            <div class="is-cmt"><span>@Locale.T("stu.comment")</span><strong>@CommentOf(row)</strong></div>
+        </div>
+    };
+
+    private static bool IsOptional(string? type) =>
+        (type ?? "").Contains("opt", StringComparison.OrdinalIgnoreCase);
+
+    private static string MarksText(decimal obtained, decimal total) =>
+        $"{FmtMark(obtained)}/{FmtMark(total)}";
+
+    private static string FmtMark(decimal value) =>
+        value % 1m == 0 ? value.ToString("0") : value.ToString("0.##");
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+
+    private static string CommentOf(StudentPortalExamDto row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.Comment))
+            return row.Comment.Trim();
+        return (row.Grade ?? "").Trim().ToUpperInvariant() switch
+        {
+            "A+" => "Outstanding",
+            "A" => "Excellent",
+            "A-" => "Very Good",
+            "B" => "Good",
+            "C" => "Satisfactory",
+            "D" => "Acceptable",
+            "F" => "Fail",
+            _ => row.Point >= 4m ? "Outstanding" : "Good"
+        };
     }
 }

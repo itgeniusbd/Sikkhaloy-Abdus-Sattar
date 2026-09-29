@@ -1,6 +1,7 @@
 @inherits LocaleAwareComponent
 
 <div class="rpt-cat-head"><span>@Group.Category</span><span>@Group.Total.ToString("N0") Tk</span></div>
+<div class="rpt-table-wrap">
 <table class="mgrid">
     <thead>
         <tr>
@@ -30,6 +31,7 @@
     }
     </tbody>
 </table>
+</div>
 
 @code {
     [Parameter, EditorRequired] public ReportGroupDto Group { get; set; } = new();

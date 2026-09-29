@@ -4,14 +4,18 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="card sa-page si-info-page si-id-page sm-cc-page students-card leave-stu-page att-leave-page">
-    <header class="sa-head leave-title no-print">
-        <div>
-            <p class="sa-kicker">@Locale.T("nav.attendance")</p>
-            <h1>@Locale.T("att.leaveStu")</h1>
-            <p class="sa-lead">@Locale.T("att.leaveStuHint")</p>
+<div class="card sa-page leave-stu-page att-leave-page">
+    <header class="lv-hero no-print">
+        <div class="lv-hero-copy">
+            <span class="lv-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21c8-2 12-8 14-16-6 1-11 5-13 10 2-1 4-1 6 0-4 2-6 4-7 6Z"/></svg>
+            </span>
+            <div>
+                <h1>@Locale.T("att.leaveStu")</h1>
+                <p>@Locale.T("att.leaveStuHint")</p>
+            </div>
         </div>
-        <button type="button" class="link-btn" disabled="@busy" @onclick="OpenLeaveTypeModalAsync">@Locale.T("att.leaveTypeSettings")</button>
+        <button type="button" class="lv-hero-btn" disabled="@busy" @onclick="OpenLeaveTypeModalAsync">@Locale.T("att.leaveTypeSettings")</button>
     </header>
 
     @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText) && !confirmDeleteLeave && !confirmDeleteType)
@@ -19,10 +23,10 @@
         <NetBanner Text="@error" />
     }
 
-    <div class="sal-bar no-print">
-        <section class="sal-box is-sid">
-            <span class="sal-box-h">@Locale.T("att.searchStudent")</span>
-            <div class="leave-id-wrap">
+    <div class="lv-search no-print">
+        <label class="lv-search-field">@Locale.T("att.searchStudent")
+            <span class="lv-search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                 <input class="si-find-input id-find" type="text" autocomplete="off" spellcheck="false"
                        placeholder="@Locale.T("att.findId")"
                        value="@findId"
@@ -48,101 +52,105 @@
                         }
                     </div>
                 }
-            </div>
-        </section>
-        <div class="sal-actions">
-            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
-        </div>
+            </span>
+        </label>
+        <button type="button" class="lv-find" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
     </div>
 
     @if (person is not null)
     {
-        <div class="leave-card">
-            <div class="leave-card-head">@Locale.T("att.studentInfo")</div>
-            <div class="leave-profile">
-                <div class="leave-photo-col">
+        <section class="lv-card">
+            <div class="lv-card-h">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.4-3.2 4-5 7-5s5.6 1.8 7 5"/></svg>
+                @Locale.T("att.studentInfo")
+            </div>
+            <div class="lv-profile">
+                <div class="lv-who">
                     @if (!string.IsNullOrWhiteSpace(person.PhotoDataUrl))
                     {
                         <img src="@person.PhotoDataUrl" alt="" />
                     }
                     else
                     {
-                        <span class="leave-photo-fallback">@(person.Name.Length == 0 ? "S" : person.Name[..1])</span>
+                        <span class="lv-avatar">@(person.Name.Length == 0 ? "S" : person.Name[..1])</span>
                     }
                     <strong>@person.Name</strong>
-                    <span>ID: @person.ID</span>
+                    <small>ID: @person.ID</small>
                 </div>
-                <div class="leave-info-grid">
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("si.father")</div>
-                        <div class="si-value">@(person.FathersName ?? "—")</div>
+                <div class="lv-meta">
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("si.father")</span>
+                        <b>@(person.FathersName ?? "—")</b>
                     </div>
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("edit.gender")</div>
-                        <div class="si-value">@(DisplayOrDash(person.Gender))</div>
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("edit.gender")</span>
+                        <b>@(DisplayOrDash(person.Gender))</b>
                     </div>
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("si.class")</div>
-                        <div class="si-value">@(person.ClassName ?? "—")</div>
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("si.class")</span>
+                        <b>@(person.ClassName ?? "—")</b>
                     </div>
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("att.section")</div>
-                        <div class="si-value @(Muted(person.Section))">@(person.Section ?? Locale.T("att.noSection"))</div>
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("att.section")</span>
+                        <b class="@(Muted(person.Section))">@(person.Section ?? Locale.T("att.noSection"))</b>
                     </div>
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("att.group")</div>
-                        <div class="si-value @(Muted(person.GroupName))">@(person.GroupName ?? Locale.T("att.noGroup"))</div>
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("att.group")</span>
+                        <b class="@(Muted(person.GroupName))">@(person.GroupName ?? Locale.T("att.noGroup"))</b>
                     </div>
-                    <div class="si-item">
-                        <div class="si-label">@Locale.T("att.shift")</div>
-                        <div class="si-value @(Muted(person.Shift))">@(person.Shift ?? "—")</div>
+                    <div class="lv-meta-item">
+                        <span class="lv-meta-k">@Locale.T("att.shift")</span>
+                        <b class="@(Muted(person.Shift))">@(person.Shift ?? "—")</b>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <div class="leave-form-section">
-                <div class="section-title">@Locale.T("att.leaveDetails")</div>
-                <div class="leave-form-row three">
-                    <label>@Locale.T("att.from")
-                        <input type="date" @bind="start" @bind:after="OnDatesChanged" disabled="@busy" />
-                    </label>
-                    <label>@Locale.T("att.to")
-                        <input type="date" @bind="end" @bind:after="OnDatesChanged" disabled="@busy" />
-                    </label>
-                    <div>
-                        <span class="lf-label">@Locale.T("att.totalDays")</span>
-                        <div class="duration-badge @(days <= 0 ? "empty" : null)">
-                            @(days > 0 ? Locale.T("att.daysValue", days) : Locale.T("att.pickDays"))
-                        </div>
+        <section class="lv-card">
+            <div class="lv-card-h">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3.5v3M16 3.5v3M3.5 10h17"/></svg>
+                @Locale.T("att.leaveDetails")
+            </div>
+            <div class="lv-form">
+                <label class="lv-from">@Locale.T("att.from")
+                    <input type="date" @bind="start" @bind:after="OnDatesChanged" disabled="@busy" />
+                </label>
+                <label class="lv-to">@Locale.T("att.to")
+                    <input type="date" @bind="end" @bind:after="OnDatesChanged" disabled="@busy" />
+                </label>
+                <div class="lv-days">
+                    <span class="lv-k">@Locale.T("att.totalDays")</span>
+                    <div class="duration-badge @(days <= 0 ? "empty" : null)">
+                        @(days > 0 ? Locale.T("att.daysValue", days) : Locale.T("att.pickDays"))
                     </div>
                 </div>
-                <div class="leave-form-row two">
-                    <label>@Locale.T("att.leaveType")
-                        <span class="leave-type-field">
-                            <select @bind="leaveType" disabled="@busy">
-                                @foreach (var item in leaveTypes)
-                                {
-                                    <option value="@item">@item</option>
-                                }
-                            </select>
-                            <button type="button" class="sal-gen leave-type-add" disabled="@busy"
-                                    @onclick="OpenLeaveTypeModalAsync">+</button>
-                        </span>
-                    </label>
-                    <label>@Locale.T("att.guardian")
-                        <input type="text" placeholder="@Locale.T("att.guardian")" @bind="guardian" disabled="@busy" />
-                    </label>
-                </div>
-                <label class="leave-reason">@Locale.T("att.reason")
+                <label class="lv-type">@Locale.T("att.leaveType")
+                    <span class="leave-type-field">
+                        <select @bind="leaveType" disabled="@busy">
+                            @foreach (var item in leaveTypes)
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        </select>
+                        <button type="button" class="lv-plus" disabled="@busy"
+                                @onclick="OpenLeaveTypeModalAsync">+</button>
+                    </span>
+                </label>
+                <label class="lv-guardian">@Locale.T("att.guardian")
+                    <input type="text" placeholder="@Locale.T("att.guardian")" @bind="guardian" disabled="@busy" />
+                </label>
+                <label class="lv-reason">@Locale.T("att.reason")
                     <textarea rows="3" placeholder="@Locale.T("att.reasonHint")" @bind="description" disabled="@busy"></textarea>
                 </label>
                 <div class="leave-submit-row">
-                    <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submitLeave")</button>
+                    <button type="button" class="lv-find" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submitLeave")</button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="att-table-wrap sj-grid">
+        <section class="lv-card lv-records">
+            <div class="lv-card-h">@Locale.T("att.leaveRecords")</div>
+            <div class="att-table-wrap">
             <table class="mgrid">
                 <thead>
                     <tr>
@@ -180,7 +188,8 @@
                 }
                 </tbody>
             </table>
-        </div>
+            </div>
+        </section>
     }
 </div>
 

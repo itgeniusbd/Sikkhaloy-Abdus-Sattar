@@ -24,9 +24,21 @@ public sealed partial class StudentInfoService
             return items;
 
         await using var cmd = new SqlCommand("""
-SELECT sf.StudentFaultID, sf.Fault_Title, sf.Fault, sf.Fault_Date, ISNULL(r.UserName, N'') AS UserName
+SELECT sf.StudentFaultID, sf.Fault_Title, sf.Fault, sf.Fault_Date,
+       COALESCE(NULLIF(t.Name, N''), NULLIF(a.Name, N''), ISNULL(r.UserName, N'')) AS UserName
 FROM dbo.Student_Fault AS sf
 LEFT JOIN dbo.Registration AS r ON sf.RegistrationID = r.RegistrationID
+OUTER APPLY (
+    SELECT TOP 1 LTRIM(RTRIM(ISNULL(FirstName, N'') + N' ' + ISNULL(LastName, N''))) AS Name
+    FROM dbo.Teacher
+    WHERE SchoolID = sf.SchoolID
+      AND (TeacherRegistrationID = r.RegistrationID OR RegistrationID = r.RegistrationID)
+) AS t
+OUTER APPLY (
+    SELECT TOP 1 LTRIM(RTRIM(ISNULL(FirstName, N'') + N' ' + ISNULL(LastName, N''))) AS Name
+    FROM dbo.Admin
+    WHERE SchoolID = sf.SchoolID AND RegistrationID = r.RegistrationID
+) AS a
 WHERE sf.SchoolID = @SchoolID
   AND sf.EducationYearID = @EducationYearID
   AND sf.StudentClassID = @StudentClassID

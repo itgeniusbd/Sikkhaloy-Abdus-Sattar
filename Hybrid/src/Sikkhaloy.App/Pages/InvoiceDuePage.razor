@@ -4,6 +4,7 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <style>
     @@media print {
@@ -14,6 +15,15 @@
 <div class="card structure-page emp-page acc-page exam-page inv-page sl-invoice">
     <div class="filter-row no-print">
         <h1>@Locale.T("inv.dueTitle")</h1>
+@if (pendingPay is not null)
+{
+    <div class="sms-rcg-pending">
+        <span>@Locale.T("pay.pendingHint")</span>
+        <button type="button" class="inv-pay-btn" disabled="@busy" @onclick="VerifyPendingAsync">@Locale.T("pay.checkBtn")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearPendingAsync">@Locale.T("pay.dismissPending")</button>
+    </div>
+}
+
         @if (due.HasDue)
         {
             <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("inv.print")</button>
@@ -162,6 +172,20 @@
 }
 
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (confirmOpen)
+{
+    <div class="acc-result-back confirm-ask-back" @onclick="ConfirmCancel">
+        <div class="acc-result confirm-ask" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            <div class="acc-result-icon">?</div>
+            <h3>@Locale.T("pay.confirmTitle")</h3>
+            <p>@confirmMsg</p>
+            <div class="confirm-ask-actions">
+                <button type="button" class="confirm-ask-btn cancel" @onclick="ConfirmCancel">@Locale.T("pay.confirmCancel")</button>
+                <button type="button" class="confirm-ask-btn ok" @onclick="ConfirmOk">@Locale.T("pay.confirmOk")</button>
+            </div>
+        </div>
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
     <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="() => popupText = null" />
@@ -170,12 +194,16 @@
 @code {
     private DueInvoiceDto due = new();
     private bool busy, popupError, showModal;
+    private bool confirmOpen;
+    private string? confirmMsg;
+    private PendingPayInfo? pendingPay;
     private string? popupText, busyTitle;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync()
     {
+        await CheckPendingAsync();
         busyTitle = Locale.T("inv.loading");
         busy = true;
         await InvokeAsync(StateHasChanged);
@@ -196,15 +224,32 @@
 
     private async Task PayAsync()
     {
+        confirmMsg = Locale.T("inv.confirmPay");
+        confirmOpen = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ConfirmOk()
+    {
+        confirmOpen = false;
+        await ContinuePayAsync();
+    }
+
+    private void ConfirmCancel()
+    {
+        confirmOpen = false;
+    }
+
+    private async Task ContinuePayAsync()
+    {
+
         if (!due.HasDue || due.Due <= 0)
         {
             popupText = Locale.T("inv.noDue");
             popupError = true;
             return;
         }
-        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("inv.confirmPay")))
-            return;
-        showModal = false;
+showModal = false;
         busyTitle = Locale.T("inv.paying");
         busy = true;
         await InvokeAsync(StateHasChanged);
@@ -229,19 +274,38 @@
                 popupError = true;
                 return;
             }
-            await JS.InvokeVoidAsync("sikkhaloyOpenUrl", result.CheckoutUrl);
+            try
+            {
+                var opened = await JS.InvokeAsync<bool>("sikkhaloyOpenUrl", result.CheckoutUrl);
+                if (!opened)
+                    Nav.NavigateTo(result.CheckoutUrl, forceLoad: true);
+            }
+            catch
+            {
+                Nav.NavigateTo(result.CheckoutUrl, forceLoad: true);
+            }
             popupText = Locale.T("inv.payOpened");
             popupError = false;
         }
         catch (Exception ex) { popupText = ex.Message; popupError = true; }
         finally { busy = false; }
+    
     }
+
 
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 5mm").AsTask();
     private static string Tk(decimal n) => n.ToString("0.##");
     private string DaysText()
     {
         var days = due.DaysUntilExpiry;
+        if (due.InGrace)
+        {
+            if (days == 0) return Locale.T("inv.graceDays0");
+            if (days == 1) return Locale.T("inv.graceDays1");
+            if (days > 1) return Locale.T("inv.graceDaysN", days);
+            return Locale.T("ai.graceTitle");
+        }
+
         if (days == 0) return Locale.T("inv.days0");
         if (days == 1) return Locale.T("inv.days1");
         if (days > 1) return Locale.T("inv.daysN", days);
@@ -251,5 +315,45 @@
     {
         if (string.IsNullOrWhiteSpace(error)) return Locale.T("inv.payFail");
         return error.StartsWith("inv.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    }
+
+    private sealed class PendingPayInfo
+    {
+        public string? kind { get; set; }
+        public string? spOrderId { get; set; }
+    }
+
+    private async Task CheckPendingAsync()
+    {
+        try
+        {
+            pendingPay = await JS.InvokeAsync<PendingPayInfo?>("sikkhaloyReadPendingPay");
+            if (pendingPay is not null && !string.Equals(pendingPay.kind, "invoice", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(pendingPay.kind))
+                pendingPay = null;
+        }
+        catch { pendingPay = null; }
+    }
+
+    private async Task ClearPendingAsync()
+    {
+        try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+        pendingPay = null;
+    }
+
+    private async Task VerifyPendingAsync()
+    {
+        if (pendingPay is null || string.IsNullOrWhiteSpace(pendingPay.spOrderId))
+            return;
+        busyTitle = Locale.T("pay.checking");
+        busy = true;
+        try
+        {
+            var url = "https://hybridapi.sikkhaloy.com/api/pay/shurjopay/callback?order_id="
+                      + Uri.EscapeDataString(pendingPay.spOrderId);
+            try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+            Nav.NavigateTo(url, forceLoad: true);
+        }
+        finally { busy = false; }
     }
 }

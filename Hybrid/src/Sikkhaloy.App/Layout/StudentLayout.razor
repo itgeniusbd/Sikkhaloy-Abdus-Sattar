@@ -5,6 +5,8 @@
 @inject AppLocale Locale
 @inject ISyncApiClient Api
 @inject OfflineAuthService OfflineAuth
+@inject StudentNoticeInbox Inbox
+@inject SyncEngine Sync
 
 @if (!ready)
 {
@@ -19,8 +21,11 @@ else
             <span></span><span></span><span></span>
         </button>
         <a class="sp-brand" href="student">
-            <strong>@Locale.T("stu.brand")</strong>
-            <small>@SchoolLine</small>
+            <strong>@SchoolName</strong>
+            @if (!string.IsNullOrWhiteSpace(SchoolAddress))
+            {
+                <small>@SchoolAddress</small>
+            }
         </a>
         <div class="sp-top-actions">
             <select class="sp-year" @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy" title="@Locale.T("stu.session")">
@@ -33,6 +38,13 @@ else
                     <option value="@year.EducationYearID">@Locale.T("sidebar.session", year.Name)</option>
                 }
             </select>
+            <a class="sp-bell" href="student/notice" title="@Locale.T("stu.hwNotice")">
+                @BellIco
+                @if (Inbox.UnreadCount > 0)
+                {
+                    <em class="sp-nbadge">@Inbox.BadgeText</em>
+                }
+            </a>
             <LanguageSwitch />
             <a class="sp-avatar" href="student/profile" title="@Locale.T("stu.profile")">
                 @if (!string.IsNullOrWhiteSpace(photoUrl))
@@ -76,7 +88,9 @@ else
             <NavLink href="student/exam-routine" @onclick="CloseMenu">@ExamIco @Locale.T("stu.examRoutine")</NavLink>
             <NavLink href="student/sms" @onclick="CloseMenu">@MailIco @Locale.T("stu.sms")</NavLink>
             <NavLink href="student/notice" @onclick="CloseMenu">@BellIco @Locale.T("stu.notice")</NavLink>
+            <NavLink href="student/feedback" @onclick="CloseMenu">@ChatIco @Locale.T("stu.feedback")</NavLink>
             <NavLink href="student/password" @onclick="CloseMenu">@LockIco @Locale.T("stu.password")</NavLink>
+            <button type="button" class="sp-side-out" @onclick="Logout">@OutIco @Locale.T("stu.logout")</button>
         </aside>
         <main class="sp-main">
             <div @key="Session.Current?.EducationYearID ?? 0">
@@ -86,9 +100,9 @@ else
     </div>
     <nav class="sp-bottom">
         <NavLink href="student" Match="NavLinkMatch.All">@DashIco @Locale.T("stu.navDash")</NavLink>
-        <NavLink href="student/profile">@UserIco @Locale.T("stu.details")</NavLink>
-        <NavLink href="student/accounts">@AccIco @Locale.T("stu.accounts")</NavLink>
-        <NavLink href="student/attendance">@CalIco @Locale.T("stu.attendance")</NavLink>
+        <NavLink href="student/routine">@TimeIco @Locale.T("stu.classRoutine")</NavLink>
+        <NavLink href="student/exam-routine">@ExamIco @Locale.T("stu.examRoutine")</NavLink>
+        <NavLink href="student/result">@ResultIco @Locale.T("stu.cumulative")</NavLink>
         <NavLink href="student/more">@MoreIco @Locale.T("stu.navMore")</NavLink>
     </nav>
 </div>
@@ -102,33 +116,37 @@ else
     private string selectedYearId = "0";
     private string? photoUrl;
     private string? yearName;
+    private string schoolName = "";
+    private string schoolAddress = "";
     private IReadOnlyList<EducationYearDto> years = [];
 
-    private static readonly MarkupString DashIco = Icon("M4 4h7v7H4V4Zm9 0h7v4h-7V4ZM4 13h7v7H4v-7Zm9 6h7v4h-7v-4Zm0-6h7v4h-7v-4Z");
-    private static readonly MarkupString UserIco = Icon("M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z");
-    private static readonly MarkupString AcadIco = Icon("M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z");
-    private static readonly MarkupString ExamIco = Icon("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4");
-    private static readonly MarkupString ResultIco = Icon("M4 19V5m4 14V9m4 10v-6m4 6V7m4 12V4");
-    private static readonly MarkupString AccIco = Icon("M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6");
-    private static readonly MarkupString CalIco = Icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z");
-    private static readonly MarkupString TimeIco = Icon("M4 6h16M4 12h16M4 18h10");
-    private static readonly MarkupString MailIco = Icon("M4 4h16v16H4V4Zm0 0 8 7 8-7");
-    private static readonly MarkupString BellIco = Icon("M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0");
-    private static readonly MarkupString LockIco = Icon("M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6V11Z");
-    private static readonly MarkupString MoreIco = Icon("M5 12h.01M12 12h.01M19 12h.01");
+    private static readonly MarkupString DashIco = SvgIcon("""<rect x="3.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="3.2" y="13.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="13.2" width="7.6" height="7.6" rx="2"/>""");
+    private static readonly MarkupString UserIco = SvgIcon("""<circle cx="12" cy="8" r="3.4"/><path d="M5 19.4a7 7 0 0 1 14 0"/>""");
+    private static readonly MarkupString AcadIco = SvgIcon("""<path d="M4 19.2A2.4 2.4 0 0 1 6.4 16.8H20"/><path d="M6.4 3h13.6v18H6.4A2.4 2.4 0 0 1 4 18.6V5.4A2.4 2.4 0 0 1 6.4 3Z"/>""");
+    private static readonly MarkupString ExamIco = SvgIcon("""<rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M9 3.5v2.6h6V3.5M8.4 11h7.2M8.4 14.6h5"/>""");
+    private static readonly MarkupString ResultIco = SvgIcon("""<path d="M5 19V10m4.6 9V6m4.6 13v-7m4.6 7V8"/>""");
+    private static readonly MarkupString AccIco = SvgIcon("""<path d="M12 3v18M16.6 6.2H9.8a3.2 3.2 0 0 0 0 6.4h4.4a3.2 3.2 0 1 1 0 6.4H7.2"/>""");
+    private static readonly MarkupString CalIco = SvgIcon("""<rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M8 3.2v3.6M16 3.2v3.6M3.5 10h17"/>""");
+    private static readonly MarkupString TimeIco = SvgIcon("""<circle cx="12" cy="12.2" r="8.2"/><path d="M12 8.2v4.3l3 1.7"/>""");
+    private static readonly MarkupString MailIco = SvgIcon("""<rect x="3.4" y="5.4" width="17.2" height="13.2" rx="2.2"/><path d="m5 8 7 5 7-5"/>""");
+    private static readonly MarkupString BellIco = SvgIcon("""<path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6Z"/><path d="M10.2 19.2a2 2 0 0 0 3.6 0"/>""");
+    private static readonly MarkupString ChatIco = SvgIcon("""<path d="M4.4 6.2h15.2A1.8 1.8 0 0 1 21.4 8v8.2a1.8 1.8 0 0 1-1.8 1.8H9.2L4.2 21.2V8A1.8 1.8 0 0 1 6 6.2Z"/><path d="M8 10.4h8M8 13.6h5.4"/>""");
+    private static readonly MarkupString LockIco = SvgIcon("""<rect x="5.2" y="10.5" width="13.6" height="9.3" rx="2"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>""");
+    private static readonly MarkupString MoreIco = SvgIcon("""<circle cx="6.2" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="6.2" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="6.2" cy="17.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="17.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="17.8" r="1.7" fill="currentColor" stroke="none"/>""");
+    private static readonly MarkupString OutIco = SvgIcon("""<path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10M16 16l4-4-4-4M20 12H10"/>""");
 
-    private string SchoolLine
+    private string SchoolName
     {
         get
         {
-            var school = Session.Current?.SchoolName ?? "";
-            if (string.IsNullOrWhiteSpace(school))
-                return Locale.T("stu.brand");
-            var year = years.FirstOrDefault(x => x.EducationYearID.ToString() == selectedYearId)?.Name
-                       ?? yearName;
-            return string.IsNullOrWhiteSpace(year) ? school : $"{school} ({year})";
+            if (!string.IsNullOrWhiteSpace(schoolName))
+                return schoolName;
+            var sessionName = Session.Current?.SchoolName ?? "";
+            return string.IsNullOrWhiteSpace(sessionName) ? Locale.T("stu.brand") : sessionName;
         }
     }
+
+    private string SchoolAddress => schoolAddress;
 
     private string Initials
     {
@@ -158,13 +176,16 @@ else
 
         Locale.Changed += OnChanged;
         Session.Changed += OnChanged;
+        Inbox.Changed += OnChanged;
         selectedYearId = (Session.Current?.EducationYearID ?? 0).ToString();
+        LoadSchoolHeader();
         ready = true;
         try
         {
             var cached = await Api.PeekStudentPortalDashboardAsync();
             photoUrl = cached?.PhotoDataUrl;
             yearName = cached?.YearName;
+            ApplySchool(cached);
         }
         catch
         {
@@ -175,6 +196,13 @@ else
             _ = LoadPhotoAsync();
             _ = LoadYearsAsync();
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        await Inbox.RefreshAsync();
     }
 
     private async Task LoadYearsAsync()
@@ -252,6 +280,7 @@ else
             var dash = await Api.GetStudentPortalDashboardAsync(Session.AccessToken);
             photoUrl = dash.PhotoDataUrl;
             yearName = dash.YearName;
+            ApplySchool(dash);
             await InvokeAsync(StateHasChanged);
         }
         catch
@@ -259,16 +288,46 @@ else
         }
     }
 
+    private void LoadSchoolHeader()
+    {
+        if (Session.Current is null)
+            return;
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        if (!string.IsNullOrWhiteSpace(header.SchoolName))
+            schoolName = header.SchoolName.Trim();
+        else if (!string.IsNullOrWhiteSpace(Session.Current.SchoolName))
+            schoolName = Session.Current.SchoolName.Trim();
+        if (!string.IsNullOrWhiteSpace(header.Address))
+            schoolAddress = header.Address.Trim();
+    }
+
+    private void ApplySchool(StudentPortalDashboardDto? dash)
+    {
+        if (dash is null)
+            return;
+        if (!string.IsNullOrWhiteSpace(dash.SchoolName))
+            schoolName = dash.SchoolName.Trim();
+        if (!string.IsNullOrWhiteSpace(dash.SchoolAddress))
+            schoolAddress = dash.SchoolAddress.Trim();
+    }
+
     private void ToggleMenu() => menuOpen = !menuOpen;
     private void CloseMenu() => menuOpen = false;
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void Logout()
+    {
+        Session.Clear();
+        Nav.NavigateTo("/login", replace: true);
+    }
 
     public void Dispose()
     {
         Locale.Changed -= OnChanged;
         Session.Changed -= OnChanged;
+        Inbox.Changed -= OnChanged;
     }
 
-    private static MarkupString Icon(string d) =>
-        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+    private static MarkupString SvgIcon(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
 }

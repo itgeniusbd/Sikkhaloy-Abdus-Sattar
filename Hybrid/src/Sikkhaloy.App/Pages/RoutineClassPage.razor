@@ -4,7 +4,7 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page exam-page routine-page">
+<div class="card structure-page emp-page acc-page exam-page routine-page rt-class-page">
     <h1 class="no-print">@Locale.T("rt.classTitle")</h1>
     <div class="filter-row no-print">
         <select @bind="classInput" @bind:after="OnClassAsync" disabled="@busy">
@@ -61,13 +61,13 @@
     <PrintHeader Subtitle="@Title" />
     @if (!string.IsNullOrWhiteSpace(Title))
     {
-        <h2 class="rt-print-title">@Title</h2>
+        <h2 class="rt-print-title no-print">@Title</h2>
     }
 
     @if (sheet.Days.Count > 0)
     {
         <div class="rt-wrap">
-            <table class="rt-grid rt-view">
+            <table class="rt-grid rt-view" style="@($"--rt-cols:{sheet.Periods.Count + 1};--rt-rows:{Math.Max(sheet.Days.Count, 1)}")">
                 <thead>
                     <tr>
                         <th></th>

@@ -1,0 +1,822 @@
+@page "/teacher/report"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="sp-page tch-rpt-page sp-report">
+    <h1>@Locale.T("tch.report")</h1>
+    <article class="sp-card no-print">
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <p class="sp-empty" style="color:#b91c1c">@error</p>
+        }
+        <label class="auth-field">@Locale.T("tch.studentId")
+            <input @bind="query" @bind:event="oninput" @bind:after="SearchAsync" placeholder="@Locale.T("tch.searchStudent")" disabled="@busy" />
+        </label>
+        @if (hits.Count > 0)
+        {
+            <div class="tch-hits">
+                @foreach (var hit in hits)
+                {
+                    <button type="button" class="@(hit.StudentCode == studentCode ? "is-on" : null)" @onclick="() => PickAsync(hit)">
+                        <b>@hit.Name</b>
+                        <small>@StudentMeta(hit)</small>
+                    </button>
+                }
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(studentCode))
+        {
+            <div class="tch-rpt-picked">
+                @StudentPhoto
+                <div>@StudentDetails</div>
+            </div>
+            <div class="tch-rpt-acts">
+                <button type="button" class="sp-card-go tch-rpt-single" disabled="@busy" @onclick="OpenSingleModal">@Locale.T("tch.addSingle")</button>
+                <button type="button" class="sp-card-go tch-rpt-bulk" disabled="@busy" @onclick="OpenBulkModalAsync">@Locale.T("tch.addBulk")</button>
+            </div>
+        }
+    </article>
+
+    @if (!string.IsNullOrWhiteSpace(studentCode))
+    {
+        <div class="sp-report-filters no-print">
+            <div class="sp-report-dates">
+                <label>
+                    <span>@Locale.T("stu.fromDate")</span>
+                    <input type="date" @bind="fromDate" />
+                </label>
+                <label>
+                    <span>@Locale.T("stu.toDate")</span>
+                    <input type="date" @bind="toDate" />
+                </label>
+                <button type="button" class="sp-report-go-ico" disabled="@loading" @onclick="LoadReportsAsync" title="@Locale.T("stu.search")" aria-label="@Locale.T("stu.search")">
+                    @SearchIco
+                </button>
+            </div>
+            <div class="sp-report-view-row">
+                <div class="sp-report-view">
+                    <button type="button" class="@(viewMode == "daily" ? "is-on" : null)" @onclick='() => viewMode = "daily"'>
+                        @Locale.T("report.viewDaily")
+                    </button>
+                    <button type="button" class="@(viewMode == "detail" ? "is-on" : null)" @onclick='() => viewMode = "detail"'>
+                        @Locale.T("report.viewDetail")
+                    </button>
+                </div>
+                <button type="button" class="sp-report-print-ico" @onclick="PrintAsync" disabled="@(rows.Count == 0)" title="@Locale.T("stu.print")" aria-label="@Locale.T("stu.print")">
+                    @PrintIco
+                </button>
+            </div>
+        </div>
+
+        @if (loading)
+        {
+            <div class="sp-report-loading">
+                <span class="sp-report-spin"></span>
+                <p>@Locale.T("stu.loading")</p>
+            </div>
+        }
+        else if (rows.Count == 0)
+        {
+            <article class="sp-card sp-report-empty">
+                <div class="sp-report-empty-ico">@DocIco</div>
+                <p>@Locale.T("stu.reportEmpty")</p>
+            </article>
+        }
+        else if (viewMode == "daily")
+        {
+            <div class="sp-report-daily">
+                @foreach (var group in DailyGroups)
+                {
+                    <article class="sp-report-daily-item">
+                        <header>
+                            <time>@FmtDate(group.Day)</time>
+                            @if (!string.IsNullOrWhiteSpace(group.PostBy))
+                            {
+                                <span class="sp-report-by">@Locale.T("stu.postBy"): <b>@group.PostBy</b></span>
+                            }
+                        </header>
+                        <div class="sp-report-table-wrap @(group.Items.Count > 5 ? "is-scroll" : "is-fit")" style="--n:@group.Items.Count">
+                            <table class="sp-report-table">
+                                <thead>
+                                    <tr>
+                                        @foreach (var item in group.Items)
+                                        {
+                                            <th>
+                                                <button type="button" class="tch-rpt-cell-edit no-print" @onclick="() => EditRow(item)" title="@Locale.T("students.edit")">
+                                                    <span>@DisplayTitle(item.Title)</span>
+                                                    @EditIco
+                                                </button>
+                                                <span class="tch-rpt-print-only">@DisplayTitle(item.Title)</span>
+                                            </th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        @foreach (var item in group.Items)
+                                        {
+                                            <td>
+                                                <button type="button" class="tch-rpt-cell-edit no-print" @onclick="() => EditRow(item)" title="@Locale.T("students.edit")">
+                                                    @DisplayBody(item.Body)
+                                                </button>
+                                                <span class="tch-rpt-print-only">@DisplayBody(item.Body)</span>
+                                            </td>
+                                        }
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sp-report-list">
+                @foreach (var row in rows)
+                {
+                    <article class="sp-report-item">
+                        <div class="sp-report-item-h">
+                            <h3>@row.Title</h3>
+                            <time>@FmtDate(row.Date)</time>
+                        </div>
+                        <p class="sp-report-body">@row.Body</p>
+                        <footer>
+                            <span class="sp-report-by">@Locale.T("stu.postBy"): <b>@DisplayPostBy(row.PostBy)</b></span>
+                            <div class="tch-rpt-row-acts no-print">
+                                <button type="button" class="fault-edit" @onclick="() => EditRow(row)">@Locale.T("students.edit")</button>
+                                <button type="button" class="fault-del" @onclick="() => ConfirmDelete(row.StudentFaultID)">@Locale.T("cls.delete")</button>
+                            </div>
+                        </footer>
+                    </article>
+                }
+            </div>
+        }
+    }
+
+    @if (showSingleModal)
+    {
+        <div class="acc-result-back no-print tch-rpt-back" @onclick="CloseSingleModal">
+            <div class="fault-modal" @onclick:stopPropagation="true">
+                <header class="fault-modal-head">
+                    <h3>@(editId > 0 ? Locale.T("tch.editReport") : Locale.T("tch.addSingle"))</h3>
+                    <button type="button" class="fault-modal-x" @onclick="CloseSingleModal">×</button>
+                </header>
+                @if (!string.IsNullOrWhiteSpace(studentName) || !string.IsNullOrWhiteSpace(studentCode))
+                {
+                    <div class="tch-rpt-picked">
+                        @StudentPhoto
+                        <div>@StudentDetails</div>
+                    </div>
+                }
+                <label class="fault-field">
+                    <span>@Locale.T("tch.reportTitle")</span>
+                    <input type="text" @bind="title" disabled="@singleSaving" />
+                </label>
+                <label class="fault-field">
+                    <span>@Locale.T("tch.reportBody")</span>
+                    <textarea rows="5" @bind="body" disabled="@singleSaving"></textarea>
+                </label>
+                <label class="fault-field">
+                    <span>@Locale.T("report.date")</span>
+                    <input type="date" @bind="faultDate" disabled="@singleSaving" />
+                </label>
+                @if (!string.IsNullOrWhiteSpace(singleError))
+                {
+                    <div class="error">@singleError</div>
+                }
+                <footer class="fault-modal-foot">
+                    @if (editId > 0)
+                    {
+                        <button type="button" class="fault-del" disabled="@singleSaving" @onclick="() => ConfirmDelete(editId)">@Locale.T("cls.delete")</button>
+                    }
+                    <button type="button" class="fault-cancel" disabled="@singleSaving" @onclick="CloseSingleModal">@Locale.T("cls.cancel")</button>
+                    <button type="button" class="fault-save" disabled="@singleSaving" @onclick="SaveAsync">
+                        @(singleSaving ? Locale.T("stu.loading") : Locale.T("tch.saveReport"))
+                    </button>
+                </footer>
+            </div>
+        </div>
+    }
+
+    @if (confirmDeleteId is int delId)
+    {
+        <div class="acc-result-back no-print tch-rpt-back" @onclick="() => confirmDeleteId = null">
+            <div class="fault-confirm" @onclick:stopPropagation="true">
+                <p>@Locale.T("report.faultDelete")</p>
+                <div class="fault-confirm-acts">
+                    <button type="button" class="fault-cancel" @onclick="() => confirmDeleteId = null">@Locale.T("cls.cancel")</button>
+                    <button type="button" class="fault-del" @onclick="() => DeleteAsync(delId)">@Locale.T("cls.delete")</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showBulkModal)
+    {
+        <div class="acc-result-back no-print tch-rpt-back" @onclick="CloseBulkModal">
+            <div class="fault-modal fault-bulk-modal" @onclick:stopPropagation="true">
+                <header class="fault-modal-head">
+                    <h3>@Locale.T("tch.addBulk")</h3>
+                    <button type="button" class="fault-modal-x" @onclick="CloseBulkModal">×</button>
+                </header>
+                @if (!string.IsNullOrWhiteSpace(studentName) || !string.IsNullOrWhiteSpace(studentCode))
+                {
+                    <div class="tch-rpt-picked">
+                        @StudentPhoto
+                        <div>@StudentDetails</div>
+                    </div>
+                }
+                <p class="fault-bulk-hint">@Locale.T("report.bulkHint")</p>
+                <label class="fault-field">
+                    <span>@Locale.T("report.date")</span>
+                    <input type="date" @bind="bulkDate" disabled="@bulkSaving" />
+                </label>
+                <div class="fault-bulk-rows">
+                    @for (var i = 0; i < bulkRows.Count; i++)
+                    {
+                        var index = i;
+                        <div class="fault-bulk-row">
+                            <div class="fault-bulk-title">
+                                <span class="fault-bulk-num">@(index + 1).</span>
+                                <input type="text" placeholder="@Locale.T("tch.reportTitle")" @bind="bulkRows[index].Title" disabled="@bulkSaving" />
+                            </div>
+                            <textarea class="fault-bulk-body" rows="1" placeholder="@Locale.T("tch.reportBody")" @bind="bulkRows[index].Body" disabled="@bulkSaving"></textarea>
+                            @if (bulkRows.Count > 1)
+                            {
+                                <button type="button" class="fault-bulk-remove" disabled="@bulkSaving" @onclick="() => RemoveBulkRow(index)">×</button>
+                            }
+                        </div>
+                    }
+                </div>
+                <button type="button" class="fault-bulk-more" disabled="@bulkSaving" @onclick="AddBulkRow">+ @Locale.T("report.bulkAddRow")</button>
+                @if (!string.IsNullOrWhiteSpace(bulkError))
+                {
+                    <div class="error">@bulkError</div>
+                }
+                <footer class="fault-modal-foot">
+                    <button type="button" class="fault-cancel" disabled="@bulkSaving" @onclick="CloseBulkModal">@Locale.T("cls.cancel")</button>
+                    <button type="button" class="fault-save" disabled="@bulkSaving" @onclick="SaveBulkAsync">
+                        @(bulkSaving ? Locale.T("stu.loading") : Locale.T("report.bulkSave"))
+                    </button>
+                </footer>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="att.failed" OnClose="ClosePopup" />
+}
+
+@code {
+    private string query = "";
+    private string studentCode = "";
+    private string studentName = "";
+    private string? studentPhoto;
+    private TeacherPortalStudentHitDto? picked;
+    private string title = "";
+    private string body = "";
+    private DateTime faultDate = DateTime.Today;
+    private DateTime bulkDate = DateTime.Today;
+    private readonly List<TeacherPortalStudentHitDto> hits = [];
+    private IReadOnlyList<StudentPortalFaultReportDto> rows = [];
+    private List<FaultBulkRow> bulkRows = [];
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private string viewMode = "daily";
+    private bool busy;
+    private bool loading;
+    private int editId;
+    private int? confirmDeleteId;
+    private bool showSingleModal;
+    private bool showBulkModal;
+    private bool singleSaving;
+    private bool bulkSaving;
+    private bool popupError;
+    private string? error;
+    private string? singleError;
+    private string? bulkError;
+    private string? popupText;
+    private CancellationTokenSource? searchCts;
+
+    private static readonly MarkupString DocIco = Icon("M8 3h7l5 5v13H8V3Zm7 0v5h5");
+    private static readonly MarkupString SearchIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>""";
+    private static readonly MarkupString PrintIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>""";
+    private static readonly MarkupString EditIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>""";
+
+    private string PhotoInitial =>
+        string.IsNullOrWhiteSpace(studentName) ? "?" : studentName.Trim()[0].ToString().ToUpperInvariant();
+
+    private string StudentLine1 => JoinMeta(
+        (Locale.T("stu.id"), studentCode),
+        (Locale.T("stu.class"), picked?.ClassName),
+        (Locale.T("si.roll"), picked?.RollNo),
+        (Locale.T("att.section"), picked?.SectionName),
+        (Locale.T("si.group"), picked?.GroupName),
+        (Locale.T("si.shift"), picked?.ShiftName));
+
+    private RenderFragment StudentDetails => @<text>
+        <b>@studentName</b>
+        @if (!string.IsNullOrWhiteSpace(StudentLine1))
+        {
+            <small>@StudentLine1</small>
+        }
+    </text>;
+
+    private RenderFragment StudentPhoto => @<text>
+        @if (!string.IsNullOrWhiteSpace(studentPhoto))
+        {
+            <img class="tch-rpt-photo" src="@studentPhoto" alt="" />
+        }
+        else
+        {
+            <span class="tch-rpt-photo tch-rpt-photo-ph">@PhotoInitial</span>
+        }
+    </text>;
+
+    private IEnumerable<DailyFaultGroup> DailyGroups =>
+        rows
+            .GroupBy(x => x.Date?.Date ?? DateTime.MinValue)
+            .OrderByDescending(x => x.Key)
+            .Select(g => new DailyFaultGroup(
+                g.Key,
+                g.OrderBy(x => x.StudentFaultID).ToList()));
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        var today = DateTime.Today;
+        fromDate = new DateTime(today.Year, today.Month, 1);
+        toDate = fromDate.Value.AddMonths(1).AddDays(-1);
+    }
+
+    private async Task SearchAsync()
+    {
+        searchCts?.Cancel();
+        searchCts = new CancellationTokenSource();
+        var token = searchCts.Token;
+        var q = query.Trim();
+        if (q.Length == 0)
+        {
+            ClearStudent();
+            return;
+        }
+        try
+        {
+            await Task.Delay(250, token);
+            var found = await Api.SearchTeacherPortalStudentsAsync(Session.AccessToken, q, token);
+            hits.Clear();
+            hits.AddRange(found);
+            var exact = found.FirstOrDefault(x => string.Equals(x.StudentCode, q, StringComparison.OrdinalIgnoreCase));
+            if (exact is not null)
+                await ApplyStudentAsync(exact, found.Count > 1);
+        }
+        catch (OperationCanceledException) { }
+        catch { }
+    }
+
+    private Task PickAsync(TeacherPortalStudentHitDto hit) => ApplyStudentAsync(hit, false);
+
+    private async Task ApplyStudentAsync(TeacherPortalStudentHitDto hit, bool keepHits)
+    {
+        studentCode = hit.StudentCode;
+        studentName = hit.Name;
+        picked = hit;
+        query = hit.StudentCode;
+        if (!keepHits)
+            hits.Clear();
+        error = null;
+        studentPhoto = null;
+        await Task.WhenAll(LoadReportsAsync(), LoadPhotoAsync());
+    }
+
+    private void ClearStudent()
+    {
+        hits.Clear();
+        rows = [];
+        studentCode = studentName = "";
+        picked = null;
+        studentPhoto = null;
+        showSingleModal = showBulkModal = false;
+        loading = false;
+    }
+
+    private async Task LoadPhotoAsync()
+    {
+        var code = studentCode;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || string.IsNullOrWhiteSpace(code))
+            return;
+        try
+        {
+            var photo = await Api.GetTeacherPortalStudentPhotoAsync(Session.AccessToken, code);
+            if (string.Equals(studentCode, code, StringComparison.OrdinalIgnoreCase))
+                studentPhoto = photo.PhotoDataUrl;
+        }
+        catch
+        {
+            if (string.Equals(studentCode, code, StringComparison.OrdinalIgnoreCase))
+                studentPhoto = null;
+        }
+    }
+
+    private async Task LoadReportsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || string.IsNullOrWhiteSpace(studentCode))
+            return;
+        loading = true;
+        try
+        {
+            rows = await Api.GetTeacherPortalReportsAsync(Session.AccessToken, studentCode, fromDate, toDate);
+        }
+        catch
+        {
+            rows = [];
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private bool EnsureStudent()
+    {
+        if (!string.IsNullOrWhiteSpace(studentCode))
+            return true;
+        var typed = query.Trim();
+        if (typed.Length == 0)
+            return false;
+        studentCode = typed;
+        var hit = hits.FirstOrDefault(x => string.Equals(x.StudentCode, typed, StringComparison.OrdinalIgnoreCase));
+        if (hit is not null)
+        {
+            studentName = hit.Name;
+            picked = hit;
+        }
+        return true;
+    }
+
+    private void OpenSingleModal()
+    {
+        error = null;
+        if (!EnsureStudent())
+        {
+            error = Locale.T("tch.needStudent");
+            return;
+        }
+
+        editId = 0;
+        title = "";
+        body = "";
+        faultDate = DateTime.Today;
+        singleError = null;
+        showBulkModal = false;
+        showSingleModal = true;
+    }
+
+    private void CloseSingleModal()
+    {
+        if (singleSaving)
+            return;
+        showSingleModal = false;
+        singleError = null;
+        editId = 0;
+    }
+
+    private void EditRow(StudentPortalFaultReportDto row)
+    {
+        editId = row.StudentFaultID;
+        title = row.Title ?? "";
+        body = row.Body ?? "";
+        faultDate = row.Date?.Date ?? DateTime.Today;
+        singleError = null;
+        showBulkModal = false;
+        showSingleModal = true;
+    }
+
+    private void ConfirmDelete(int id) => confirmDeleteId = id;
+
+    private async Task SaveAsync()
+    {
+        singleError = popupText = null;
+        if (!EnsureStudent())
+        {
+            singleError = Locale.T("tch.needStudent");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(title.Trim()))
+        {
+            singleError = Locale.T("report.faultNeedTitle");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(body.Trim()))
+        {
+            singleError = Locale.T("report.faultNeedBody");
+            return;
+        }
+
+        singleSaving = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            StudentInfoResult result;
+            if (editId > 0)
+            {
+                result = await Api.UpdateTeacherPortalReportAsync(Session.AccessToken, new UpdateStudentFaultReportRequest
+                {
+                    StudentFaultID = editId,
+                    Title = title.Trim(),
+                    Body = body.Trim(),
+                    Date = faultDate
+                });
+            }
+            else
+            {
+                result = await Api.SaveTeacherPortalReportAsync(Session.AccessToken, new SaveStudentFaultReportRequest
+                {
+                    StudentCode = studentCode,
+                    Title = title.Trim(),
+                    Body = body.Trim(),
+                    Date = faultDate
+                });
+            }
+            if (!result.Succeeded)
+            {
+                singleError = Locale.T(result.Error ?? "report.faultFailed");
+                return;
+            }
+
+            var wasEdit = editId > 0;
+            showSingleModal = false;
+            editId = 0;
+            title = body = "";
+            ShowPopup(Locale.T(wasEdit ? "report.faultSaved" : "tch.reportSaved"), false);
+            await LoadReportsAsync();
+        }
+        catch (Exception ex)
+        {
+            singleError = ex.Message;
+        }
+        finally
+        {
+            singleSaving = false;
+        }
+    }
+
+    private async Task OpenBulkModalAsync()
+    {
+        error = null;
+        if (!EnsureStudent())
+        {
+            error = Locale.T("tch.needStudent");
+            return;
+        }
+
+        bulkDate = DateTime.Today;
+        bulkRows = DefaultBulkRows();
+        bulkError = null;
+        showSingleModal = false;
+        showBulkModal = true;
+        await LoadLastBulkAsync();
+    }
+
+    private void CloseBulkModal()
+    {
+        if (bulkSaving)
+            return;
+        showBulkModal = false;
+        bulkError = null;
+    }
+
+    private void AddBulkRow() => bulkRows.Add(new FaultBulkRow());
+
+    private void RemoveBulkRow(int index)
+    {
+        if (index < 0 || index >= bulkRows.Count)
+            return;
+        bulkRows.RemoveAt(index);
+    }
+
+    private async Task SaveBulkAsync()
+    {
+        if (string.IsNullOrWhiteSpace(studentCode))
+        {
+            bulkError = Locale.T("tch.needStudent");
+            return;
+        }
+
+        var items = bulkRows
+            .Select(x => new StudentFaultReportLineRequest
+            {
+                Title = (x.Title ?? "").Trim(),
+                Body = (x.Body ?? "").Trim()
+            })
+            .Where(x => x.Title.Length > 0 && x.Body.Length > 0)
+            .ToList();
+        if (items.Count == 0)
+        {
+            bulkError = Locale.T("report.faultNeedBody");
+            return;
+        }
+
+        bulkSaving = true;
+        bulkError = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var result = await Api.SaveTeacherPortalReportsBulkAsync(Session.AccessToken, new SaveStudentFaultReportsBulkRequest
+            {
+                StudentCode = studentCode,
+                Date = bulkDate,
+                Items = items
+            });
+            if (!result.Succeeded)
+            {
+                bulkError = Locale.T(result.Error ?? "report.faultFailed");
+                return;
+            }
+
+            showBulkModal = false;
+            await SaveLastBulkAsync();
+            ShowPopup(Locale.T("report.bulkSaved", result.Count > 0 ? result.Count : items.Count), false);
+            await LoadReportsAsync();
+        }
+        catch (Exception ex)
+        {
+            bulkError = ex.Message;
+        }
+        finally
+        {
+            bulkSaving = false;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        confirmDeleteId = null;
+        try
+        {
+            var result = await Api.DeleteTeacherPortalReportAsync(Session.AccessToken, id);
+            if (!result.Succeeded)
+            {
+                ShowPopup(Locale.T(result.Error ?? "report.faultFailed"), true);
+                return;
+            }
+
+            if (editId == id)
+            {
+                showSingleModal = false;
+                editId = 0;
+            }
+            ShowPopup(Locale.T("tch.reportDeleted"), false);
+            await LoadReportsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowPopup(ex.Message, true);
+        }
+    }
+
+    private void ShowPopup(string text, bool isError)
+    {
+        popupText = text;
+        popupError = isError;
+    }
+
+    private void ClosePopup()
+    {
+        popupText = null;
+        popupError = false;
+    }
+
+    private string StudentMeta(TeacherPortalStudentHitDto hit) =>
+        JoinMeta(
+            (Locale.T("stu.id"), hit.StudentCode),
+            (Locale.T("stu.class"), hit.ClassName),
+            (Locale.T("si.roll"), hit.RollNo),
+            (Locale.T("att.section"), hit.SectionName),
+            (Locale.T("si.group"), hit.GroupName));
+
+    private static string JoinMeta(params (string Label, string? Value)[] parts) =>
+        string.Join(" · ", parts
+            .Where(x => !string.IsNullOrWhiteSpace(x.Value))
+            .Select(x => $"{x.Label} {x.Value!.Trim()}"));
+
+    private List<FaultBulkRow> DefaultBulkRows() =>
+    [
+        new() { Title = Locale.T("report.faultPreset1") },
+        new() { Title = Locale.T("report.faultPreset2") },
+        new() { Title = Locale.T("report.faultPreset3") },
+        new() { Title = Locale.T("report.faultPreset4") },
+        new() { Title = Locale.T("report.faultPreset5") }
+    ];
+
+    private string BulkDraftKey(string? code = null)
+    {
+        var session = Session.Current;
+        var student = (code ?? studentCode).Trim();
+        if (session is null || student.Length == 0)
+            return "";
+        return $"t:{session.SchoolID}:{session.EducationYearID}:{session.RegistrationID}:{student}";
+    }
+
+    private string BulkLastKey()
+    {
+        var session = Session.Current;
+        if (session is null)
+            return "";
+        return $"t:{session.SchoolID}:{session.EducationYearID}:{session.RegistrationID}:last";
+    }
+
+    private async Task LoadLastBulkAsync()
+    {
+        try
+        {
+            var draft = await JS.InvokeAsync<FaultBulkDraft?>("sikkhaloyFaultBulkLoad", BulkDraftKey());
+            if (draft?.Rows is not { Count: > 0 })
+                draft = await JS.InvokeAsync<FaultBulkDraft?>("sikkhaloyFaultBulkLoad", BulkLastKey());
+            if (draft?.Rows is { Count: > 0 } saved)
+                bulkRows = saved.Select(x => new FaultBulkRow
+                {
+                    Title = x.Title ?? "",
+                    Body = x.Body ?? ""
+                }).ToList();
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SaveLastBulkAsync()
+    {
+        var draft = new FaultBulkDraft
+        {
+            Rows = bulkRows
+                .Select(x => new FaultBulkDraftRow
+                {
+                    Title = (x.Title ?? "").Trim(),
+                    Body = (x.Body ?? "").Trim()
+                })
+                .Where(x => x.Title.Length > 0 || x.Body.Length > 0)
+                .ToList()
+        };
+        if (draft.Rows.Count == 0)
+            return;
+        try
+        {
+            var studentKey = BulkDraftKey();
+            if (studentKey.Length > 0)
+                await JS.InvokeVoidAsync("sikkhaloyFaultBulkSave", studentKey, draft);
+            var lastKey = BulkLastKey();
+            if (lastKey.Length > 0)
+                await JS.InvokeVoidAsync("sikkhaloyFaultBulkSave", lastKey, draft);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("sikkhaloyPrint");
+
+    private static string FmtDate(DateTime? value) =>
+        value is DateTime d && d != DateTime.MinValue ? d.ToString("d MMM yyyy") : "—";
+
+    private static string DisplayPostBy(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "—" : name.Trim();
+
+    private static string DisplayTitle(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? "—" : title.Trim();
+
+    private static string DisplayBody(string? body) =>
+        string.IsNullOrWhiteSpace(body) ? "—" : body.Trim();
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+
+    private sealed class FaultBulkRow
+    {
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
+
+    private sealed class FaultBulkDraft
+    {
+        public List<FaultBulkDraftRow> Rows { get; set; } = [];
+    }
+
+    private sealed class FaultBulkDraftRow
+    {
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
+
+    private sealed record DailyFaultGroup(DateTime Day, IReadOnlyList<StudentPortalFaultReportDto> Items)
+    {
+        public string PostBy => Items.Select(x => x.PostBy).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "";
+    }
+}

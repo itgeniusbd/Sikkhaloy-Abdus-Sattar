@@ -1,0 +1,334 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSession Session
+@inject NavigationManager Nav
+@inject AppLocale Locale
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
+@inject SyncEngine Sync
+@inject TeacherFeedbackInbox FeedbackInbox
+
+@if (!ready)
+{
+    <div class="year-loading">@Locale.T("stu.loading")</div>
+}
+else
+{
+<CascadingValue Name="AppLang" Value="@Locale.Code" IsFixed="false">
+<div class="sp-app @(menuOpen ? "is-open" : null)">
+    <header class="sp-top">
+        <button type="button" class="sp-menu-btn" aria-label="@Locale.T("nav.menu")" @onclick="ToggleMenu">
+            <span></span><span></span><span></span>
+        </button>
+        <a class="sp-brand" href="teacher">
+            <strong>@SchoolName</strong>
+            @if (!string.IsNullOrWhiteSpace(SchoolAddress))
+            {
+                <small>@SchoolAddress</small>
+            }
+        </a>
+        <div class="sp-top-actions">
+            <select class="sp-year" @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy" title="@Locale.T("stu.session")">
+                @if (years.Count == 0)
+                {
+                    <option value="0">@Locale.T("sidebar.session", "—")</option>
+                }
+                @foreach (var year in years)
+                {
+                    <option value="@year.EducationYearID">@Locale.T("sidebar.session", year.Name)</option>
+                }
+            </select>
+            <a class="sp-bell" href="teacher/feedback" title="@Locale.T("fb.title")">
+                @BellIco
+                @if (FeedbackInbox.UnreadCount > 0)
+                {
+                    <em class="sp-nbadge">@FeedbackInbox.BadgeText</em>
+                }
+            </a>
+            <LanguageSwitch />
+            <a class="sp-avatar" href="teacher/profile" title="@Locale.T("tch.profile")">
+                @if (!string.IsNullOrWhiteSpace(photoUrl))
+                {
+                    <img src="@photoUrl" alt="" />
+                }
+                else
+                {
+                    @Initials
+                }
+            </a>
+        </div>
+    </header>
+    <div class="sp-body">
+        @if (menuOpen)
+        {
+            <div class="sp-back" @onclick="CloseMenu"></div>
+        }
+        <aside class="sp-side">
+            <label class="sp-year-side">
+                <span>@Locale.T("stu.session")</span>
+                <select @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy">
+                    @if (years.Count == 0)
+                    {
+                        <option value="0">—</option>
+                    }
+                    @foreach (var year in years)
+                    {
+                        <option value="@year.EducationYearID">@year.Name</option>
+                    }
+                </select>
+            </label>
+            <NavLink href="teacher" Match="NavLinkMatch.All" @onclick="CloseMenu">@DashIco @Locale.T("stu.navDash")</NavLink>
+            <NavLink href="teacher/profile" @onclick="CloseMenu">@UserIco @Locale.T("tch.profile")</NavLink>
+            <NavLink href="teacher/attendance" @onclick="CloseMenu">@CalIco @Locale.T("tch.myAttendance")</NavLink>
+            <NavLink href="teacher/routine" @onclick="CloseMenu">@TimeIco @Locale.T("stu.classRoutine")</NavLink>
+            <NavLink href="teacher/subjects" @onclick="CloseMenu">@BookIco @Locale.T("tch.classSubjects")</NavLink>
+            <NavLink href="teacher/student-attendance" @onclick="CloseMenu">@GroupIco @Locale.T("tch.studentAtt")</NavLink>
+            <NavLink href="teacher/notice" @onclick="CloseMenu">@BellIco @Locale.T("stu.hwNotice")</NavLink>
+            <NavLink href="teacher/report" @onclick="CloseMenu">@ReportIco @Locale.T("tch.report")</NavLink>
+            <NavLink href="teacher/feedback" @onclick="CloseMenu" class="sp-side-fb">
+                @FbIco @Locale.T("fb.title")
+                @if (FeedbackInbox.UnreadCount > 0)
+                {
+                    <em class="sp-nbadge sp-side-badge">@FeedbackInbox.BadgeText</em>
+                }
+            </NavLink>
+            <NavLink href="teacher/marks" @onclick="CloseMenu">@ExamIco @Locale.T("tch.marks")</NavLink>
+            <NavLink href="teacher/cv" @onclick="CloseMenu">@CvIco @Locale.T("tch.cv")</NavLink>
+            <NavLink href="teacher/cv/print" @onclick="CloseMenu">@PrintIco @Locale.T("tch.cvPrint")</NavLink>
+            <NavLink href="teacher/password" @onclick="CloseMenu">@LockIco @Locale.T("stu.password")</NavLink>
+            <button type="button" class="sp-side-out" @onclick="Logout">@OutIco @Locale.T("stu.logout")</button>
+        </aside>
+        <main class="sp-main">
+            <div @key="Session.Current?.EducationYearID ?? 0">
+                @Body
+            </div>
+        </main>
+    </div>
+    <nav class="sp-bottom">
+        <NavLink href="teacher" Match="NavLinkMatch.All">@DashIco @Locale.T("stu.navDash")</NavLink>
+        <NavLink href="teacher/profile">@UserIco @Locale.T("tch.profile")</NavLink>
+        <NavLink href="teacher/attendance">@CalIco @Locale.T("tch.myAttendance")</NavLink>
+        <NavLink href="teacher/routine">@TimeIco @Locale.T("stu.classRoutine")</NavLink>
+        <NavLink href="teacher/more">@MoreIco @Locale.T("stu.navMore")</NavLink>
+    </nav>
+</div>
+</CascadingValue>
+}
+
+@code {
+    private bool ready;
+    private bool menuOpen;
+    private bool yearBusy;
+    private string selectedYearId = "0";
+    private string? photoUrl;
+    private string? yearName;
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private IReadOnlyList<EducationYearDto> years = [];
+
+    private static readonly MarkupString DashIco = SvgIcon("""<rect x="3.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="3.2" y="13.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="13.2" width="7.6" height="7.6" rx="2"/>""");
+    private static readonly MarkupString UserIco = SvgIcon("""<circle cx="12" cy="8" r="3.4"/><path d="M5 19.4a7 7 0 0 1 14 0"/>""");
+    private static readonly MarkupString ExamIco = SvgIcon("""<rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M9 3.5v2.6h6V3.5M8.4 11h7.2M8.4 14.6h5"/>""");
+    private static readonly MarkupString CalIco = SvgIcon("""<rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M8 3.2v3.6M16 3.2v3.6M3.5 10h17"/>""");
+    private static readonly MarkupString TimeIco = SvgIcon("""<circle cx="12" cy="12.2" r="8.2"/><path d="M12 8.2v4.3l3 1.7"/>""");
+    private static readonly MarkupString BookIco = SvgIcon("""<path d="M5 5.2A2.2 2.2 0 0 1 7.2 3H12v16.5H7.4A2.4 2.4 0 0 0 5 21.9V5.2Z"/><path d="M19 5.2A2.2 2.2 0 0 0 16.8 3H12v16.5h4.6A2.4 2.4 0 0 1 19 21.9V5.2Z"/>""");
+    private static readonly MarkupString ReportIco = SvgIcon("""<path d="M4 19.2A2.4 2.4 0 0 1 6.4 16.8H20"/><path d="M6.4 3h13.6v18H6.4A2.4 2.4 0 0 1 4 18.6V5.4A2.4 2.4 0 0 1 6.4 3Z"/>""");
+    private static readonly MarkupString FbIco = SvgIcon("""<path d="M4.5 6.2h15A1.5 1.5 0 0 1 21 7.7v8.6a1.5 1.5 0 0 1-1.5 1.5H9.2L4 21v-3.2H4.5A1.5 1.5 0 0 1 3 16.3V7.7A1.5 1.5 0 0 1 4.5 6.2Z"/>""");
+    private static readonly MarkupString CvIco = SvgIcon("""<rect x="5" y="3.2" width="14" height="17.6" rx="2"/><path d="M9 7.2h6M9 11h6M9 14.8h4"/>""");
+    private static readonly MarkupString PrintIco = SvgIcon("""<path d="M7 9V4.5h10V9M7 15H5.4A1.4 1.4 0 0 1 4 13.6V10.4A1.4 1.4 0 0 1 5.4 9h13.2A1.4 1.4 0 0 1 20 10.4v3.2A1.4 1.4 0 0 1 18.6 15H17M7 13h10v7H7z"/>""");
+    private static readonly MarkupString BellIco = SvgIcon("""<path d="M6.2 9.2a5.8 5.8 0 0 1 11.6 0c0 4.4 1.8 6.1 2.2 6.6H4c.4-.5 2.2-2.2 2.2-6.6Z"/><path d="M10.2 19.2a2 2 0 0 0 3.6 0"/>""");
+    private static readonly MarkupString GroupIco = SvgIcon("""<circle cx="9" cy="8" r="2.6"/><circle cx="16" cy="8.6" r="2.2"/><path d="M4.2 19c.4-3.2 2.6-5 4.8-5s4.4 1.8 4.8 5M13.4 14.4c1.7-.3 3.6 1 4.2 4.6"/>""");
+    private static readonly MarkupString LockIco = SvgIcon("""<rect x="5.2" y="10.5" width="13.6" height="9.3" rx="2"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>""");
+    private static readonly MarkupString MoreIco = SvgIcon("""<circle cx="6.2" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="6.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="6.2" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="6.2" cy="17.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="17.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.8" cy="17.8" r="1.7" fill="currentColor" stroke="none"/>""");
+    private static readonly MarkupString OutIco = SvgIcon("""<path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10M16 16l4-4-4-4M20 12H10"/>""");
+
+    private string SchoolName
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(schoolName))
+                return schoolName;
+            var sessionName = Session.Current?.SchoolName ?? "";
+            return string.IsNullOrWhiteSpace(sessionName) ? Locale.T("tch.brand") : sessionName;
+        }
+    }
+
+    private string SchoolAddress => schoolAddress;
+
+    private string Initials
+    {
+        get
+        {
+            var name = (Session.Current?.DisplayName ?? "").Trim();
+            if (name.Length == 0) return "T";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+            return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!Session.IsTeacher)
+        {
+            Nav.NavigateTo(Session.HomePath, replace: true);
+            return;
+        }
+
+        Locale.Changed += OnChanged;
+        Session.Changed += OnChanged;
+        FeedbackInbox.Changed += OnChanged;
+        selectedYearId = (Session.Current?.EducationYearID ?? 0).ToString();
+        LoadSchoolHeader();
+        ready = true;
+        try
+        {
+            var cached = await Api.PeekTeacherPortalDashboardAsync();
+            photoUrl = cached?.PhotoDataUrl;
+            yearName = cached?.YearName;
+            ApplySchool(cached);
+        }
+        catch
+        {
+        }
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            _ = LoadPhotoAsync();
+            _ = LoadYearsAsync();
+            _ = FeedbackInbox.RefreshAsync();
+        }
+    }
+
+    private async Task LoadYearsAsync()
+    {
+        try
+        {
+            years = await Api.GetTeacherPortalSessionsAsync(Session.AccessToken);
+            if (years.Count == 0 && Session.Current is not null)
+            {
+                years =
+                [
+                    new EducationYearDto
+                    {
+                        EducationYearID = Session.Current.EducationYearID,
+                        Name = yearName ?? Session.Current.EducationYearID.ToString(),
+                        IsCurrent = true
+                    }
+                ];
+            }
+            selectedYearId = (Session.Current?.EducationYearID ?? 0).ToString();
+            yearName = years.FirstOrDefault(x => x.EducationYearID.ToString() == selectedYearId)?.Name ?? yearName;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task OnYearChanged()
+    {
+        if (Session.Current is null || yearBusy)
+            return;
+        if (!int.TryParse(selectedYearId, out var yearId) || yearId <= 0)
+            return;
+        if (yearId == Session.Current.EducationYearID)
+            return;
+
+        yearBusy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                selectedYearId = Session.Current.EducationYearID.ToString();
+                return;
+            }
+
+            var result = await Api.SwitchYearAsync(Session.AccessToken, yearId);
+            if (!result.Succeeded || result.Session is null)
+            {
+                selectedYearId = Session.Current.EducationYearID.ToString();
+                return;
+            }
+
+            result.Session.DeviceId = Session.Current.DeviceId;
+            Session.Set(result, notify: false);
+            await OfflineAuth.UpdateCachedSessionAsync(result);
+            yearName = years.FirstOrDefault(x => x.EducationYearID == yearId)?.Name ?? yearName;
+            selectedYearId = Session.Current.EducationYearID.ToString();
+            Session.NotifyChanged();
+        }
+        catch
+        {
+            selectedYearId = Session.Current?.EducationYearID.ToString() ?? "0";
+        }
+        finally
+        {
+            yearBusy = false;
+        }
+    }
+
+    private async Task LoadPhotoAsync()
+    {
+        try
+        {
+            var dash = await Api.GetTeacherPortalDashboardAsync(Session.AccessToken);
+            photoUrl = dash.PhotoDataUrl;
+            yearName = dash.YearName;
+            ApplySchool(dash);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private void LoadSchoolHeader()
+    {
+        if (Session.Current is null)
+            return;
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        if (!string.IsNullOrWhiteSpace(header.SchoolName))
+            schoolName = header.SchoolName.Trim();
+        else if (!string.IsNullOrWhiteSpace(Session.Current.SchoolName))
+            schoolName = Session.Current.SchoolName.Trim();
+        if (!string.IsNullOrWhiteSpace(header.Address))
+            schoolAddress = header.Address.Trim();
+    }
+
+    private void ApplySchool(TeacherPortalDashboardDto? dash)
+    {
+        if (dash is null)
+            return;
+        if (!string.IsNullOrWhiteSpace(dash.SchoolName))
+            schoolName = dash.SchoolName.Trim();
+        if (!string.IsNullOrWhiteSpace(dash.SchoolAddress))
+            schoolAddress = dash.SchoolAddress.Trim();
+    }
+
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private void CloseMenu() => menuOpen = false;
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void Logout()
+    {
+        Session.Clear();
+        Nav.NavigateTo("/login", replace: true);
+    }
+
+    public void Dispose()
+    {
+        Locale.Changed -= OnChanged;
+        Session.Changed -= OnChanged;
+        FeedbackInbox.Changed -= OnChanged;
+    }
+
+    private static MarkupString SvgIcon(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
+}

@@ -7,6 +7,7 @@ public sealed class StudentPortalDashboardDto
     public string ClassName { get; set; } = "";
     public string SectionName { get; set; } = "";
     public string SchoolName { get; set; } = "";
+    public string SchoolAddress { get; set; } = "";
     public string YearName { get; set; } = "";
     public string? PhotoDataUrl { get; set; }
     public decimal AttendancePct { get; set; }
@@ -46,17 +47,43 @@ public sealed class StudentPortalExamDto
     public DateTime? Date { get; set; }
     public decimal Point { get; set; }
     public string Grade { get; set; } = "";
+    public decimal ObtainedMarks { get; set; }
+    public decimal TotalMarks { get; set; }
+    public decimal Percentage { get; set; }
+    public decimal Average { get; set; }
+    public string PositionClass { get; set; } = "";
+    public string PositionSection { get; set; } = "";
+    public string Comment { get; set; } = "";
+    public string ExtraInfo { get; set; } = "";
+    public string CellTime { get; set; } = "";
+    public string DayName { get; set; } = "";
+    public string Duration { get; set; } = "";
+    public int ExamID { get; set; }
+}
+
+public sealed class StudentPortalExamSubjectDto
+{
+    public int ExamID { get; set; }
+    public string Subject { get; set; } = "";
+    public decimal ObtainedMarks { get; set; }
+    public decimal TotalMarks { get; set; }
+    public string Grade { get; set; } = "";
+    public decimal Point { get; set; }
+    public string SubjectType { get; set; } = "";
 }
 
 public sealed class StudentPortalPeriodDto
 {
+    public string Day { get; set; } = "";
     public string Period { get; set; } = "";
     public string Subject { get; set; } = "";
+    public string Teacher { get; set; } = "";
     public string Time { get; set; } = "";
 }
 
 public sealed class StudentPortalNoticeDto
 {
+    public int NoticeId { get; set; }
     public string Title { get; set; } = "";
     public string Body { get; set; } = "";
     public DateTime? Date { get; set; }
@@ -118,6 +145,7 @@ public sealed class StudentPortalAttendanceDto
 
 public sealed class StudentPortalSmsDto
 {
+    public int SmsSendId { get; set; }
     public string Phone { get; set; } = "";
     public string Text { get; set; } = "";
     public string Purpose { get; set; } = "";
@@ -243,4 +271,13 @@ public sealed class StudentPortalFaultReportDto
     public string Body { get; set; } = "";
     public DateTime? Date { get; set; }
     public string PostBy { get; set; } = "";
+    public string StudentCode { get; set; } = "";
+    public string StudentsName { get; set; } = "";
+}
+
+public sealed class StudentPortalInboxReadsDto
+{
+    public List<string> Notices { get; set; } = [];
+    public List<string> Sms { get; set; } = [];
+    public List<string> Reports { get; set; } = [];
 }

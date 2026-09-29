@@ -1,0 +1,17 @@
+node_modules
+dist
+.DS_Store
+*.local
+.env
+api/config.json
+install.lock
+uploads/projects/*
+!uploads/projects/.gitkeep
+uploads/hero/*
+!uploads/hero/.gitkeep
+uploads/gallery/*
+!uploads/gallery/.gitkeep
+uploads/posts/*
+!uploads/posts/.gitkeep
+uploads/pages/*
+!uploads/pages/.gitkeep

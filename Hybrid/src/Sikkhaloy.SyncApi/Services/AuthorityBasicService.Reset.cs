@@ -74,6 +74,19 @@ ORDER BY EducationYearID DESC
 
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
+        try
+        {
+            return await PreviewResetFromProcAsync(con, schoolId, mode, educationYearId, ct);
+        }
+        catch (SqlException ex) when (IsExecuteDenied(ex))
+        {
+            return await PreviewResetInlineAsync(con, schoolId, mode, educationYearId, ct);
+        }
+    }
+
+    private static async Task<ResetPreviewDto> PreviewResetFromProcAsync(
+        SqlConnection con, int schoolId, string mode, int educationYearId, CancellationToken ct)
+    {
         await using var cmd = new SqlCommand("dbo.sp_InstitutionData_Preview", con)
         {
             CommandType = CommandType.StoredProcedure,
@@ -113,6 +126,120 @@ ORDER BY EducationYearID DESC
         return dto;
     }
 
+    private static async Task<ResetPreviewDto> PreviewResetInlineAsync(
+        SqlConnection con, int schoolId, string mode, int educationYearId, CancellationToken ct)
+    {
+        var dto = new ResetPreviewDto { Ok = true, SchoolId = schoolId, Mode = mode, Status = "Preview" };
+        await using (var name = new SqlCommand("SELECT SchoolName FROM dbo.SchoolInfo WHERE SchoolID = @SchoolID", con))
+        {
+            name.Parameters.AddWithValue("@SchoolID", schoolId);
+            var value = await name.ExecuteScalarAsync(ct);
+            dto.SchoolName = value is string s ? s : "";
+            if (string.IsNullOrWhiteSpace(dto.SchoolName))
+                return new ResetPreviewDto { Ok = false, Message = "Institution not found." };
+        }
+
+        string[] tables =
+        [
+            "StudentsClass", "Student", "StudentRecord",
+            "Attendance_Record", "Attendance_Student", "Attendance_Leave",
+            "Income_PayOrder", "Income_PaymentRecord", "Income_MoneyReceipt",
+            "Exam_Obtain_Marks", "Exam_Result_of_Student", "Exam_Result_of_Subject",
+            "Exam_Name", "Teacher", "Subject", "CreateClass",
+            "Account_Log", "AccountIN_Record", "AccountOUT_Record",
+            "Expenditure", "Extra_Income",
+            "SMS_Send_Record", "SMS_OtherInfo",
+            "Employee_Info", "Employee_Payorder",
+            "Education_Year", "Registration", "AST", "SMS"
+        ];
+        dto.Tables.AddRange(await LoadResetTableCountsAsync(con, schoolId, mode, educationYearId, tables, nolock: false, ct));
+
+        dto.Tables.Sort((a, b) => b.RowCnt.CompareTo(a.RowCnt));
+        dto.TotalRows = dto.Tables.Sum(x => x.RowCnt);
+        return dto;
+    }
+
+    private static async Task<(long Remaining, int TablesCounted)> CountResetRemainingAsync(
+        SqlConnection con, int schoolId, string mode, int educationYearId, CancellationToken ct)
+    {
+        string[] tables =
+        [
+            "StudentsClass", "Student", "StudentRecord",
+            "Attendance_Record", "Attendance_Student", "Attendance_Leave",
+            "Income_PayOrder", "Income_PaymentRecord", "Income_MoneyReceipt",
+            "Exam_Obtain_Marks", "Exam_Result_of_Student", "Exam_Result_of_Subject",
+            "Exam_Name", "Teacher", "Subject", "CreateClass",
+            "Account_Log", "AccountIN_Record", "AccountOUT_Record",
+            "Expenditure", "Extra_Income",
+            "SMS_Send_Record", "SMS_OtherInfo",
+            "Employee_Info", "Employee_Payorder",
+            "Education_Year", "Registration", "AST", "SMS"
+        ];
+        var rows = await LoadResetTableCountsAsync(con, schoolId, mode, educationYearId, tables, nolock: true, ct);
+        return (rows.Sum(x => x.RowCnt), rows.Count);
+    }
+
+    private static async Task<List<ResetTableCountDto>> LoadResetTableCountsAsync(
+        SqlConnection con, int schoolId, string mode, int educationYearId, string[] tables, bool nolock, CancellationToken ct)
+    {
+        string[] sessionSkip = ["SchoolInfo", "Registration", "AST", "SMS", "Teacher", "Subject", "CreateClass", "Student"];
+        var hint = nolock ? " WITH (NOLOCK)" : "";
+        var items = new List<ResetTableCountDto>();
+        foreach (var table in tables)
+        {
+            if (mode == "FULL" && table == "SchoolInfo")
+                continue;
+            if (nolock && mode == "FULL" && table is
+                "Education_Year" or "Registration" or "AST" or "SMS"
+                or "Teacher" or "Subject" or "CreateClass" or "Employee_Info")
+                continue;
+            if (!await TableHasColumnAsync(con, table, "SchoolID", ct))
+                continue;
+            var useYear = mode == "SESSION"
+                          && await TableHasColumnAsync(con, table, "EducationYearID", ct)
+                          && !sessionSkip.Contains(table, StringComparer.OrdinalIgnoreCase);
+            var sql = useYear
+                ? $"SELECT COUNT_BIG(*) FROM dbo.[{table}]{hint} WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID"
+                : mode is "FULL" or "PURGE" or "SESSION"
+                    ? $"SELECT COUNT_BIG(*) FROM dbo.[{table}]{hint} WHERE SchoolID = @SchoolID"
+                    : null;
+            if (sql is null)
+                continue;
+            if (mode == "SESSION" && !useYear)
+                continue;
+            try
+            {
+                await using var cmd = new SqlCommand(sql, con);
+                cmd.CommandTimeout = 4;
+                cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                if (useYear)
+                    cmd.Parameters.AddWithValue("@EducationYearID", educationYearId);
+                var value = await cmd.ExecuteScalarAsync(ct);
+                var count = value is long l ? l : Convert.ToInt64(value ?? 0);
+                if (count > 0)
+                    items.Add(new ResetTableCountDto { TableName = table, RowCnt = count });
+            }
+            catch (SqlException)
+            {
+            }
+        }
+        items.Sort((a, b) => b.RowCnt.CompareTo(a.RowCnt));
+        return items;
+    }
+
+    private static async Task<bool> TableHasColumnAsync(SqlConnection con, string table, string column, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand(
+            "SELECT CASE WHEN COL_LENGTH(N'dbo.' + @Table, @Column) IS NULL THEN 0 ELSE 1 END", con);
+        cmd.Parameters.AddWithValue("@Table", table);
+        cmd.Parameters.AddWithValue("@Column", column);
+        var value = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt32(value) == 1;
+    }
+
+    private static bool IsExecuteDenied(SqlException ex) =>
+        ex.Number == 229 || ex.Message.Contains("EXECUTE permission was denied", StringComparison.OrdinalIgnoreCase);
+
     public async Task<ResetProgressDto> GetResetProgressAsync(
         SessionSnapshot session, int schoolId, CancellationToken ct)
     {
@@ -122,16 +249,87 @@ ORDER BY EducationYearID DESC
         await EnsureProgressTableAsync(con, ct);
         await using var cmd = new SqlCommand("""
 SELECT Mode, EducationYearID, TotalRows, DeletedRows, Status, Message, UpdatedAt
-FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
+FROM dbo.Institution_Reset_Progress WITH (NOLOCK)
+WHERE SchoolID = @SchoolID
 """, con);
         cmd.Parameters.AddWithValue("@SchoolID", schoolId);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct))
-            return new ResetProgressDto { Ok = true, HasProgress = false };
+        string mode;
+        long deleted;
+        long total;
+        string status;
+        string? message;
+        int yearId;
+        await using (var reader = await cmd.ExecuteReaderAsync(ct))
+        {
+            if (!await reader.ReadAsync(ct))
+                return new ResetProgressDto { Ok = true, HasProgress = false };
 
-        var deleted = L(reader["DeletedRows"]);
-        var total = L(reader["TotalRows"]);
-        var status = S(reader["Status"]);
+            deleted = L(reader["DeletedRows"]);
+            total = L(reader["TotalRows"]);
+            status = S(reader["Status"]);
+            mode = S(reader["Mode"]);
+            yearId = reader["EducationYearID"] is DBNull ? 0 : I(reader["EducationYearID"]);
+            message = reader["Message"] is DBNull ? null : S(reader["Message"]);
+        }
+
+        if (string.Equals(status, "Done", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase))
+        {
+            if (total > 0)
+                deleted = total;
+        }
+        else if (string.Equals(status, "Running", StringComparison.OrdinalIgnoreCase) && total > 0)
+        {
+            if (deleted >= total)
+            {
+                await TryEnableLedgerTriggersAsync(con, ct);
+                await FinishProgressAsync(con, schoolId, total, true,
+                    "Institution reset to new-signup state successfully.", ct);
+                status = "Done";
+                deleted = total;
+                message = "Institution reset to new-signup state successfully.";
+            }
+            else
+            {
+                var rawDeleted = deleted;
+                long remaining = -1;
+                try
+                {
+                    (remaining, _) = await CountResetRemainingAsync(con, schoolId, mode, yearId, ct);
+                }
+                catch
+                {
+                    remaining = -1;
+                }
+                if (remaining >= 0)
+                {
+                    var estimated = Math.Max(0, total - remaining);
+                    if (estimated > deleted)
+                        deleted = estimated;
+                }
+
+                if (deleted > total)
+                    deleted = total;
+
+                var leftoverOk = remaining >= 0 && remaining <= Math.Max(80, total / 20);
+                var mostlyGone = remaining == 0
+                                 || (leftoverOk && (rawDeleted >= total || deleted >= total * 85 / 100))
+                                 || deleted >= total;
+                if (mostlyGone)
+                {
+                    await TryEnableLedgerTriggersAsync(con, ct);
+                    await FinishProgressAsync(con, schoolId, total, true,
+                        "Institution reset to new-signup state successfully.", ct);
+                    status = "Done";
+                    deleted = total;
+                    message = "Institution reset to new-signup state successfully.";
+                }
+            }
+        }
+
+        if (total > 0 && deleted > total)
+            deleted = total;
+
         var percent = 0;
         if (total > 0)
         {
@@ -144,11 +342,11 @@ FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
         {
             Ok = true,
             HasProgress = true,
-            Mode = S(reader["Mode"]),
+            Mode = mode,
             DeletedRows = deleted,
             TotalRows = total,
             Status = status,
-            Message = reader["Message"] is DBNull ? null : S(reader["Message"]),
+            Message = message,
             Percent = percent
         };
     }
@@ -213,7 +411,7 @@ FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
         var sw = Stopwatch.StartNew();
         await using var con = _connections.Create();
         await con.OpenAsync();
-        await UpsertProgressRunningAsync(con, schoolId, mode, educationYearId, totalRowsEstimate, CancellationToken.None);
+        await EnsureProgressTableAsync(con, CancellationToken.None);
 
         await using var cmd = new SqlCommand("dbo.sp_ResetInstitutionData", con)
         {
@@ -235,24 +433,34 @@ FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
         int? deletedFromResult = null;
         var errorLine = 0;
 
-        await using (var reader = await cmd.ExecuteReaderAsync())
+        try
         {
-            do
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                if (!HasColumn(reader, "Status"))
-                    continue;
-                if (!await reader.ReadAsync())
-                    continue;
-                status = S(reader["Status"]);
-                if (HasColumn(reader, "Message") && reader["Message"] is not DBNull)
-                    message = S(reader["Message"]);
-                if (HasColumn(reader, "DeletedRows") && reader["DeletedRows"] is not DBNull)
-                    deletedFromResult = Convert.ToInt32(reader["DeletedRows"]);
-                if (HasColumn(reader, "ErrorLine") && reader["ErrorLine"] is not DBNull)
-                    errorLine = Convert.ToInt32(reader["ErrorLine"]);
-                break;
+                do
+                {
+                    if (!HasColumn(reader, "Status"))
+                        continue;
+                    if (!await reader.ReadAsync())
+                        continue;
+                    status = S(reader["Status"]);
+                    if (HasColumn(reader, "Message") && reader["Message"] is not DBNull)
+                        message = S(reader["Message"]);
+                    if (HasColumn(reader, "DeletedRows") && reader["DeletedRows"] is not DBNull)
+                        deletedFromResult = Convert.ToInt32(reader["DeletedRows"]);
+                    if (HasColumn(reader, "ErrorLine") && reader["ErrorLine"] is not DBNull)
+                        errorLine = Convert.ToInt32(reader["ErrorLine"]);
+                    break;
+                }
+                while (await reader.NextResultAsync());
             }
-            while (await reader.NextResultAsync());
+        }
+        catch (SqlException ex) when (IsExecuteDenied(ex))
+        {
+            await FinishProgressAsync(con, schoolId, 0, false,
+                "EXECUTE permission denied on sp_ResetInstitutionData. Run Database_Scripts/Grant_InstitutionReset_Execute.sql on the Edu database.",
+                CancellationToken.None);
+            return;
         }
 
         sw.Stop();
@@ -261,6 +469,7 @@ FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
 
         var deleted = deletedFromResult
                       ?? (deletedParam.Value is DBNull or null ? 0 : Convert.ToInt32(deletedParam.Value));
+        if (deleted < 0) deleted = 0;
 
         if (string.IsNullOrEmpty(status))
         {
@@ -277,6 +486,13 @@ FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID
             message += " (line " + errorLine + ")";
 
         var ok = string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase);
+        if (totalRowsEstimate > 0)
+        {
+            if (deleted > totalRowsEstimate)
+                deleted = (int)Math.Min(int.MaxValue, totalRowsEstimate);
+            else if (ok && deleted < totalRowsEstimate)
+                deleted = (int)Math.Min(int.MaxValue, totalRowsEstimate);
+        }
         if (ok && string.IsNullOrEmpty(message))
             message = "Done in " + FormatElapsed(sw.Elapsed) + ". Deleted rows: " + deleted;
         await FinishProgressAsync(con, schoolId, deleted, ok, message, CancellationToken.None);
@@ -343,15 +559,40 @@ SET DeletedRows = @DeletedRows,
     Message = @Message,
     UpdatedAt = SYSUTCDATETIME()
 WHERE SchoolID = @SchoolID
+  AND (@Ok = 1 OR Status = N'Running')
 """, con);
             cmd.Parameters.AddWithValue("@SchoolID", schoolId);
             cmd.Parameters.AddWithValue("@DeletedRows", deletedRows);
             cmd.Parameters.AddWithValue("@Status", ok ? "Done" : "Error");
             cmd.Parameters.AddWithValue("@Message", (object?)message ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Ok", ok ? 1 : 0);
             await cmd.ExecuteNonQueryAsync(ct);
         }
         catch
         {
+        }
+    }
+
+    private static async Task TryEnableLedgerTriggersAsync(SqlConnection con, CancellationToken ct)
+    {
+        string[] tables =
+        [
+            "AccountIN_Record", "AccountOUT_Record", "Income_PaymentRecord", "Income_PayOrder",
+            "Income_MoneyReceipt", "Expenditure", "Extra_Income"
+        ];
+        foreach (var table in tables)
+        {
+            try
+            {
+                await using var cmd = new SqlCommand(
+                    "IF OBJECT_ID(N'dbo.' + @Table, N'U') IS NOT NULL EXEC(N'ENABLE TRIGGER ALL ON dbo.' + QUOTENAME(@Table));",
+                    con);
+                cmd.Parameters.AddWithValue("@Table", table);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+            catch
+            {
+            }
         }
     }
 

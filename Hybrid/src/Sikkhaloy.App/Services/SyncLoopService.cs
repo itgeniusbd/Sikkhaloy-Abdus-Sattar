@@ -32,7 +32,7 @@ public sealed class SyncLoopService : IDisposable
     {
         if (_session.Current is null || string.IsNullOrWhiteSpace(_session.AccessToken))
             return;
-        var bootstrap = _session.AwaitInitialSync && !_session.IsStudent;
+        var bootstrap = _session.AwaitInitialSync && !_session.IsStudent && !_session.IsTeacher;
         if (bootstrap)
         {
             _session.MarkSyncOverlaySeen();

@@ -1,0 +1,540 @@
+@inherits LocaleAwareComponent
+
+<div class="fbx">
+    @if (EnableSearch)
+    {
+        <div class="fbx-search">
+            <input type="search"
+                   value="@listQuery"
+                   placeholder="@Locale.T("fb.listSearch")"
+                   @oninput="OnListSearch" />
+        </div>
+    }
+
+    <div class="fbx-chips">
+        <button type="button" class="@(status == "all" ? "is-on" : null)" @onclick="ShowAllStatus">
+            @Locale.T("fb.all") <em>@CountAll</em>
+        </button>
+        <button type="button" class="@(status == "Pending" ? "is-on is-pending" : null)" @onclick="ShowPending">
+            @Locale.T("fb.pending") <em>@CountPending</em>
+        </button>
+        <button type="button" class="@(status == "Processing" ? "is-on is-work" : null)" @onclick="ShowProcessing">
+            @Locale.T("fb.processing") <em>@CountProcessing</em>
+        </button>
+        <button type="button" class="@(status == "Solved" ? "is-on is-ok" : null)" @onclick="ShowSolved">
+            @Locale.T("fb.solved") <em>@CountSolved</em>
+        </button>
+    </div>
+    <div class="fbx-kinds">
+        <button type="button" class="@(kind == "all" ? "is-on" : null)" @onclick="ShowAllKind">@Locale.T("fb.all")</button>
+        <button type="button" class="@(kind == "Complaint" ? "is-on" : null)" @onclick="ShowComplaints">@Locale.T("stu.complaint")</button>
+        <button type="button" class="@(kind == "Suggestion" ? "is-on" : null)" @onclick="ShowSuggestions">@Locale.T("stu.suggestion")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Error))
+    {
+        <NetBanner Text="@Error" />
+    }
+
+    @if (Loading)
+    {
+        <p class="muted">@Locale.T("stu.loading")</p>
+    }
+    else if (Visible.Count == 0)
+    {
+        <p class="muted">@Locale.T("fb.empty")</p>
+    }
+    else
+    {
+        @foreach (var row in Visible)
+        {
+            var isOpen = openId == row.FeedbackID;
+            var isNew = HighlightUnread ? !row.IsRead : row.Status == "Pending";
+            <article class="fbx-card @(isNew ? "is-new" : null) @(row.Status == "Solved" ? "is-done" : null) @(isOpen ? "is-open" : null)"
+                     @onclick="() => Toggle(row)">
+                <div class="fbx-card-h">
+                    <span class="fbx-ico @(row.Kind.Equals("Suggestion", StringComparison.OrdinalIgnoreCase) ? "is-tip" : "is-cmp")">
+                        @(row.Kind.Equals("Suggestion", StringComparison.OrdinalIgnoreCase) ? TipIco : CmpIco)
+                    </span>
+                    <div class="fbx-card-main">
+                        <div class="fbx-title-row">
+                            <strong>@row.Title</strong>
+                            <span class="fbx-badges">
+                                <em class="fbx-kind @(row.Kind.Equals("Suggestion", StringComparison.OrdinalIgnoreCase) ? "is-tip" : null)">
+                                    @KindLabel(row.Kind)
+                                </em>
+                                <em class="fbx-status @StatusClass(row.Status)">@StatusLabel(row.Status)</em>
+                                <button type="button"
+                                        class="fbx-msg @(row.UnreadReplyCount > 0 ? "has-unread" : null)"
+                                        title="@Locale.T("fb.replies")"
+                                        @onclick="() => OpenReplyPopup(row)"
+                                        @onclick:stopPropagation="true">
+                                    @MsgIco
+                                    <span class="fbx-msg-total">@row.ReplyCount</span>
+                                    @if (row.UnreadReplyCount > 0)
+                                    {
+                                        <em class="fbx-msg-unread">@Badge(row.UnreadReplyCount)</em>
+                                    }
+                                </button>
+                            </span>
+                        </div>
+                        <p class="fbx-meta-top">
+                            <span>@SenderLine(row)</span>
+                            <span>@row.CreatedAt.ToString("d MMM yyyy h:mm tt")</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="fbx-body">
+                    <p>@row.Body</p>
+                </div>
+
+                <div class="fbx-meta-foot">
+                    <span>@Locale.T("fb.to", RecipientShort(row))</span>
+                    @if (HasAssigner(row))
+                    {
+                        <span>@Locale.T("fb.from", AssignerShort(row))</span>
+                    }
+                    @if (HasProcessor(row))
+                    {
+                        <span>@Locale.T("fb.processedBy", PersonShort(row.ProcessingByName, row.ProcessingByDesignation))</span>
+                    }
+                    @if (HasSolver(row))
+                    {
+                        <span class="is-ok">@Locale.T("fb.solvedBy", PersonShort(row.SolvedByName, row.SolvedByDesignation))</span>
+                    }
+                </div>
+
+                @if (isOpen && (CanAssign || CanChangeStatus))
+                {
+                    <div class="fbx-actions" @onclick:stopPropagation="true">
+                        @if (CanAssign && Recipients.Count > 0)
+                        {
+                            <button type="button" class="acc-btn" disabled="@Busy" @onclick="() => OpenAssignPopup(row)">
+                                @Locale.T("fb.assign")
+                            </button>
+                        }
+                        @if (CanChangeStatus && row.Status == "Pending")
+                        {
+                            <button type="button" class="acc-btn acc-btn-primary" disabled="@Busy" @onclick="() => OnMarkProcessing.InvokeAsync(row)">
+                                @Locale.T("fb.markProcessing")
+                            </button>
+                        }
+                        @if (CanChangeStatus && row.Status == "Processing")
+                        {
+                            <button type="button" class="acc-btn acc-btn-primary" disabled="@Busy" @onclick="() => OnMarkSolved.InvokeAsync(row)">
+                                @Locale.T("fb.markSolved")
+                            </button>
+                        }
+                    </div>
+                }
+            </article>
+        }
+    }
+
+    <div class="fbx-banner">
+        <span>@BulbIco</span>
+        <div>
+            <strong>@Locale.T("fb.footerBanner")</strong>
+            <small>@Locale.T("fb.footerSub")</small>
+        </div>
+    </div>
+</div>
+
+@if (replyRow is not null)
+{
+    <div class="fbx-pop-back" @onclick="CloseReplyPopup">
+        <div class="fbx-pop" @onclick:stopPropagation="true">
+            <div class="fbx-pop-head">
+                <div>
+                    <h3>@Locale.T("fb.replies")</h3>
+                    <small>@replyRow.Title</small>
+                </div>
+                <button type="button" class="fbx-pop-x" @onclick="CloseReplyPopup" aria-label="@Locale.T("header.colorClose")">×</button>
+            </div>
+            <div class="fbx-pop-body">
+                @if (replyRow.Replies.Count == 0)
+                {
+                    <p class="fbx-thread-empty">@Locale.T("fb.replyEmpty")</p>
+                }
+                else
+                {
+                    @foreach (var reply in replyRow.Replies)
+                    {
+                        <div class="fbx-reply @(reply.FromCategory.Equals("Student", StringComparison.OrdinalIgnoreCase) ? "is-stu" : "is-staff")">
+                            <div class="fbx-reply-h">
+                                <strong>@ReplyAuthor(reply)</strong>
+                                <small>@reply.CreatedAt.ToString("d MMM yyyy h:mm tt")</small>
+                            </div>
+                            <p>@reply.Body</p>
+                        </div>
+                    }
+                }
+            </div>
+            @if (CanReply)
+            {
+                <div class="fbx-pop-foot">
+                    <textarea rows="3"
+                              maxlength="4000"
+                              placeholder="@Locale.T("fb.replyHint")"
+                              disabled="@Busy"
+                              @bind="replyDraft"
+                              @bind:event="oninput"></textarea>
+                    <button type="button"
+                            class="acc-btn acc-btn-primary"
+                            disabled="@(Busy || string.IsNullOrWhiteSpace(replyDraft))"
+                            @onclick="() => SendReply(replyRow)">
+                        @Locale.T("fb.sendReply")
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (assignRow is not null)
+{
+    <div class="fbx-pop-back" @onclick="CloseAssignPopup">
+        <div class="fbx-pop fbx-pop-assign" @onclick:stopPropagation="true">
+            <div class="fbx-pop-head">
+                <div>
+                    <h3>@Locale.T("fb.assign")</h3>
+                    <small>@assignRow.Title</small>
+                </div>
+                <button type="button" class="fbx-pop-x" @onclick="CloseAssignPopup" aria-label="@Locale.T("header.colorClose")">×</button>
+            </div>
+            <div class="fbx-pop-body">
+                <p class="fbx-assign-current">@Locale.T("fb.to", SelectedAssignLabel)</p>
+                <input type="search"
+                       class="fbx-assign-search"
+                       value="@assignQuery"
+                       placeholder="@Locale.T("fb.assignSearch")"
+                       disabled="@Busy"
+                       @oninput="OnAssignSearch" />
+                <div class="fbx-assign-list">
+                    @if (FilteredRecipients.Count == 0)
+                    {
+                        <em class="fb-pick-empty">@Locale.T("fb.assignNone")</em>
+                    }
+                    else
+                    {
+                        @foreach (var person in FilteredRecipients)
+                        {
+                            <button type="button"
+                                    class="@(person.RegistrationID.ToString() == assignId ? "is-on" : null)"
+                                    disabled="@Busy"
+                                    @onclick="() => PickAssign(person)">
+                                @RecipientLabel(person)
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="fbx-pop-foot">
+                <button type="button"
+                        class="acc-btn acc-btn-primary"
+                        disabled="@(Busy || !CanConfirmAssign)"
+                        @onclick="() => AssignGo(assignRow)">
+                    @Locale.T("fb.assignGo")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<StudentFeedbackItemDto> Rows { get; set; } = [];
+    [Parameter] public IReadOnlyList<StudentFeedbackRecipientDto> Recipients { get; set; } = [];
+    [Parameter] public bool CanAssign { get; set; }
+    [Parameter] public bool CanReply { get; set; } = true;
+    [Parameter] public bool CanChangeStatus { get; set; } = true;
+    [Parameter] public bool EnableSearch { get; set; }
+    [Parameter] public bool HighlightUnread { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public EventCallback<StudentFeedbackItemDto> OnOpened { get; set; }
+    [Parameter] public EventCallback<StudentFeedbackItemDto> OnMarkProcessing { get; set; }
+    [Parameter] public EventCallback<StudentFeedbackItemDto> OnMarkSolved { get; set; }
+    [Parameter] public EventCallback<(StudentFeedbackItemDto Row, int ToId)> OnAssign { get; set; }
+    [Parameter] public EventCallback<(StudentFeedbackItemDto Row, string Body)> OnReply { get; set; }
+    [Parameter] public EventCallback<StudentFeedbackItemDto> OnOpenReplies { get; set; }
+
+    private string status = "all";
+    private string kind = "all";
+    private string listQuery = "";
+    private string assignId = "0";
+    private string assignQuery = "";
+    private string replyDraft = "";
+    private int openId;
+    private int lastRowsVersion = -1;
+    private StudentFeedbackItemDto? replyRow;
+    private StudentFeedbackItemDto? assignRow;
+
+    private static readonly MarkupString TipIco = Ico("""<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>""");
+    private static readonly MarkupString CmpIco = Ico("""<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>""");
+    private static readonly MarkupString BulbIco = Ico("""<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>""");
+    private static readonly MarkupString MsgIco = Ico("""<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>""");
+
+    protected override void OnParametersSet()
+    {
+        var version = Rows?.Count ?? 0;
+        if (version != lastRowsVersion)
+        {
+            lastRowsVersion = version;
+            var list = Rows ?? [];
+            if (version > 0 && kind != "all" && !list.Any(x => x.Kind.Equals(kind, StringComparison.OrdinalIgnoreCase)))
+                kind = "all";
+            if (version > 0 && status != "all" && !list.Any(x => x.Status == status))
+                status = "all";
+        }
+
+        if (replyRow is not null)
+        {
+            var fresh = (Rows ?? []).FirstOrDefault(x => x.FeedbackID == replyRow.FeedbackID);
+            if (fresh is not null)
+                replyRow = fresh;
+        }
+        if (assignRow is not null)
+        {
+            var fresh = (Rows ?? []).FirstOrDefault(x => x.FeedbackID == assignRow.FeedbackID);
+            if (fresh is not null)
+                assignRow = fresh;
+        }
+    }
+
+    private int CountAll => SearchedKind.Count();
+    private int CountPending => SearchedKind.Count(x => x.Status == "Pending");
+    private int CountProcessing => SearchedKind.Count(x => x.Status == "Processing");
+    private int CountSolved => SearchedKind.Count(x => x.Status == "Solved");
+
+    private IEnumerable<StudentFeedbackItemDto> Searched
+    {
+        get
+        {
+            IEnumerable<StudentFeedbackItemDto> list = Rows ?? [];
+            var q = listQuery.Trim();
+            if (q.Length == 0)
+                return list;
+            return list.Where(x => MatchesSearch(x, q));
+        }
+    }
+
+    private IEnumerable<StudentFeedbackItemDto> SearchedKind
+    {
+        get
+        {
+            var list = Searched;
+            if (kind is "Complaint" or "Suggestion")
+                list = list.Where(x => x.Kind.Equals(kind, StringComparison.OrdinalIgnoreCase));
+            return list;
+        }
+    }
+
+    private void ShowAllStatus() => status = "all";
+    private void ShowPending() => status = "Pending";
+    private void ShowProcessing() => status = "Processing";
+    private void ShowSolved() => status = "Solved";
+    private void ShowAllKind() => kind = "all";
+    private void ShowComplaints() => kind = "Complaint";
+    private void ShowSuggestions() => kind = "Suggestion";
+    private void OnListSearch(ChangeEventArgs e) => listQuery = e.Value?.ToString() ?? "";
+
+    private IReadOnlyList<StudentFeedbackItemDto> Visible
+    {
+        get
+        {
+            IEnumerable<StudentFeedbackItemDto> list = SearchedKind;
+            if (status is "Pending" or "Processing" or "Solved")
+                list = list.Where(x => x.Status == status);
+            return list.ToList();
+        }
+    }
+
+    private IReadOnlyList<StudentFeedbackRecipientDto> FilteredRecipients
+    {
+        get
+        {
+            var q = assignQuery.Trim();
+            if (q.Length == 0)
+                return Recipients;
+            return Recipients
+                .Where(x => RecipientLabel(x).Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private string SelectedAssignLabel
+    {
+        get
+        {
+            if (!int.TryParse(assignId, out var id) || id <= 0)
+                return Locale.T("fb.assignPick");
+            var person = Recipients.FirstOrDefault(x => x.RegistrationID == id);
+            return person is null ? Locale.T("fb.assignPick") : RecipientLabel(person);
+        }
+    }
+
+    private bool CanConfirmAssign =>
+        int.TryParse(assignId, out var id) && id > 0;
+
+    private async Task Toggle(StudentFeedbackItemDto row)
+    {
+        var same = openId == row.FeedbackID;
+        openId = same ? 0 : row.FeedbackID;
+        if (!same)
+            await OnOpened.InvokeAsync(row);
+    }
+
+    private async Task OpenReplyPopup(StudentFeedbackItemDto row)
+    {
+        replyRow = row;
+        replyDraft = "";
+        row.UnreadReplyCount = 0;
+        await OnOpenReplies.InvokeAsync(row);
+    }
+
+    private void CloseReplyPopup()
+    {
+        replyRow = null;
+        replyDraft = "";
+    }
+
+    private void OpenAssignPopup(StudentFeedbackItemDto row)
+    {
+        assignRow = row;
+        assignId = row.ToRegistrationID.ToString();
+        assignQuery = "";
+    }
+
+    private void CloseAssignPopup()
+    {
+        assignRow = null;
+        assignQuery = "";
+    }
+
+    private void OnAssignSearch(ChangeEventArgs e) => assignQuery = e.Value?.ToString() ?? "";
+
+    private void PickAssign(StudentFeedbackRecipientDto person)
+    {
+        assignId = person.RegistrationID.ToString();
+        assignQuery = "";
+    }
+
+    private async Task AssignGo(StudentFeedbackItemDto row)
+    {
+        if (!int.TryParse(assignId, out var to) || to <= 0)
+            return;
+        await OnAssign.InvokeAsync((row, to));
+        CloseAssignPopup();
+    }
+
+    private async Task SendReply(StudentFeedbackItemDto row)
+    {
+        var text = replyDraft.Trim();
+        if (text.Length == 0)
+            return;
+        await OnReply.InvokeAsync((row, text));
+        replyDraft = "";
+        row.ReplyCount = row.Replies.Count;
+        row.UnreadReplyCount = 0;
+    }
+
+    private bool MatchesSearch(StudentFeedbackItemDto row, string q) =>
+        row.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || row.Body.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || row.StudentName.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || row.StudentCode.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || row.ToName.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || row.AssignedByName.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || ClassLine(row).Contains(q, StringComparison.OrdinalIgnoreCase);
+
+    private string KindLabel(string value) =>
+        value.Equals("Suggestion", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T("stu.suggestion")
+            : Locale.T("stu.complaint");
+
+    private string StatusLabel(string value) => value switch
+    {
+        "Processing" => Locale.T("fb.processing"),
+        "Solved" => Locale.T("fb.solved"),
+        _ => Locale.T("fb.pending")
+    };
+
+    private static string StatusClass(string value) => value switch
+    {
+        "Processing" => "is-work",
+        "Solved" => "is-ok",
+        _ => "is-wait"
+    };
+
+    private string RecipientLabel(StudentFeedbackRecipientDto person)
+    {
+        var name = person.Name.Trim();
+        var post = person.Designation.Trim();
+        var tag = person.Category.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            ? $" ({Locale.T("fb.mainAdmin")})"
+            : person.Category.Equals("Teacher", StringComparison.OrdinalIgnoreCase)
+                ? $" ({Locale.T("tch.teacher")})"
+                : "";
+        return string.IsNullOrWhiteSpace(post) ? name + tag : $"{name} — {post}{tag}";
+    }
+
+    private static string RecipientShort(StudentFeedbackItemDto row) =>
+        PersonShort(row.ToName, row.ToDesignation);
+
+    private static bool HasAssigner(StudentFeedbackItemDto row) =>
+        row.AssignedByRegistrationID > 0 || !string.IsNullOrWhiteSpace(row.AssignedByName);
+
+    private static bool HasProcessor(StudentFeedbackItemDto row) =>
+        row.ProcessingByRegistrationID > 0 || !string.IsNullOrWhiteSpace(row.ProcessingByName);
+
+    private static bool HasSolver(StudentFeedbackItemDto row) =>
+        row.SolvedByRegistrationID > 0 || !string.IsNullOrWhiteSpace(row.SolvedByName);
+
+    private static string AssignerShort(StudentFeedbackItemDto row) =>
+        PersonShort(row.AssignedByName, row.AssignedByDesignation);
+
+    private static string PersonShort(string name, string post)
+    {
+        var n = (name ?? "").Trim();
+        if (n.Length == 0) n = "—";
+        var p = (post ?? "").Trim();
+        return string.IsNullOrWhiteSpace(p) ? n : $"{n} ({p})";
+    }
+
+    private static string SenderLine(StudentFeedbackItemDto row)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(row.StudentName)) parts.Add(row.StudentName.Trim());
+        if (!string.IsNullOrWhiteSpace(row.StudentCode)) parts.Add(row.StudentCode.Trim());
+        var cls = ClassLine(row);
+        if (!string.IsNullOrWhiteSpace(cls)) parts.Add(cls);
+        return string.Join(" · ", parts);
+    }
+
+    private string ReplyAuthor(StudentFeedbackReplyDto reply)
+    {
+        var name = PersonShort(reply.FromName, reply.FromDesignation);
+        if (reply.FromCategory.Equals("Student", StringComparison.OrdinalIgnoreCase))
+            return $"{name} · {Locale.T("att.student")}";
+        if (reply.FromCategory.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
+            return $"{name} · {Locale.T("tch.teacher")}";
+        if (reply.FromCategory.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            return $"{name} · {Locale.T("fb.mainAdmin")}";
+        return name;
+    }
+
+    private static string ClassLine(StudentFeedbackItemDto row)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(row.ClassName)) parts.Add(row.ClassName);
+        if (!string.IsNullOrWhiteSpace(row.SectionName)) parts.Add(row.SectionName);
+        return string.Join(" / ", parts);
+    }
+
+    private static string Badge(int count) => count > 99 ? "99+" : count.ToString();
+
+    private static MarkupString Ico(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
+}

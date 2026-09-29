@@ -16,6 +16,8 @@ public sealed class ReportLineDto
     public string Category { get; set; } = "";
     public string SubCategory { get; set; } = "";
     public string Details { get; set; } = "";
+    public string ReceiptNo { get; set; } = "";
+    public string ReceiptKind { get; set; } = "";
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public DateTime? ActivityDate { get; set; }

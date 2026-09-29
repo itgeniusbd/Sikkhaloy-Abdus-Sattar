@@ -247,6 +247,9 @@
         else if (!string.IsNullOrWhiteSpace(reportError) && tab != "studentreport")
         {
             <NetBanner Text="@reportError" />
+            <div class="report-retry no-print" style="margin:0.65rem 0 0;display:flex;gap:0.5rem;align-items:center;">
+                <button type="button" class="btn-primary" disabled="@reportBusy" @onclick="RetryActiveReportPart">@Locale.T("report.retry")</button>
+            </div>
         }
         else if (tab == "result")
         {
@@ -748,6 +751,9 @@
     private bool subLoaded;
     private bool accLoaded;
     private bool faultLoaded;
+    private readonly Dictionary<string, Task> _partTasks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string?> _partErrors = new(StringComparer.OrdinalIgnoreCase);
+    private int _preloadGen;
     private bool faultBusy;
     private bool faultSaving;
     private bool showFaultModal;
@@ -829,10 +835,15 @@
             await LoadFaultReportsAsync();
         else if (tab != "profile")
             await LoadPartAsync(tab);
+        else
+            _ = PreloadReportPartsAsync();
     }
 
     private void ResetReport()
     {
+        _preloadGen++;
+        _partTasks.Clear();
+        _partErrors.Clear();
         report = null;
         reportError = null;
         resultLoaded = attLoaded = subLoaded = accLoaded = faultLoaded = false;
@@ -854,22 +865,95 @@
         await LoadPartAsync(name);
     }
 
+    private bool IsPartLoaded(string part) => part switch
+    {
+        "result" => resultLoaded,
+        "attendance" => attLoaded,
+        "subjects" => subLoaded,
+        "accounts" => accLoaded,
+        _ => false
+    };
+
+    private async Task PreloadReportPartsAsync()
+    {
+        var gen = _preloadGen;
+        if (Session.Current is null || student is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+
+        // Sequential (lightest first) — parallel WhenAll hammered Sync API/SQL and caused 20–25s timeouts.
+        var parts = new[] { "subjects", "accounts", "result", "attendance" };
+        foreach (var part in parts)
+        {
+            if (gen != _preloadGen)
+                return;
+            try
+            {
+                await EnsurePartTask(part);
+            }
+            catch
+            {
+                // per-part errors kept in _partErrors
+            }
+        }
+
+        if (gen != _preloadGen)
+            return;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task EnsurePartTask(string part)
+    {
+        if (IsPartLoaded(part))
+            return Task.CompletedTask;
+        if (_partTasks.TryGetValue(part, out var existing))
+            return existing;
+
+        var task = LoadPartCoreAsync(part);
+        _partTasks[part] = task;
+        _ = task.ContinueWith(_ =>
+        {
+            _partTasks.Remove(part);
+        }, TaskScheduler.Default);
+        return task;
+    }
+
+    private async Task RetryActiveReportPart()
+    {
+        if (string.IsNullOrWhiteSpace(tab) || tab is "profile" or "studentreport")
+            return;
+        _partErrors.Remove(tab);
+        _partTasks.Remove(tab);
+        if (tab == "result") resultLoaded = false;
+        else if (tab == "attendance") attLoaded = false;
+        else if (tab == "subjects") subLoaded = false;
+        else if (tab == "accounts") accLoaded = false;
+        reportError = null;
+        await LoadPartAsync(tab);
+    }
+
     private async Task LoadPartAsync(string part)
     {
         if (Session.Current is null || student is null || string.IsNullOrWhiteSpace(student.StudentCode))
             return;
-        if (part == "result" && resultLoaded)
+
+        if (IsPartLoaded(part))
+        {
+            reportError = null;
             return;
-        if (part == "attendance" && attLoaded)
-            return;
-        if (part == "subjects" && subLoaded)
-            return;
-        if (part == "accounts" && accLoaded)
-            return;
+        }
+
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
-            reportError = Locale.T("report.needOnline");
+            reportError = Locale.T("report.noToken");
             return;
+        }
+
+        if (_partErrors.TryGetValue(part, out var cachedErr) && cachedErr is not null && !_partTasks.ContainsKey(part))
+        {
+            // allow retry: clear cached error and reload
+            _partErrors.Remove(part);
         }
 
         reportError = null;
@@ -877,7 +961,36 @@
         reportBusy = true;
         try
         {
-            var chunk = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode, part);
+            await EnsurePartTask(part);
+            if (_partErrors.TryGetValue(part, out var err) && !string.IsNullOrWhiteSpace(err))
+                reportError = err;
+            else if (!IsPartLoaded(part))
+                reportError = Locale.T("report.loadFailed");
+            else
+                reportError = null;
+        }
+        finally
+        {
+            reportBusy = false;
+        }
+    }
+
+    private async Task LoadPartCoreAsync(string part)
+    {
+        if (Session.Current is null || student is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return;
+        if (IsPartLoaded(part))
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            _partErrors[part] = Locale.T("report.noToken");
+            return;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+            var chunk = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode, part, timeout.Token);
             report ??= new StudentReportDto();
             report.Found = chunk.Found;
             report.StudentID = chunk.StudentID;
@@ -907,19 +1020,36 @@
                 report.Accounts = chunk.Accounts;
                 accLoaded = true;
             }
+            _partErrors.Remove(part);
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            reportError = Locale.T("report.needOnline");
+            _partErrors[part] = MapReportLoadError(ex);
         }
-        catch (Exception)
+    }
+
+    private string MapReportLoadError(Exception ex)
+    {
+        if (ex is OperationCanceledException or TaskCanceledException)
         {
-            reportError = Locale.T("report.needOnline");
+            if (!Sync.IsOnline)
+                return Locale.T("report.needOnline");
+            return Locale.T("report.timeout");
         }
-        finally
+
+        if (ex is HttpRequestException httpEx)
         {
-            reportBusy = false;
+            if (!Sync.IsOnline)
+                return Locale.T("report.needOnline");
+            var status = httpEx.StatusCode;
+            if (status is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                return Locale.T("login.expired");
+            return Locale.T("report.serverError");
         }
+
+        if (!Sync.IsOnline)
+            return Locale.T("report.needOnline");
+        return Locale.T("report.loadFailed");
     }
 
     private void LoadSchool()

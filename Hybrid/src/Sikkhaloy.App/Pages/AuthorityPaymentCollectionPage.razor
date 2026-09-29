@@ -5,7 +5,7 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="card ab-page">
+<div class="card ab-page ab-page-full">
     <h1>@Locale.T("auth.m.payCollect")</h1>
     <div class="filter-row no-print">
         <select @bind="categoryId" @bind:after="LoadAsync" disabled="@busy">

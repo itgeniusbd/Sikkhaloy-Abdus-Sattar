@@ -2,47 +2,91 @@
 @layout StudentLayout
 @inherits LocaleAwareComponent
 @inject AppSession Session
-@inject ISyncApiClient Api
 @inject NavigationManager Nav
+@inject StudentNoticeInbox Inbox
 
 <div class="sp-page">
-    <h1>@Locale.T("stu.notices")</h1>
+    <div class="sp-page-h">
+        <h1>@Locale.T("stu.hwNotice")</h1>
+        <button type="button" class="sp-mark-all" disabled="@(!HasUnread)" @onclick="MarkAllAsync">
+            @Locale.T("stu.markAllRead")
+        </button>
+    </div>
     @if (loading)
     {
-        <p class="sp-empty">@Locale.T("stu.loading")</p>
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
     }
-    else if (rows.Count == 0)
+    else if (Inbox.Notices.Count == 0)
     {
         <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
     }
     else
     {
-        @foreach (var row in rows)
+        <div class="sp-tabs">
+            <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("stu.homework")</button>
+            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("stu.notice")</button>
+        </div>
+        @if (VisibleRows.Count == 0)
         {
-            <article class="sp-card" style="margin-bottom:0.7rem">
-                <div class="sp-notice">
-                    <b>@row.Title</b>
-                    <small>@(row.IsHomeWork ? Locale.T("stu.homework") : Locale.T("stu.notice")) • @(row.Date?.ToString("d MMM yyyy") ?? "")</small>
-                    <p>@row.Body</p>
-                </div>
-            </article>
+            <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+        }
+        else
+        {
+            @foreach (var row in VisibleRows)
+            {
+                var unread = !Inbox.IsRead(row);
+                <article class="sp-card @(unread ? "is-unread" : null)" style="margin-bottom:0.7rem">
+                    <div class="sp-notice">
+                        <button type="button" class="sp-notice-title @(unread ? "is-new" : null)" @onclick="() => MarkAsync(row)">@row.Title</button>
+                        <small>@(row.Date?.ToString("d MMM yyyy") ?? "")</small>
+                        <p>@row.Body</p>
+                    </div>
+                </article>
+            }
         }
     }
 </div>
 
 @code {
-    private IReadOnlyList<StudentPortalNoticeDto> rows = [];
     private bool loading = true;
+    private int tab;
 
-    protected override async Task OnInitializedAsync()
+    private IReadOnlyList<StudentPortalNoticeDto> VisibleRows =>
+        Inbox.Notices.Where(x => tab == 0 ? x.IsHomeWork : !x.IsHomeWork).ToList();
+
+    protected override void OnInitialized()
     {
+        base.OnInitialized();
         if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-                rows = await Api.GetStudentPortalNoticesAsync(Session.AccessToken);
-        }
-        catch { }
+        Inbox.Changed += OnInboxChanged;
+        loading = Inbox.Notices.Count == 0;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        await Inbox.RefreshAsync();
         loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool HasUnread => Inbox.NoticeUnread > 0 || Inbox.Notices.Any(x => !Inbox.IsRead(x));
+
+    private async Task MarkAsync(StudentPortalNoticeDto row)
+    {
+        if (Inbox.IsRead(row))
+            return;
+        await Inbox.MarkReadAsync(row);
+    }
+
+    private Task MarkAllAsync() => Inbox.MarkAllNoticesAsync();
+
+    private void OnInboxChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Inbox.Changed -= OnInboxChanged;
+        base.Dispose();
     }
 }

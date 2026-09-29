@@ -168,6 +168,7 @@ public sealed class StudentManualRowDto
     public string? LeaveRange { get; set; }
     public bool HasRecord { get; set; }
     public bool SendSms { get; set; }
+    public bool SmsSent { get; set; }
     public bool Selected { get; set; }
 }
 
@@ -392,4 +393,42 @@ public sealed class GenerateFineRequest
     public int ClassID { get; set; }
     public DateTime MonthDate { get; set; }
     public string MonthName { get; set; } = "";
+}
+
+public sealed class AttendanceDisplayDto
+{
+    public List<AttendanceScheduleSummaryDto> StudentSchedules { get; set; } = [];
+    public List<AttendanceScheduleSummaryDto> EmployeeSchedules { get; set; } = [];
+    public List<AttendanceDisplayCardDto> StudentIn { get; set; } = [];
+    public List<AttendanceDisplayCardDto> StudentOut { get; set; } = [];
+    public List<AttendanceDisplayCardDto> EmployeeIn { get; set; } = [];
+    public List<AttendanceDisplayCardDto> EmployeeOut { get; set; } = [];
+}
+
+public sealed class AttendanceScheduleSummaryDto
+{
+    public int ScheduleID { get; set; }
+    public string ScheduleName { get; set; } = "";
+    public string TimeRange { get; set; } = "";
+    public int TotalUser { get; set; }
+    public int CurrentIn { get; set; }
+    public int TotalOut { get; set; }
+    public int TotalPresent { get; set; }
+    public int TotalLate { get; set; }
+    public int TotalLateAbsent { get; set; }
+    public int TotalAbsent { get; set; }
+    /// <summary>Status 'Leave' rows + people on approved leave with no row for the schedule today.</summary>
+    public int TotalLeave { get; set; }
+}
+
+public sealed class AttendanceDisplayCardDto
+{
+    public int PersonID { get; set; }
+    public string Name { get; set; } = "";
+    public string? ScheduleName { get; set; }
+    public string Attendance { get; set; } = "";
+    public string? EntryTime { get; set; }
+    public string? ExitTime { get; set; }
+    public string? ClassOrDesignation { get; set; }
+    public bool IsEmployee { get; set; }
 }

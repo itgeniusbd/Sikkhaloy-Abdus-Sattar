@@ -211,8 +211,12 @@ public sealed partial class AuthorityInvoiceService
         var end = ParseDate(request.EndDate);
         var month = ParseDate(request.MonthName);
         if (issue is null || end is null || month is null) return Fail("ai.needDates");
-        if (string.IsNullOrWhiteSpace(request.InvoiceFor) || request.TotalAmount <= 0)
-            return Fail("ai.needOther");
+        if (string.IsNullOrWhiteSpace(request.InvoiceFor))
+            return Fail("ai.needInvoiceFor");
+        if (request.TotalAmount <= 0 && request.Unit > 0 && request.UnitPrice > 0)
+            request.TotalAmount = Math.Round(request.Unit * request.UnitPrice, 2);
+        if (request.TotalAmount <= 0)
+            return Fail("ai.needTotalAmount");
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
         await using var cmd = new SqlCommand(

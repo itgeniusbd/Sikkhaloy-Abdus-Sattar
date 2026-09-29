@@ -1,0 +1,30 @@
+@page "/payment/cancel"
+@inherits LocaleAwareComponent
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="pay-result is-cancel">
+    <div class="pay-result-card">
+        <div class="pay-result-icon" aria-hidden="true">!</div>
+        <h1>@Locale.T("pay.cancelTitle")</h1>
+        <p class="pay-result-lead">@Locale.T("pay.cancelLead")</p>
+        <div class="pay-result-actions">
+            <button type="button" class="pay-result-btn primary" @onclick="GoSms">@Locale.T("pay.backSms")</button>
+            <button type="button" class="pay-result-btn" @onclick="GoInvoice">@Locale.T("pay.backInvoice")</button>
+            <button type="button" class="pay-result-btn" @onclick="GoHome">@Locale.T("pay.home")</button>
+        </div>
+        <p class="pay-result-hint">@Locale.T("pay.waitHint")</p>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { await JS.InvokeVoidAsync("sikkhaloyClearPendingPay"); } catch { }
+    }
+
+    private void GoSms() => Nav.NavigateTo("/sms/recharge");
+    private void GoInvoice() => Nav.NavigateTo("/invoice/due");
+    private void GoHome() => Nav.NavigateTo("/");
+}

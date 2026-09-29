@@ -1,0 +1,67 @@
+@page "/teacher/subjects"
+@layout TeacherLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("tch.classSubjects")</h1>
+    @if (loading)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.loading")</p></article>
+    }
+    else if (groups.Count == 0)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+    }
+    else
+    {
+        @foreach (var group in groups)
+        {
+            <article class="sp-card" style="margin-bottom:0.75rem">
+                <div class="sp-card-h">
+                    <h3>@group.ClassName</h3>
+                    <small>@group.Subjects.Count</small>
+                </div>
+                @for (var i = 0; i < group.Subjects.Count; i++)
+                {
+                    var subject = group.Subjects[i];
+                    <div class="sp-period">
+                        <span class="sp-num">@(i + 1)</span>
+                        <div class="sp-period-txt">
+                            <b>@subject.SubjectName</b>
+                        </div>
+                    </div>
+                }
+            </article>
+        }
+    }
+</div>
+
+@code {
+    private readonly List<ClassGroup> groups = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsTeacher) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                var rows = await Api.GetTeacherPortalSubjectsAsync(Session.AccessToken);
+                groups.AddRange(rows
+                    .GroupBy(x => new { x.ClassID, ClassName = string.IsNullOrWhiteSpace(x.ClassName) ? Locale.T("stu.unknown") : x.ClassName })
+                    .OrderBy(g => g.Key.ClassName)
+                    .Select(g => new ClassGroup(
+                        g.Key.ClassName,
+                        g.OrderBy(x => x.SubjectName).ToList())));
+            }
+        }
+        catch { }
+        loading = false;
+    }
+
+    private sealed record ClassGroup(string ClassName, List<TeacherPortalSubjectDto> Subjects);
+}

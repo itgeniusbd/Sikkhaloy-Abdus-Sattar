@@ -458,42 +458,59 @@ GROUP BY Attendance_Record.StudentClassID, StudentsClass.StudentID;
         if (classId <= 0 || cumulativeNameId <= 0) return dto;
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
+
+        var section = Like(sectionId);
+        var group = Like(groupId);
+        var shift = Like(shiftId);
+
         dto.Title = await ScalarTextAsync(con, """
 SELECT CreateClass.Class + ' - ' + Exam_Cumulative_Name.CumulativeResultName
-FROM CreateClass, Exam_Cumulative_Name
-WHERE CreateClass.ClassID = @ClassID AND Exam_Cumulative_Name.CumulativeNameID = @CumulativeNameID
+FROM CreateClass
+INNER JOIN Exam_Cumulative_Name ON Exam_Cumulative_Name.CumulativeNameID = @CumulativeNameID
+WHERE CreateClass.ClassID = @ClassID
 """, session, ct, c =>
         {
             c.Parameters.AddWithValue("@ClassID", classId);
             c.Parameters.AddWithValue("@CumulativeNameID", cumulativeNameId);
         });
 
+        // Drive from published cumulative rows first (selective), then join class/student.
+        // Equality filters when a concrete section/group/shift is chosen — LIKE '%' blocks indexes.
+        var sql = """
+SELECT sc.StudentClassID, s.StudentID, s.ID, sc.RollNo, s.StudentsName,
+       ecs.Cumulative_StudentID, ecs.ObtainedMark_ofStudent,
+       ecs.Student_Grade, ecs.Student_Point,
+       TRY_CAST(ecs.Position_InExam_Class AS int) AS Position_InExam_Class,
+       TRY_CAST(ecs.Position_InExam_Subsection AS int) AS Position_InExam_Subsection,
+       s.SMSPhoneNo, ecs.PassStatus_InSubject, ecs.Average
+FROM dbo.Exam_Cumulative_Student AS ecs
+INNER JOIN dbo.Exam_Cumulative_Setting AS setg ON ecs.Cumulative_SettingID = setg.Cumulative_SettingID
+INNER JOIN dbo.StudentsClass AS sc ON ecs.StudentClassID = sc.StudentClassID
+INNER JOIN dbo.Student AS s ON sc.StudentID = s.StudentID
+WHERE ecs.SchoolID = @SchoolID
+  AND ecs.EducationYearID = @EducationYearID
+  AND ecs.CumulativeNameID = @CumulativeNameID
+  AND setg.IS_Published = 1
+  AND sc.SchoolID = @SchoolID
+  AND sc.EducationYearID = @EducationYearID
+  AND sc.ClassID = @ClassID
+  AND s.Status = N'Active'
+""";
+        if (section != "%") sql += "\n  AND sc.SectionID = @SectionID";
+        if (group != "%") sql += "\n  AND sc.SubjectGroupID = @SubjectGroupID";
+        if (shift != "%") sql += "\n  AND sc.ShiftID = @ShiftID";
+        sql += "\nORDER BY TRY_CAST(ecs.Position_InExam_Class AS int), TRY_CAST(REPLACE(REPLACE(sc.RollNo, '$', ''), ',', '') AS float)";
+
         var rows = new Dictionary<int, ExamMeritRowDto>();
-        await using (var cmd = new SqlCommand("""
-SELECT StudentsClass.StudentClassID, Student.StudentID, Student.ID, StudentsClass.RollNo, Student.StudentsName,
-       Exam_Cumulative_Student.Cumulative_StudentID, Exam_Cumulative_Student.ObtainedMark_ofStudent,
-       Exam_Cumulative_Student.Student_Grade, Exam_Cumulative_Student.Student_Point,
-       TRY_CAST(Exam_Cumulative_Student.Position_InExam_Class AS int) AS Position_InExam_Class,
-       TRY_CAST(Exam_Cumulative_Student.Position_InExam_Subsection AS int) AS Position_InExam_Subsection,
-       Student.SMSPhoneNo, Exam_Cumulative_Student.PassStatus_InSubject, Exam_Cumulative_Student.Average,
-       Exam_Cumulative_Student.Cumulative_SettingID
-FROM StudentsClass
-INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID
-INNER JOIN Exam_Cumulative_Student ON StudentsClass.StudentClassID = Exam_Cumulative_Student.StudentClassID
-INNER JOIN Exam_Cumulative_Setting ON Exam_Cumulative_Student.Cumulative_SettingID = Exam_Cumulative_Setting.Cumulative_SettingID
-WHERE StudentsClass.ClassID = @ClassID AND StudentsClass.SectionID LIKE @SectionID
-  AND StudentsClass.SubjectGroupID LIKE @SubjectGroupID AND StudentsClass.ShiftID LIKE @ShiftID
-  AND Student.Status = N'Active' AND StudentsClass.EducationYearID = @EducationYearID AND StudentsClass.SchoolID = @SchoolID
-  AND Exam_Cumulative_Student.CumulativeNameID = @CumulativeNameID AND Exam_Cumulative_Setting.IS_Published = 1
-ORDER BY Position_InExam_Class, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS FLOAT) ELSE 0 END
-""", con))
+        await using (var cmd = new SqlCommand(sql, con))
         {
+            cmd.CommandTimeout = 60;
             AddSession(cmd, session);
             cmd.Parameters.AddWithValue("@ClassID", classId);
             cmd.Parameters.AddWithValue("@CumulativeNameID", cumulativeNameId);
-            cmd.Parameters.AddWithValue("@SectionID", Like(sectionId));
-            cmd.Parameters.AddWithValue("@SubjectGroupID", Like(groupId));
-            cmd.Parameters.AddWithValue("@ShiftID", Like(shiftId));
+            if (section != "%") cmd.Parameters.AddWithValue("@SectionID", section);
+            if (group != "%") cmd.Parameters.AddWithValue("@SubjectGroupID", group);
+            if (shift != "%") cmd.Parameters.AddWithValue("@ShiftID", shift);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
             {
@@ -501,6 +518,7 @@ ORDER BY Position_InExam_Class, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 TH
                 var row = new ExamMeritRowDto
                 {
                     StudentResultID = ToInt(reader["Cumulative_StudentID"]),
+                    StudentID = ToInt(reader["StudentID"]),
                     ID = Text(reader["ID"]),
                     Name = Text(reader["StudentsName"]),
                     Phone = Text(reader["SMSPhoneNo"]),
@@ -519,15 +537,20 @@ ORDER BY Position_InExam_Class, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 TH
         }
 
         if (rows.Count == 0) return dto;
+
+        // Same pattern as single-exam merit: fetch marks for class+exam, map in memory.
+        // Avoids hundreds of IN parameters which slow plan compile on large classes.
         await using (var cmd = new SqlCommand("""
-SELECT Exam_Cumulative_Subject.StudentClassID, Subject.SubjectName, Exam_Cumulative_Subject.PassStatus_Subject,
-       Exam_Cumulative_Subject.SubjectType, Exam_Cumulative_Subject.ObtainedMark_ofSubject AS Mark
-FROM Exam_Cumulative_Subject INNER JOIN Subject ON Exam_Cumulative_Subject.SubjectID = Subject.SubjectID
-WHERE Exam_Cumulative_Subject.SchoolID = @SchoolID AND Exam_Cumulative_Subject.EducationYearID = @EducationYearID
-  AND Exam_Cumulative_Subject.CumulativeNameID = @CumulativeNameID AND Exam_Cumulative_Subject.ClassID = @ClassID
-ORDER BY ISNULL(Subject.SN, 999), Subject.SubjectID
+SELECT ecs.StudentClassID, sub.SubjectName, ecs.PassStatus_Subject,
+       ecs.SubjectType, ecs.ObtainedMark_ofSubject AS Mark
+FROM dbo.Exam_Cumulative_Subject AS ecs
+INNER JOIN dbo.Subject AS sub ON ecs.SubjectID = sub.SubjectID
+WHERE ecs.SchoolID = @SchoolID AND ecs.EducationYearID = @EducationYearID
+  AND ecs.CumulativeNameID = @CumulativeNameID AND ecs.ClassID = @ClassID
+ORDER BY ISNULL(sub.SN, 999), sub.SubjectID
 """, con))
         {
+            cmd.CommandTimeout = 60;
             AddSession(cmd, session);
             cmd.Parameters.AddWithValue("@ClassID", classId);
             cmd.Parameters.AddWithValue("@CumulativeNameID", cumulativeNameId);
@@ -548,7 +571,6 @@ ORDER BY ISNULL(Subject.SN, 999), Subject.SubjectID
         }
         return dto;
     }
-
     public async Task<CumulativeResultCardSheetDto> GetCumulativeResultCardsAsync(
         SessionSnapshot session, int classId, int cumulativeNameId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken ct)
     {

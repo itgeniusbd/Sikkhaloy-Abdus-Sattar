@@ -139,7 +139,7 @@
                             <div class="adet-donut" style="@DonutStyle(addCats, acc.TotalAdd)">
                                 <div class="adet-donut-hole">
                                     <small>@Locale.T("rpt.total")</small>
-                                    <strong>@Tk(acc.TotalAdd) @Locale.T("acc.tk")</strong>
+                                    <strong>@Tk(acc.TotalAdd)</strong>
                                 </div>
                             </div>
                         </div>
@@ -184,7 +184,7 @@
                             <div class="adet-donut" style="@DonutStyle(subCats, acc.TotalSub)">
                                 <div class="adet-donut-hole">
                                     <small>@Locale.T("rpt.total")</small>
-                                    <strong>@Tk(acc.TotalSub) @Locale.T("acc.tk")</strong>
+                                    <strong>@Tk(acc.TotalSub)</strong>
                                 </div>
                             </div>
                         </div>
@@ -235,8 +235,11 @@
         await PaintAsync();
         try
         {
-            accounts.AddRange(await Api.GetCashAccountsAsync(Session.AccessToken));
-            await LoadCoreAsync();
+            var accTask = Api.GetCashAccountsAsync(Session.AccessToken);
+            var detTask = Api.GetAccountDetailsAsync(Session.AccessToken, accountId, Parse(fromText), Parse(toText));
+            await Task.WhenAll(accTask, detTask);
+            accounts.AddRange(accTask.Result);
+            items = detTask.Result.ToList();
         }
         catch (Exception ex) { error = ex.Message; }
         finally { busy = false; }
@@ -257,7 +260,7 @@
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false).AsTask();
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
     private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");

@@ -1,0 +1,173 @@
+﻿@page "/basic-settings/website-api-key"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card sa-page ii-page">
+    <header class="sa-head">
+        <p class="sa-kicker">@Locale.T("wak.kicker")</p>
+        <h1>@Locale.T("wak.title")</h1>
+        <p class="sa-lead">@Locale.T("wak.lead")</p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <NetBanner Text="@error" />
+    }
+
+    @if (data is not null)
+    {
+        <div class="sa-form" style="grid-template-columns: 1fr;">
+            <label class="sa-field">
+                @Locale.T("wak.school")
+                <input value="@(string.IsNullOrWhiteSpace(data.SchoolName) ? data.SchoolID.ToString() : $"{data.SchoolName} ({data.SchoolID})")" disabled />
+            </label>
+
+            <label class="sa-field">
+                @Locale.T("wak.key")
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input style="flex:1" type="@(showKey ? "text" : "password")" value="@(data.ApiKey ?? "")" readonly disabled="@busy" />
+                    <button type="button" class="sal-gen" disabled="@(busy || string.IsNullOrWhiteSpace(data.ApiKey))" @onclick="ToggleShow">@Locale.T(showKey ? "wak.hide" : "wak.show")</button>
+                    <button type="button" class="sal-gen" disabled="@(busy || string.IsNullOrWhiteSpace(data.ApiKey))" @onclick="CopyAsync">@Locale.T("wak.copy")</button>
+                </div>
+                <small>@Locale.T("wak.keyHint")</small>
+            </label>
+
+            <label class="sa-field">
+                @Locale.T("wak.hosts")
+                <input @bind="hosts" disabled="@busy" placeholder="@Locale.T("wak.hostsPh")" />
+                <small>@Locale.T("wak.hostsHint")</small>
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(FormatUpdatedBd(data.UpdatedAtUtc)))
+            {
+                <p class="sa-lead">@Locale.T("wak.updated"): @FormatUpdatedBd(data.UpdatedAtUtc)</p>
+            }
+        </div>
+
+        <div class="ii-actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="() => SaveAsync(regenerate: true)">
+                @(data.HasKey ? Locale.T("wak.regen") : Locale.T("wak.generate"))
+            </button>
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="() => SaveAsync(regenerate: false)">
+                @Locale.T("wak.saveHosts")
+            </button>
+            <a class="sal-gen" href="basic-settings/institution" style="text-decoration:none; display:inline-flex; align-items:center;">@Locale.T("wak.backInst")</a>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(okText))
+        {
+            <span class="ii-save-ok">@okText</span>
+        }
+    }
+</div>
+
+@code {
+    private WebsiteApiKeyDto? data;
+    private string hosts = "";
+    private bool busy;
+    private bool showKey;
+    private string? error;
+    private string? okText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        okText = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+            data = await Api.GetWebsiteApiKeyAsync(Session.AccessToken);
+            hosts = data.AllowedHosts ?? "";
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ToggleShow() => showKey = !showKey;
+
+    private static string FormatUpdatedBd(string? utcText)
+    {
+        if (string.IsNullOrWhiteSpace(utcText)) return "";
+        if (!DateTimeOffset.TryParse(utcText, out var utc)) return utcText;
+        var bd = TimeZoneInfo.ConvertTime(utc, TimeZoneInfo.CreateCustomTimeZone(
+            "Bangladesh Standard Time",
+            TimeSpan.FromHours(6),
+            "Bangladesh Standard Time",
+            "Bangladesh Standard Time"));
+        return bd.ToString("dd-MM-yy h:mm tt", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private async Task CopyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(data?.ApiKey)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", data.ApiKey);
+            okText = Locale.T("wak.copied");
+        }
+        catch
+        {
+            error = Locale.T("wak.copyFail");
+        }
+    }
+
+    private async Task SaveAsync(bool regenerate)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        busy = true;
+        error = null;
+        okText = null;
+        try
+        {
+            var result = await Api.SaveWebsiteApiKeyAsync(Session.AccessToken, new WebsiteApiKeySaveRequest
+            {
+                AllowedHosts = hosts,
+                Regenerate = regenerate
+            });
+            if (!result.Succeeded)
+            {
+                error = result.Error ?? Locale.T("wak.saveFail");
+                return;
+            }
+            data = result.Data ?? data;
+            hosts = data?.AllowedHosts ?? hosts;
+            showKey = regenerate;
+            okText = regenerate ? Locale.T("wak.generated") : Locale.T("wak.saved");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

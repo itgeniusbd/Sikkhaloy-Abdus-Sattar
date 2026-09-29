@@ -250,7 +250,7 @@
     private string sortColumn = "Name";
     private bool sortAsc = true;
     private int currentPage = 1;
-    private const int PageSize = 70;
+    private const int PageSize = 100;
     private readonly List<ColumnOption> columns =
     [
         new("photo", "students.photo"),
@@ -351,6 +351,7 @@
         await LoadClassPartsAsync();
         ApplyFilter();
         StateHasChanged();
+        _ = LoadVisiblePhotosAsync();
     }
 
     private async Task RefreshRemoteAsync()
@@ -501,6 +502,7 @@
             Sync.ApplyCachedStudentPhotos(current.SchoolID, students);
             ApplyFilter();
             StateHasChanged();
+            _ = LoadVisiblePhotosAsync();
         }
         catch (HttpRequestException)
         {
@@ -558,6 +560,7 @@
     private async Task PrintAsync()
     {
         printing = true;
+        await LoadMissingPhotosAsync(filtered);
         await InvokeAsync(StateHasChanged);
         await Task.Delay(50);
         await JS.InvokeVoidAsync("sikkhaloyPrint");
@@ -621,6 +624,7 @@
         filtered = Sort(query).ToList();
         if (currentPage > pageCount)
             currentPage = pageCount;
+        _ = LoadVisiblePhotosAsync();
     }
 
     private IEnumerable<StudentDto> Sort(IEnumerable<StudentDto> query)
@@ -665,12 +669,31 @@
     {
         if (currentPage > 1)
             currentPage--;
+        _ = LoadVisiblePhotosAsync();
     }
 
     private void NextPage()
     {
         if (currentPage < pageCount)
             currentPage++;
+        _ = LoadVisiblePhotosAsync();
+    }
+
+    private Task LoadVisiblePhotosAsync() => LoadMissingPhotosAsync(visibleRows);
+
+    private async Task LoadMissingPhotosAsync(IReadOnlyList<StudentDto> rows)
+    {
+        var current = Session.Current;
+        if (current is null || string.IsNullOrWhiteSpace(Session.AccessToken) || rows.Count == 0)
+            return;
+        try
+        {
+            await Sync.EnsureStudentPhotosAsync(current.SchoolID, rows, Session.AccessToken);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
     }
 
     private string ClassOf(StudentDto student)

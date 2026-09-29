@@ -90,44 +90,116 @@
         </div>
 
         <div class="rpt-tabs my-tabs no-print">
-            <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.income")</button>
-            <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.expense")</button>
+            <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => SetTab(0)">@Locale.T("rpt.income")</button>
+            <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => SetTab(1)">@Locale.T("rpt.expense")</button>
         </div>
 
         @if (ActiveGroups.Count == 0)
         {
-            <p class="my-empty-hint">@Locale.T("rpt.empty")</p>
+            <p class="my-empty-hint no-print">@Locale.T("rpt.empty")</p>
         }
+        <div class="my-screen-cats no-print">
         @foreach (var group in ActiveGroups)
         {
-            <div class="my-cat-block @(tab == 0 ? "is-in" : "is-ex")">
-                <div class="my-cat-head">
-                    <h3>@group.Category</h3>
+            var open = IsOpen(group);
+            var take = Shown(group);
+            <div class="my-cat-block @(tab == 0 ? "is-in" : "is-ex") @(open ? "is-open" : null)">
+                <button type="button" class="my-cat-head" @onclick="() => Toggle(group)">
+                    <h3>
+                        <span class="my-cat-chevron" aria-hidden="true"></span>
+                        @group.Category
+                        <small>@group.Lines.Count</small>
+                    </h3>
                     <span>@Tk(group.Total) @Locale.T("acc.tk")</span>
-                </div>
-                <table class="my-table">
+                </button>
+                @if (open)
+                {
+                    <table class="my-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("rpt.account")</th>
+                                <th>@Locale.T("rpt.details")</th>
+                                <th class="num">@Locale.T("rpt.amount")</th>
+                                <th>@Locale.T("rpt.date")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in group.Lines.Take(take))
+                        {
+                            <tr>
+                                <td>@line.AccountName</td>
+                                <td>@line.Details</td>
+                                <td class="num">@Tk(line.Amount)</td>
+                                <td>@line.Date.ToString("d MMM yyyy")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    @if (take < group.Lines.Count)
+                    {
+                        <button type="button" class="my-more-btn" @onclick="() => ShowMore(group)">
+                            @Locale.T("rpt.showMore") (@(group.Lines.Count - take))
+                        </button>
+                    }
+                }
+            </div>
+        }
+        </div>
+
+        <div class="my-print-cats">
+            <section class="my-print-tab is-in">
+                <h2>@Locale.T("rpt.income")</h2>
+                <table>
                     <thead>
                         <tr>
-                            <th>@Locale.T("rpt.account")</th>
-                            <th>@Locale.T("rpt.details")</th>
-                            <th class="num">@Locale.T("rpt.amount")</th>
-                            <th>@Locale.T("rpt.date")</th>
+                            <th>@Locale.T("rpt.category")</th>
+                            <th>@Locale.T("rpt.amount")</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var line in group.Lines)
+                    @foreach (var group in data.IncomeGroups)
                     {
                         <tr>
-                            <td>@line.AccountName</td>
-                            <td>@line.Details</td>
-                            <td class="num">@Tk(line.Amount)</td>
-                            <td>@line.Date.ToString("d MMM yyyy")</td>
+                            <td>@group.Category</td>
+                            <td>@Tk(group.Total) @Locale.T("acc.tk")</td>
                         </tr>
                     }
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>@Locale.T("rpt.total")</th>
+                            <th>@Tk(data.Income) @Locale.T("acc.tk")</th>
+                        </tr>
+                    </tfoot>
                 </table>
-            </div>
-        }
+            </section>
+            <section class="my-print-tab is-ex">
+                <h2>@Locale.T("rpt.expense")</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("rpt.category")</th>
+                            <th>@Locale.T("rpt.amount")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var group in data.ExpenseGroups)
+                    {
+                        <tr>
+                            <td>@group.Category</td>
+                            <td>@Tk(group.Total) @Locale.T("acc.tk")</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>@Locale.T("rpt.total")</th>
+                            <th>@Tk(data.Expense) @Locale.T("acc.tk")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </section>
+        </div>
     }
 </div>
 
@@ -225,6 +297,9 @@
     private string fromText = "", toText = "", error = "";
     private bool busy;
     private int tab;
+    private readonly HashSet<string> openCats = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> shownCounts = new(StringComparer.OrdinalIgnoreCase);
+    private const int PageSize = 80;
 
     private bool showSubmitModal;
     private bool modalBusy;
@@ -258,6 +333,8 @@
     {
         busy = true;
         error = "";
+        openCats.Clear();
+        shownCounts.Clear();
         await PaintAsync();
         try { data = await Api.GetMyAccountsAsync(Session.AccessToken, Reg, Parse(fromText), Parse(toText)); }
         catch (Exception ex) { error = ex.Message; }
@@ -399,8 +476,30 @@
         base.Dispose();
     }
 
+    private void SetTab(int value) => tab = value;
+
+    private string CatKey(ReportGroupDto group) => $"{tab}|{group.Category}";
+
+    private bool IsOpen(ReportGroupDto group) => openCats.Contains(CatKey(group));
+
+    private void Toggle(ReportGroupDto group)
+    {
+        var key = CatKey(group);
+        if (!openCats.Add(key)) openCats.Remove(key);
+    }
+
+    private int Shown(ReportGroupDto group) =>
+        shownCounts.TryGetValue(CatKey(group), out var n) ? n : PageSize;
+
+    private void ShowMore(ReportGroupDto group)
+    {
+        var key = CatKey(group);
+        shownCounts[key] = Shown(group) + PageSize;
+    }
+
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;

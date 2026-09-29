@@ -79,18 +79,213 @@ public sealed partial class AuthorityInvoiceService
 
             await using var recent = new SqlCommand(
                 """
-                SELECT TOP 25 i.InvoiceID, i.SchoolID, s.SchoolName, i.Invoice_SN, c.InvoiceCategory,
-                       i.Invoice_For, i.MonthName, i.IssuDate, i.Unit, i.UnitPrice, i.TotalAmount,
+                ;WITH DueDate AS (
+                    SELECT i.InvoiceID, i.SchoolID, i.Invoice_SN, i.Invoice_For, i.MonthName, i.IssuDate,
+                           i.Unit, i.UnitPrice, i.TotalAmount, i.Discount, i.PaidAmount, i.Due,
+                           i.InvoiceCategoryID,
+                           CASE
+                             WHEN i.IssuDate IS NULL THEN NULL
+                             WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                             ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                           END AS AccessDueDate
+                    FROM dbo.AAP_Invoice i
+                    WHERE i.IsPaid = 0
+                ),
+                SchoolFlags AS (
+                    SELECT s.SchoolID, s.SchoolName, s.AccessGraceUntil,
+                           CASE WHEN s.AccessGraceUntil IS NOT NULL
+                                     AND CAST(s.AccessGraceUntil AS date) >= CAST(GETDATE() AS date)
+                                THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS InGrace
+                    FROM dbo.SchoolInfo s
+                ),
+                Locked AS (
+                    SELECT DISTINCT d.SchoolID
+                    FROM DueDate d
+                    INNER JOIN dbo.AAP_Invoice_Category c ON d.InvoiceCategoryID = c.InvoiceCategoryID
+                    INNER JOIN SchoolFlags f ON f.SchoolID = d.SchoolID
+                    WHERE c.InvoiceCategory <> N'SMS'
+                      AND d.AccessDueDate IS NOT NULL
+                      AND d.AccessDueDate < CAST(GETDATE() AS date)
+                      AND f.InGrace = 0
+                )
+                SELECT d.InvoiceID, d.SchoolID, f.SchoolName, d.Invoice_SN, c.InvoiceCategory,
+                       d.Invoice_For, d.MonthName, d.IssuDate, d.Unit, d.UnitPrice, d.TotalAmount,
+                       d.Discount, d.PaidAmount, d.Due,
+                       f.AccessGraceUntil,
+                       f.InGrace,
+                       CASE WHEN l.SchoolID IS NOT NULL THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS AccessLocked
+                FROM DueDate d
+                INNER JOIN SchoolFlags f ON f.SchoolID = d.SchoolID
+                INNER JOIN dbo.AAP_Invoice_Category c ON d.InvoiceCategoryID = c.InvoiceCategoryID
+                LEFT JOIN Locked l ON l.SchoolID = d.SchoolID
+                ORDER BY d.InvoiceID DESC
+                """, con);
+            recent.CommandTimeout = 120;
+            await using var r2 = await recent.ExecuteReaderAsync(ct);
+            while (await r2.ReadAsync(ct))
+                dto.RecentUnpaid.Add(ReadInvoiceLine(r2));
+        }
+        catch
+        {
+        }
+        return dto;
+    }
+
+    
+    public async Task<AuthUnpaidSchoolsPageDto> GetUnpaidSchoolsAsync(
+        SessionSnapshot session, DateTime? from, DateTime? to, string? q, int? schoolId, CancellationToken ct)
+    {
+        Guard(session);
+        var dto = new AuthUnpaidSchoolsPageDto
+        {
+            From = from,
+            To = to,
+            Query = q?.Trim() ?? "",
+            SchoolID = schoolId is > 0 ? schoolId : null
+        };
+        await using var con = _connections.Create();
+        await con.OpenAsync(ct);
+        try
+        {
+            var sql = """
+                SELECT i.SchoolID, s.SchoolName,
+                       COUNT(*) AS InvoiceCount,
+                       SUM(i.TotalAmount) AS TotalAmount,
+                       SUM(i.PaidAmount) AS PaidAmount,
+                       SUM(i.Due) AS Due,
+                       MIN(i.IssuDate) AS OldestIssue,
+                       MAX(i.IssuDate) AS NewestIssue
+                FROM AAP_Invoice i
+                INNER JOIN SchoolInfo s ON i.SchoolID = s.SchoolID
+                WHERE i.IsPaid = 0
+                """;
+            if (from is not null) sql += " AND CAST(i.IssuDate AS date) >= @from";
+            if (to is not null) sql += " AND CAST(i.IssuDate AS date) <= @to";
+            if (dto.SchoolID is not null) sql += " AND i.SchoolID = @schoolId";
+            if (!string.IsNullOrWhiteSpace(dto.Query))
+                sql += " AND (s.SchoolName LIKE @q OR CAST(i.SchoolID AS varchar(20)) LIKE @q)";
+            sql += """
+                 GROUP BY i.SchoolID, s.SchoolName
+                 ORDER BY Due DESC, s.SchoolName
+                """;
+
+            await using var cmd = new SqlCommand(sql, con);
+            if (from is not null) cmd.Parameters.AddWithValue("@from", from.Value.Date);
+            if (to is not null) cmd.Parameters.AddWithValue("@to", to.Value.Date);
+            if (dto.SchoolID is not null) cmd.Parameters.AddWithValue("@schoolId", dto.SchoolID.Value);
+            if (!string.IsNullOrWhiteSpace(dto.Query))
+                cmd.Parameters.AddWithValue("@q", "%" + dto.Query + "%");
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var row = new AuthUnpaidSchoolRowDto
+                {
+                    SchoolID = I(reader["SchoolID"]),
+                    SchoolName = S(reader["SchoolName"]),
+                    InvoiceCount = I(reader["InvoiceCount"]),
+                    TotalAmount = M(reader["TotalAmount"]),
+                    PaidAmount = M(reader["PaidAmount"]),
+                    Due = M(reader["Due"]),
+                    OldestIssue = Dt(reader["OldestIssue"]),
+                    NewestIssue = Dt(reader["NewestIssue"])
+                };
+                dto.Rows.Add(row);
+                dto.TotalInvoices += row.InvoiceCount;
+                dto.TotalDue += row.Due;
+            }
+            dto.TotalSchools = dto.Rows.Count;
+        }
+        catch
+        {
+        }
+        return dto;
+    }
+
+    public async Task<AuthUnpaidInvoicesPageDto> GetUnpaidInvoicesAsync(
+        SessionSnapshot session, int year, int month, string? q, int? schoolId, CancellationToken ct)
+    {
+        Guard(session);
+        // month 0 = all months; otherwise clamp year/month
+        var allMonths = month <= 0;
+        if (!allMonths)
+        {
+            if (year < 2000 || year > 2100) year = DateTime.Today.Year;
+            if (month > 12) month = DateTime.Today.Month;
+        }
+        else
+        {
+            year = 0;
+            month = 0;
+        }
+        var dto = new AuthUnpaidInvoicesPageDto
+        {
+            Year = year,
+            Month = month,
+            Query = q?.Trim() ?? "",
+            SchoolID = schoolId is > 0 ? schoolId : null
+        };
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(ct);
+        try
+        {
+            var sql = """
+                SELECT i.InvoiceID, i.SchoolID, s.SchoolName, i.Invoice_SN, c.InvoiceCategory,
+                       i.Invoice_For, i.MonthName, i.IssuDate, i.EndDate, i.Unit, i.UnitPrice, i.TotalAmount,
                        i.Discount, i.PaidAmount, i.Due
                 FROM AAP_Invoice i
                 INNER JOIN SchoolInfo s ON i.SchoolID = s.SchoolID
                 INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
                 WHERE i.IsPaid = 0
-                ORDER BY i.InvoiceID DESC
-                """, con);
-            await using var r2 = await recent.ExecuteReaderAsync(ct);
-            while (await r2.ReadAsync(ct))
-                dto.RecentUnpaid.Add(ReadInvoiceLine(r2));
+                """;
+            if (!allMonths)
+            {
+                // Invoice-for month OR issue month (Aug bills still visible when filtering Aug)
+                sql += """
+                   AND (
+                         (i.MonthName IS NOT NULL AND YEAR(i.MonthName) = @y AND MONTH(i.MonthName) = @m)
+                      OR (i.IssuDate IS NOT NULL AND YEAR(i.IssuDate) = @y AND MONTH(i.IssuDate) = @m)
+                   )
+                """;
+            }
+            if (dto.SchoolID is not null) sql += " AND i.SchoolID = @schoolId";
+            if (!string.IsNullOrWhiteSpace(dto.Query))
+                sql += " AND (s.SchoolName LIKE @q OR CAST(i.SchoolID AS varchar(20)) LIKE @q OR i.Invoice_SN LIKE @q OR i.Invoice_For LIKE @q)";
+            sql += " ORDER BY s.SchoolName, i.InvoiceID DESC";
+
+            await using var cmd = new SqlCommand(sql, con);
+            if (!allMonths)
+            {
+                cmd.Parameters.AddWithValue("@y", year);
+                cmd.Parameters.AddWithValue("@m", month);
+            }
+            if (dto.SchoolID is not null) cmd.Parameters.AddWithValue("@schoolId", dto.SchoolID.Value);
+            if (!string.IsNullOrWhiteSpace(dto.Query))
+                cmd.Parameters.AddWithValue("@q", "%" + dto.Query + "%");
+
+            var map = new Dictionary<int, AuthUnpaidInvoiceGroupDto>();
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var line = ReadInvoiceLine(reader);
+                if (!map.TryGetValue(line.SchoolID, out var group))
+                {
+                    group = new AuthUnpaidInvoiceGroupDto
+                    {
+                        SchoolID = line.SchoolID,
+                        SchoolName = line.SchoolName
+                    };
+                    map[line.SchoolID] = group;
+                    dto.Groups.Add(group);
+                }
+                group.Invoices.Add(line);
+                group.InvoiceCount++;
+                group.Due += line.Due;
+                dto.TotalInvoices++;
+                dto.TotalDue += line.Due;
+            }
+            dto.TotalSchools = dto.Groups.Count;
         }
         catch
         {
@@ -107,50 +302,85 @@ public sealed partial class AuthorityInvoiceService
         await con.OpenAsync(ct);
         try
         {
-            await using (var cmd = new SqlCommand(
-                """
-                SELECT COUNT(v.SchoolID) AS Total_Institution,
-                       SUM(v.ActiveStudent + v.Reject_Countable) AS Total_Countable,
-                       SUM(v.ActiveStudent) AS ActiveStudent,
-                       SUM(v.Reject_Countable) AS Reject_Countable,
-                       SUM(v.Reject_Uncountable) AS Reject_Uncountable,
-                       SUM(CASE WHEN s.Fixed = 0 THEN (v.ActiveStudent + v.Reject_Countable) * s.Per_Student_Rate
-                                ELSE s.Fixed END - s.Discount) AS Service_Charge
-                FROM VW_Payment_Monthly_Stu v
-                INNER JOIN SchoolInfo s ON v.SchoolID = s.SchoolID
-                WHERE CAST(s.IS_ServiceChargeActive AS varchar(10)) LIKE @f
-                """, con))
-            {
-                cmd.Parameters.AddWithValue("@f", like);
-                await using var reader = await cmd.ExecuteReaderAsync(ct);
-                if (await reader.ReadAsync(ct))
-                {
-                    dto.Institutions = I(reader["Total_Institution"]);
-                    dto.TotalCountable = I(reader["Total_Countable"]);
-                    dto.ActiveStudent = I(reader["ActiveStudent"]);
-                    dto.RejectCountable = I(reader["Reject_Countable"]);
-                    dto.RejectUncountable = I(reader["Reject_Uncountable"]);
-                    dto.ServiceCharge = M(reader["Service_Charge"]);
-                }
-            }
-
+            // One lean query (avoids scanning VW_Payment_Monthly_Stu twice + FORMAT()).
             await using var grid = new SqlCommand(
                 """
-                SELECT v.SchoolID, s.SchoolName, v.ActiveStudent, v.Reject_Countable, v.Reject_Uncountable,
+                DECLARE @MonthStart date = DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1);
+                DECLARE @MonthNext date = DATEADD(MONTH, 1, @MonthStart);
+
+                ;WITH Schools AS (
+                    SELECT s.SchoolID, s.SchoolName, s.Per_Student_Rate, s.IS_ServiceChargeActive,
+                           s.Discount, s.Fixed, s.Free_SMS
+                    FROM dbo.SchoolInfo s
+                    WHERE s.Validation = N'Valid'
+                      AND (
+                            @f = N'%'
+                         OR (@f = N'1' AND s.IS_ServiceChargeActive = 1)
+                         OR (@f = N'0' AND s.IS_ServiceChargeActive = 0)
+                      )
+                      AND EXISTS (
+                          SELECT 1
+                          FROM dbo.StudentsClass sc
+                          INNER JOIN dbo.Education_Year ey ON sc.EducationYearID = ey.EducationYearID
+                          WHERE sc.SchoolID = s.SchoolID AND ey.IsActive = 1
+                      )
+                ),
+                ActiveStu AS (
+                    SELECT st.SchoolID, COUNT(DISTINCT st.StudentID) AS ActiveStudent
+                    FROM dbo.Student st
+                    INNER JOIN Schools sch ON sch.SchoolID = st.SchoolID
+                    INNER JOIN dbo.StudentsClass sc ON st.StudentID = sc.StudentID
+                    INNER JOIN dbo.Education_Year ey ON sc.EducationYearID = ey.EducationYearID
+                    WHERE st.Status = N'Active' AND ey.IsActive = 1
+                    GROUP BY st.SchoolID
+                ),
+                RejCount AS (
+                    SELECT st.SchoolID, COUNT(DISTINCT st.StudentID) AS Reject_Countable
+                    FROM dbo.Student st
+                    INNER JOIN Schools sch ON sch.SchoolID = st.SchoolID
+                    INNER JOIN dbo.StudentsClass sc ON st.StudentID = sc.StudentID
+                    INNER JOIN dbo.Education_Year ey ON sc.EducationYearID = ey.EducationYearID
+                    WHERE st.Status = N'Rejected'
+                      AND ey.IsActive = 1
+                      AND ISNULL(st.ActiveDays, 0) > 5
+                      AND st.RejectedDate >= @MonthStart
+                      AND st.RejectedDate < @MonthNext
+                    GROUP BY st.SchoolID
+                ),
+                RejUncount AS (
+                    SELECT st.SchoolID, COUNT(DISTINCT st.StudentID) AS Reject_Uncountable
+                    FROM dbo.Student st
+                    INNER JOIN Schools sch ON sch.SchoolID = st.SchoolID
+                    INNER JOIN dbo.StudentsClass sc ON st.StudentID = sc.StudentID
+                    INNER JOIN dbo.Education_Year ey ON sc.EducationYearID = ey.EducationYearID
+                    WHERE st.Status = N'Rejected'
+                      AND ey.IsActive = 1
+                      AND ISNULL(st.ActiveDays, 0) <= 5
+                      AND st.RejectedDate >= @MonthStart
+                      AND st.RejectedDate < @MonthNext
+                    GROUP BY st.SchoolID
+                )
+                SELECT s.SchoolID, s.SchoolName,
+                       ISNULL(a.ActiveStudent, 0) AS ActiveStudent,
+                       ISNULL(rc.Reject_Countable, 0) AS Reject_Countable,
+                       ISNULL(ru.Reject_Uncountable, 0) AS Reject_Uncountable,
                        s.Per_Student_Rate, s.IS_ServiceChargeActive, s.Discount, s.Fixed, s.Free_SMS,
-                       v.ActiveStudent + v.Reject_Countable AS Countable_Stu,
-                       CASE WHEN s.Fixed = 0 THEN (v.ActiveStudent + v.Reject_Countable) * s.Per_Student_Rate
+                       ISNULL(a.ActiveStudent, 0) + ISNULL(rc.Reject_Countable, 0) AS Countable_Stu,
+                       CASE WHEN s.Fixed = 0
+                            THEN (ISNULL(a.ActiveStudent, 0) + ISNULL(rc.Reject_Countable, 0)) * s.Per_Student_Rate
                             ELSE s.Fixed END - s.Discount AS Service_Charge
-                FROM VW_Payment_Monthly_Stu v
-                INNER JOIN SchoolInfo s ON v.SchoolID = s.SchoolID
-                WHERE CAST(s.IS_ServiceChargeActive AS varchar(10)) LIKE @f
+                FROM Schools s
+                LEFT JOIN ActiveStu a ON a.SchoolID = s.SchoolID
+                LEFT JOIN RejCount rc ON rc.SchoolID = s.SchoolID
+                LEFT JOIN RejUncount ru ON ru.SchoolID = s.SchoolID
                 ORDER BY s.SchoolName
                 """, con);
             grid.Parameters.AddWithValue("@f", like);
+            grid.CommandTimeout = 120;
             await using var r2 = await grid.ExecuteReaderAsync(ct);
             while (await r2.ReadAsync(ct))
             {
-                dto.Rows.Add(new AuthProgressRowDto
+                var row = new AuthProgressRowDto
                 {
                     SchoolID = I(r2["SchoolID"]),
                     SchoolName = S(r2["SchoolName"]),
@@ -164,7 +394,14 @@ public sealed partial class AuthorityInvoiceService
                     Discount = M(r2["Discount"]),
                     ServiceCharge = M(r2["Service_Charge"]),
                     PaymentActive = B(r2["IS_ServiceChargeActive"])
-                });
+                };
+                dto.Rows.Add(row);
+                dto.Institutions++;
+                dto.ActiveStudent += row.ActiveStudent;
+                dto.RejectCountable += row.RejectCountable;
+                dto.RejectUncountable += row.RejectUncountable;
+                dto.TotalCountable += row.Countable;
+                dto.ServiceCharge += row.ServiceCharge;
             }
         }
         catch (Exception ex)
@@ -550,7 +787,10 @@ public sealed partial class AuthorityInvoiceService
         Discount = M(reader["Discount"]),
         PaidAmount = M(reader["PaidAmount"]),
         Due = M(reader["Due"]),
-        PayAmount = M(reader["Due"])
+        PayAmount = M(reader["Due"]),
+        GraceUntil = Has(reader, "AccessGraceUntil") ? Dt(reader["AccessGraceUntil"]) : null,
+        InGrace = Has(reader, "InGrace") && B(reader["InGrace"]),
+        AccessLocked = Has(reader, "AccessLocked") && B(reader["AccessLocked"])
     };
 
     private static bool Has(SqlDataReader reader, string name)
@@ -666,3 +906,4 @@ public sealed partial class AuthorityInvoiceService
         cmd.Parameters.AddWithValue("@Type", type);
     }
 }
+
