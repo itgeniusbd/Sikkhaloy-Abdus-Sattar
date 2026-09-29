@@ -95,14 +95,24 @@ BEGIN
         END
     END
 
-    /* Start progress row for UI polling */
+    /* Keep the C# progress row so the UI does not flash 0/0 between DELETE and INSERT. */
     IF @HasProgress = 1
     BEGIN
-        DELETE FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID;
-        INSERT INTO dbo.Institution_Reset_Progress
-            (SchoolID, Mode, EducationYearID, TotalRows, DeletedRows, Status, Message, UpdatedAt)
-        VALUES
-            (@SchoolID, @Mode, @EducationYearID, ISNULL(@TotalRowsEstimate, 0), 0, N'Running', NULL, SYSUTCDATETIME());
+        IF EXISTS (SELECT 1 FROM dbo.Institution_Reset_Progress WHERE SchoolID = @SchoolID)
+            UPDATE dbo.Institution_Reset_Progress
+            SET Mode = @Mode,
+                EducationYearID = @EducationYearID,
+                TotalRows = CASE WHEN ISNULL(@TotalRowsEstimate, 0) > 0 THEN @TotalRowsEstimate ELSE TotalRows END,
+                DeletedRows = 0,
+                Status = N'Running',
+                Message = NULL,
+                UpdatedAt = SYSUTCDATETIME()
+            WHERE SchoolID = @SchoolID;
+        ELSE
+            INSERT INTO dbo.Institution_Reset_Progress
+                (SchoolID, Mode, EducationYearID, TotalRows, DeletedRows, Status, Message, UpdatedAt)
+            VALUES
+                (@SchoolID, @Mode, @EducationYearID, ISNULL(@TotalRowsEstimate, 0), 0, N'Running', NULL, SYSUTCDATETIME());
     END
 
     DECLARE @KeepEducationYearID INT = NULL;
@@ -308,6 +318,10 @@ BEGIN
                         BEGIN
                             SET @DeletedRows = @DeletedRows + @rc;
                             SET @didWork = 1;
+                            IF @HasProgress = 1
+                                UPDATE dbo.Institution_Reset_Progress
+                                SET DeletedRows = @DeletedRows, UpdatedAt = SYSUTCDATETIME()
+                                WHERE SchoolID = @SchoolID AND Status = N'Running';
                         END
                     END TRY
                     BEGIN CATCH
@@ -347,7 +361,8 @@ BEGIN
 
             IF @HasProgress = 1
                 UPDATE dbo.Institution_Reset_Progress
-                SET DeletedRows = @DeletedRows, Status = N'Done', Message = @Message, UpdatedAt = SYSUTCDATETIME()
+                SET DeletedRows = CASE WHEN TotalRows > @DeletedRows THEN TotalRows ELSE @DeletedRows END,
+                    Status = N'Done', Message = @Message, UpdatedAt = SYSUTCDATETIME()
                 WHERE SchoolID = @SchoolID;
 
             SELECT
@@ -679,6 +694,10 @@ BEGIN
                                 EXEC sp_executesql @delSql, N'@SchoolID INT', @SchoolID=@SchoolID;
                                 SET @loopRows = @@ROWCOUNT;
                                 SET @DeletedRows = @DeletedRows + @loopRows;
+                                IF @HasProgress = 1 AND @loopRows > 0
+                                    UPDATE dbo.Institution_Reset_Progress
+                                    SET DeletedRows = @DeletedRows, UpdatedAt = SYSUTCDATETIME()
+                                    WHERE SchoolID = @SchoolID AND Status = N'Running';
                                 IF @loopRows = 0 BREAK;
                             END TRY
                             BEGIN CATCH
@@ -704,84 +723,9 @@ BEGIN
                 SET @Ord = @Ord + 1;
             END
 
-            -- Multi-pass: any remaining dbo tables with SchoolID except keep-list
-            SET @Pass = 0;
-            WHILE @Pass < 25
-            BEGIN
-                SET @Pass = @Pass + 1;
-                DECLARE @didWork2 BIT = 0;
-
-                DECLARE cur2 CURSOR LOCAL FAST_FORWARD FOR
-                SELECT t.TABLE_SCHEMA, t.TABLE_NAME
-                FROM INFORMATION_SCHEMA.TABLES t
-                WHERE t.TABLE_TYPE = 'BASE TABLE'
-                  AND t.TABLE_SCHEMA = 'dbo'
-                  AND t.TABLE_NAME NOT IN (
-                        N'SchoolInfo', N'Education_Year', N'Education_Year_User',
-                        N'Registration', N'Admin', N'AST', N'SMS',
-                        N'AAP_Invoice', N'AAP_Invoice_Category', N'AAP_Invoice_Receipt',
-                        N'AAP_Invoice_Payment_Record', N'AAP_Invoice_OnlinePayment',
-                        N'AAP_Reference', N'AAP_Reference_School', N'AAP_Reference_Commission',
-                        N'AAP_Reference_PaymentRecord', N'AAP_Reference_PayOrder', N'AAP_Reference_Target',
-                        N'aspnet_Applications', N'aspnet_Membership', N'aspnet_Users',
-                        N'aspnet_UsersInRoles', N'aspnet_Roles', N'aspnet_Profile',
-                        N'aspnet_Paths', N'aspnet_PersonalizationAllUsers', N'aspnet_PersonalizationPerUser',
-                        N'aspnet_SchemaVersions', N'aspnet_WebEvent_Events',
-                        N'Authority_Info', N'Authority_Link_Category', N'Authority_Link_SubCategory',
-                        N'Authority_Link_Pages', N'Authority_Link_Users',
-                        N'Link_Category', N'Link_SubCategory', N'Link_Pages'
-                  )
-                  AND EXISTS (
-                        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS c
-                        WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME
-                          AND c.COLUMN_NAME IN ('SchoolID', 'SchoolId')
-                  );
-
-                OPEN cur2;
-                FETCH NEXT FROM cur2 INTO @schema, @tbl;
-                WHILE @@FETCH_STATUS = 0
-                BEGIN
-                    DECLARE @col SYSNAME =
-                        CASE WHEN EXISTS (
-                            SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE TABLE_SCHEMA=@schema AND TABLE_NAME=@tbl AND COLUMN_NAME='SchoolID'
-                        ) THEN 'SchoolID' ELSE 'SchoolId' END;
-
-                    SET @sql = N'
-                        BEGIN TRY
-                            DELETE FROM ' + QUOTENAME(@schema) + N'.' + QUOTENAME(@tbl) + N'
-                            WHERE ' + QUOTENAME(@col) + N' = @SchoolID;
-                            SET @rc = @@ROWCOUNT;
-                        END TRY
-                        BEGIN CATCH
-                            SET @rc = 0;
-                        END CATCH';
-                    BEGIN TRY
-                        EXEC sp_executesql
-                            @sql,
-                            N'@SchoolID INT, @rc INT OUTPUT',
-                            @SchoolID = @SchoolID,
-                            @rc = @rc OUTPUT;
-                        IF @rc > 0
-                        BEGIN
-                            SET @DeletedRows = @DeletedRows + @rc;
-                            SET @didWork2 = 1;
-                            IF @HasProgress = 1
-                                UPDATE dbo.Institution_Reset_Progress
-                                SET DeletedRows = @DeletedRows, UpdatedAt = SYSUTCDATETIME()
-                                WHERE SchoolID = @SchoolID AND Status = N'Running';
-                        END
-                    END TRY
-                    BEGIN CATCH
-                    END CATCH
-
-                    FETCH NEXT FROM cur2 INTO @schema, @tbl;
-                END
-                CLOSE cur2;
-                DEALLOCATE cur2;
-
-                IF @didWork2 = 0 BREAK;
-            END
+            -- Login/year cleanup next. Leftover-table sweep runs after FULL marks Done
+            -- so the UI does not sit on "Running" for minutes.
+            SET LOCK_TIMEOUT 15000;
 
             -- Extra education years (keep one)
             IF @KeepEducationYearID IS NOT NULL
@@ -836,28 +780,12 @@ BEGIN
             INNER JOIN #NonAdminUsers N ON A.RegistrationID = N.RegistrationID;
             SET @DeletedRows = @DeletedRows + @@ROWCOUNT;
 
-            -- Membership cleanup for non-admin usernames
-            DELETE UIR
-            FROM dbo.aspnet_UsersInRoles UIR
-            INNER JOIN dbo.aspnet_Users U ON U.UserId = UIR.UserId
-            INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
-
-            DELETE M
-            FROM dbo.aspnet_Membership M
-            INNER JOIN dbo.aspnet_Users U ON U.UserId = M.UserId
-            INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
-
-            DELETE U
-            FROM dbo.aspnet_Users U
-            INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
-
             DELETE R FROM dbo.Registration R
             INNER JOIN #NonAdminUsers N ON R.RegistrationID = N.RegistrationID;
             SET @DeletedRows = @DeletedRows + @@ROWCOUNT;
 
             IF @Mode = 'FULL'
             BEGIN
-                -- Ensure SMS wallet exists and is zeroed
                 IF EXISTS (SELECT 1 FROM dbo.SMS WHERE SchoolID = @SchoolID)
                     UPDATE dbo.SMS SET SMS_Balance = 0 WHERE SchoolID = @SchoolID;
                 ELSE
@@ -865,8 +793,121 @@ BEGIN
                     VALUES (@SchoolID, 0, N'Sikkhaloy', GETDATE());
 
                 SET @Message = N'Institution reset to new-signup state successfully.';
+                IF @HasProgress = 1
+                    UPDATE dbo.Institution_Reset_Progress
+                    SET DeletedRows = CASE WHEN TotalRows > @DeletedRows THEN TotalRows ELSE @DeletedRows END,
+                        Status = N'Done', Message = @Message, UpdatedAt = SYSUTCDATETIME()
+                    WHERE SchoolID = @SchoolID;
             END
-            ELSE IF @Mode = 'PURGE'
+
+            -- Membership cleanup for non-admin usernames (after Done so the UI is not blocked)
+            BEGIN TRY
+                DELETE UIR
+                FROM dbo.aspnet_UsersInRoles UIR
+                INNER JOIN dbo.aspnet_Users U ON U.UserId = UIR.UserId
+                INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
+
+                DELETE M
+                FROM dbo.aspnet_Membership M
+                INNER JOIN dbo.aspnet_Users U ON U.UserId = M.UserId
+                INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
+
+                DELETE U
+                FROM dbo.aspnet_Users U
+                INNER JOIN #NonAdminUsers N ON N.UserName = U.UserName;
+            END TRY BEGIN CATCH END CATCH;
+
+            -- Leftover SchoolID rows (UI already Done for FULL). Do not wait on locks.
+            SET LOCK_TIMEOUT 0;
+
+            DECLARE @Sweep TABLE
+            (
+                Ord        INT IDENTITY(1,1) PRIMARY KEY,
+                SchemaName SYSNAME NOT NULL,
+                TableName  SYSNAME NOT NULL,
+                ColName    SYSNAME NOT NULL,
+                Done       BIT NOT NULL DEFAULT (0)
+            );
+
+            INSERT INTO @Sweep (SchemaName, TableName, ColName)
+            SELECT s.name, t.name, MIN(c.name)
+            FROM sys.tables t
+            INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+            INNER JOIN sys.columns c ON c.object_id = t.object_id
+            WHERE s.name = N'dbo'
+              AND t.is_ms_shipped = 0
+              AND LOWER(c.name) = N'schoolid'
+              AND t.name NOT IN (
+                    N'SchoolInfo', N'Education_Year', N'Education_Year_User',
+                    N'Registration', N'Admin', N'AST', N'SMS',
+                    N'AAP_Invoice', N'AAP_Invoice_Category', N'AAP_Invoice_Receipt',
+                    N'AAP_Invoice_Payment_Record', N'AAP_Invoice_OnlinePayment',
+                    N'AAP_Reference', N'AAP_Reference_School', N'AAP_Reference_Commission',
+                    N'AAP_Reference_PaymentRecord', N'AAP_Reference_PayOrder', N'AAP_Reference_Target',
+                    N'aspnet_Applications', N'aspnet_Membership', N'aspnet_Users',
+                    N'aspnet_UsersInRoles', N'aspnet_Roles', N'aspnet_Profile',
+                    N'aspnet_Paths', N'aspnet_PersonalizationAllUsers', N'aspnet_PersonalizationPerUser',
+                    N'aspnet_SchemaVersions', N'aspnet_WebEvent_Events',
+                    N'Authority_Info', N'Authority_Link_Category', N'Authority_Link_SubCategory',
+                    N'Authority_Link_Pages', N'Authority_Link_Users',
+                    N'Link_Category', N'Link_SubCategory', N'Link_Pages',
+                    N'Institution_Reset_Progress'
+              )
+            GROUP BY s.name, t.name;
+
+            DECLARE @didWork2 BIT;
+            DECLARE @col SYSNAME;
+            DECLARE @sweepPass INT = 0;
+            DECLARE @si INT;
+            DECLARE @sweepLast INT;
+
+            WHILE @sweepPass < 2
+            BEGIN
+                SET @sweepPass = @sweepPass + 1;
+                SET @didWork2 = 0;
+                SELECT @sweepLast = MAX(Ord) FROM @Sweep WHERE Done = 0;
+                IF @sweepLast IS NULL BREAK;
+
+                SET @si = 1;
+                WHILE @si <= @sweepLast
+                BEGIN
+                    SELECT @schema = SchemaName, @tbl = TableName, @col = ColName
+                    FROM @Sweep
+                    WHERE Ord = @si AND Done = 0;
+                    IF @@ROWCOUNT = 0
+                    BEGIN
+                        SET @si = @si + 1;
+                        CONTINUE;
+                    END
+
+                    SET @sql = N'IF EXISTS (SELECT 1 FROM ' + QUOTENAME(@schema) + N'.' + QUOTENAME(@tbl) +
+                               N' WITH (NOLOCK) WHERE ' + QUOTENAME(@col) + N' = @SchoolID)' +
+                               N' DELETE TOP (4000) FROM ' + QUOTENAME(@schema) + N'.' + QUOTENAME(@tbl) +
+                               N' WHERE ' + QUOTENAME(@col) + N' = @SchoolID;';
+                    BEGIN TRY
+                        EXEC sp_executesql @sql, N'@SchoolID INT', @SchoolID = @SchoolID;
+                        SET @rc = @@ROWCOUNT;
+                        IF @rc = 0
+                            UPDATE @Sweep SET Done = 1 WHERE Ord = @si;
+                        ELSE
+                        BEGIN
+                            SET @DeletedRows = @DeletedRows + @rc;
+                            SET @didWork2 = 1;
+                        END
+                    END TRY
+                    BEGIN CATCH
+                        UPDATE @Sweep SET Done = 1 WHERE Ord = @si;
+                    END CATCH
+
+                    SET @si = @si + 1;
+                END
+
+                IF @didWork2 = 0 BREAK;
+            END
+
+            SET LOCK_TIMEOUT 15000;
+
+            IF @Mode = 'PURGE'
             BEGIN
                 ------------------------------------------------
                 -- PURGE: remove identity / login / school row
@@ -1027,7 +1068,8 @@ BEGIN
 
         IF @HasProgress = 1
             UPDATE dbo.Institution_Reset_Progress
-            SET DeletedRows = @DeletedRows, Status = N'Done', Message = @Message, UpdatedAt = SYSUTCDATETIME()
+            SET DeletedRows = CASE WHEN TotalRows > @DeletedRows THEN TotalRows ELSE @DeletedRows END,
+                Status = N'Done', Message = @Message, UpdatedAt = SYSUTCDATETIME()
             WHERE SchoolID = @SchoolID;
 
         SELECT
@@ -1068,5 +1110,8 @@ BEGIN
         BEGIN TRY IF OBJECT_ID(N'dbo.Extra_Income', N'U') IS NOT NULL ENABLE TRIGGER ALL ON dbo.Extra_Income; END TRY BEGIN CATCH END CATCH;
     END
 END
+GO
+
+GRANT EXECUTE ON OBJECT::dbo.sp_ResetInstitutionData TO PUBLIC;
 GO
 

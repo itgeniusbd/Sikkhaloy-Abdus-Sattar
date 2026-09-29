@@ -1,4 +1,5 @@
--- Speeds /sms/records by SchoolID + date range (no CAST on Date).
+-- Speeds Sent SMS Records by SchoolID + date range (do not CAST Date).
+-- PurposeOfSMS is NVARCHAR(MAX) and cannot be in an index INCLUDE.
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
     WHERE name = N'IX_SMS_OtherInfo_SchoolID'
@@ -6,7 +7,7 @@ IF NOT EXISTS (
 BEGIN
     CREATE NONCLUSTERED INDEX IX_SMS_OtherInfo_SchoolID
     ON dbo.SMS_OtherInfo (SchoolID)
-    INCLUDE (StudentID, TeacherID, SMS_NumberID, CommitteeMemberId);
+    INCLUDE (SMS_Send_ID);
 END
 GO
 
@@ -17,6 +18,6 @@ IF NOT EXISTS (
 BEGIN
     CREATE NONCLUSTERED INDEX IX_SMS_Send_Record_Date
     ON dbo.SMS_Send_Record ([Date] DESC)
-    INCLUDE (PhoneNumber, TextCount, SMSCount, PurposeOfSMS, [Status]);
+    INCLUDE (PhoneNumber, TextCount, SMSCount, [Status]);
 END
 GO

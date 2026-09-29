@@ -150,3 +150,6 @@ BEGIN
     ORDER BY RowCnt DESC, TableName;
 END
 GO
+
+GRANT EXECUTE ON OBJECT::dbo.sp_InstitutionData_Preview TO PUBLIC;
+GO

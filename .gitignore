@@ -349,3 +349,15 @@ Hybrid/dist/
 Hybrid/Installer/Output/
 Hybrid/**/_buildcheck/
 AttendanceDevice/Installer/Output/
+
+# Local build / scratch output (never commit)
+Hybrid/_publish/
+Hybrid/_bench/
+**/_patch*.py
+**/_fix*.py
+Hybrid/SCHOOL WEBSITE/IISAC/_*.py
+Hybrid/SCHOOL WEBSITE/**/*-dist.zip
+# Runtime log
+SIKKHALOY V2/App_Data/session_tracking_log.txt
+# Local secrets (ShurjoPay login etc.)
+**/appsettings.Secrets.json
