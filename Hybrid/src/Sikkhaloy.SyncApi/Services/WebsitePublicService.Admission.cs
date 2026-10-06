@@ -121,7 +121,7 @@ ORDER BY sh.Shift
             var studentCode = await NextFreeStudentCodeAsync(con, schoolId, lastId, cancellationToken, tx);
             var imageId = await InsertStudentImageAsync(con, tx, request.PhotoDataUrl, cancellationToken);
             var dob = ParseDate(request.DateofBirth);
-            var blood = BlankIfUnknown(request.BloodGroup);
+            var blood = V2StudentFields.BloodGroup(request.BloodGroup); // V2 dropdown value; empty -> "Unknown" (was NULL, crashed V2 edit page)
 
             const string insertStudent = """
 INSERT INTO dbo.Student

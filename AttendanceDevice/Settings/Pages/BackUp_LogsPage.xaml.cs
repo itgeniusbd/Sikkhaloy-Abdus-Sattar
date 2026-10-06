@@ -91,18 +91,34 @@ namespace AttendanceDevice.Settings.Pages
             try
             {
                 var ins = LocalData.Instance.institution;
+                void Progress(string msg)
+                {
+                    try
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            // Circular ProgressBar dialog has no label; keep stage in the window title briefly.
+                            if (Window.GetWindow(this) is Window w)
+                                w.Title = "Sync Record — " + msg;
+                        });
+                    }
+                    catch { /* ignore UI progress failures */ }
+                    StartupLogger.LogStage("sync-record: " + msg);
+                }
 
-                // 1) Re-read the device(s) for the recovery window so punches lost from the PC (power cut,
-                //    restart, app update) come back. Already-applied punches are ignored as duplicates.
-                var deviceNote = await RecoverFromDevicesAsync(ins);
+                // 1) Re-read EVERY log still on the device (month chunks), back up locally, apply all dates.
+                Progress("Reading full device history...");
+                var deviceNote = await RecoverFullHistoryFromDevicesAsync(ins, Progress);
 
-                // 2) Apply Device Data backups of today and previous days to their own date.
-                var replay = await Machine.ReplayBackupLogsAsync(ins);
+                // 2) Apply Device Data backups of every date (not only the 7-day window).
+                Progress("Applying Device Logs...");
+                var replay = await Machine.ReplayBackupLogsAsync(ins, refreshSchedulesFromNetwork: true, allDates: true);
                 LocalData.Instance.FlagIncompleteRecordsForResync();
                 LocalData.Instance.RepairTodayScheduleIdsForResync();
 
-                // 3) Upload, then drop only backups whose punch is in a row the website confirmed.
-                var push = await AttendanceWebsiteSync.PushPendingAsync(ins);
+                // 3) Upload ALL unsynced attendance (any date) in batches; drop only website-confirmed backups.
+                Progress("Uploading unsynced attendance...");
+                var push = await AttendanceWebsiteSync.PushPendingAsync(ins, Progress);
                 var cleared = LocalData.Instance.CleanupSyncedLogBackups();
 
                 _log_Backups = LocalData.Instance.Get_Log_Backup();
@@ -112,7 +128,8 @@ namespace AttendanceDevice.Settings.Pages
                     $"{deviceNote}\n" +
                     $"Applied {replay.Applied} device log(s) to attendance{replay.AppliedByDateText}.\n" +
                     $"Removed {cleared} device log(s) already saved on the website.\n" +
-                    $"Still in Device Data (not applied): {_log_Backups.Count}.\n\n{push.Message}",
+                    $"Still in Device Data (backup): {_log_Backups.Count}.\n" +
+                    $"Pending after upload: {LocalData.Instance.GetPendingAttendanceCount()}.\n\n{push.Message}",
                     "Sync Record",
                     MessageBoxButton.OK,
                     push.TotalPushed > 0 || replay.Applied > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
@@ -124,10 +141,16 @@ namespace AttendanceDevice.Settings.Pages
             finally
             {
                 LoadingDH.IsOpen = false;
+                try
+                {
+                    if (Window.GetWindow(this) is Window w && w.Title != null && w.Title.StartsWith("Sync Record"))
+                        w.Title = "SIKKHALOY Attendance Device — Settings";
+                }
+                catch { /* ignore */ }
             }
         }
 
-        private static async Task<string> RecoverFromDevicesAsync(Institution ins)
+        private static async Task<string> RecoverFullHistoryFromDevicesAsync(Institution ins, Action<string> progress)
         {
             try
             {
@@ -144,15 +167,15 @@ namespace AttendanceDevice.Settings.Pages
                 if (!connections.Any())
                     return "Device not reachable - used the logs already on this PC.";
 
-                var recoverDays = LocalData.AutoPushWindowDays - 1;
-                var ok = await StartupHelper.ImportTodayDeviceLogsAsync(connections, ins, recoverDays);
+                progress?.Invoke("Downloading all device logs (chunked)...");
+                var ok = await StartupHelper.ImportFullDeviceHistoryAsync(connections, ins, progress);
                 return ok
-                    ? $"Re-read the device for the last {recoverDays} day(s) and today."
+                    ? $"Re-read and backed up the full device history (~{LocalData.FullDeviceHistoryDays} days back) plus today."
                     : "Could not read every device - used the logs already on this PC.";
             }
             catch (Exception ex)
             {
-                StartupLogger.LogFailure("sync-record: device recovery", ex);
+                StartupLogger.LogFailure("sync-record: full device recovery", ex);
                 return "Device read failed - used the logs already on this PC.";
             }
         }

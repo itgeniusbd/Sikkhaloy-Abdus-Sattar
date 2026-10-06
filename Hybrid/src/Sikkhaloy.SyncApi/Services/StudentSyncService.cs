@@ -261,16 +261,23 @@ ORDER BY ID";
 
     private static async Task<int> InsertStudentAsync(SqlConnection con, StudentDto dto, CancellationToken cancellationToken)
     {
+        // Every student gets an (empty) Student_Image row like V2 admission, so V2 photo upload (UPDATE by StudentImageID) works.
+        // Image row + student are inserted in one transaction: a failed insert leaves no orphan image row, and retries /
+        // sync recovery find the student by code (FindStudentIdByCodeAsync) and take the update path, so no duplicate row.
         const string sql = @"
+DECLARE @NewImageID INT;
+INSERT INTO dbo.Student_Image (Image, Guardian_Photo) VALUES (NULL, NULL);
+SET @NewImageID = CAST(SCOPE_IDENTITY() AS INT);
+
 INSERT INTO dbo.Student
-    (RegistrationID, SchoolID, ID, SMSPhoneNo, StudentsName, Gender, DateofBirth,
+    (RegistrationID, SchoolID, StudentImageID, ID, SMSPhoneNo, StudentsName, Gender, DateofBirth,
      FathersName, MothersName, BloodGroup, Religion, Status, AdmissionDate,
      StudentEmailAddress, Legal_Identity, StudentsLocalAddress, StudentPermanentAddress, OtherDetails,
      PrevSchoolName, PrevClass, PrevExamYear, PrevExamGrade,
      FatherOccupation, FatherPhoneNumber, MotherOccupation, MotherPhoneNumber,
      GuardianName, GuardianRelationshipwithStudent, GuardianPhoneNumber)
 VALUES
-    (@RegistrationID, @SchoolID, @ID, @SMSPhoneNo, @StudentsName, @Gender, @DateofBirth,
+    (@RegistrationID, @SchoolID, @NewImageID, @ID, @SMSPhoneNo, @StudentsName, @Gender, @DateofBirth,
      @FathersName, @MothersName, @BloodGroup, @Religion, @Status, GETDATE(),
      @StudentEmailAddress, @LegalIdentity, @StudentsLocalAddress, @StudentPermanentAddress, @OtherDetails,
      @PrevSchoolName, @PrevClass, @PrevExamYear, @PrevExamGrade,
@@ -278,9 +285,11 @@ VALUES
      @GuardianName, @GuardianRelationship, @GuardianPhoneNumber);
 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-        await using var cmd = new SqlCommand(sql, con);
+        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
+        await using var cmd = new SqlCommand(sql, con, tx);
         AddStudentParameters(cmd, dto);
         var result = await cmd.ExecuteScalarAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
         return Convert.ToInt32(result);
     }
 
@@ -393,7 +402,7 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
         cmd.Parameters.AddWithValue("@DateofBirth", (object?)dto.DateofBirth ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@FathersName", (object?)dto.FathersName ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@MothersName", (object?)dto.MothersName ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@BloodGroup", Db(dto.BloodGroup));
+        cmd.Parameters.AddWithValue("@BloodGroup", V2StudentFields.BloodGroup(dto.BloodGroup)); // V2 dropdown value; empty -> "Unknown"
         cmd.Parameters.AddWithValue("@Religion", Db(dto.Religion));
         cmd.Parameters.AddWithValue("@Status", string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status);
         cmd.Parameters.AddWithValue("@StudentEmailAddress", Db(dto.StudentEmailAddress));

@@ -654,7 +654,7 @@ ORDER BY ExitTime DESC, EntryTime DESC">
 
 FROM Employee_Attendance_Record ear
 
-INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
+INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
 
 LEFT JOIN Attendance_Schedule sch ON ear.Attendance_ScheduleID = sch.ScheduleID AND sch.SchoolID = ear.SchoolID
 
@@ -762,7 +762,7 @@ SELECT ear.EmployeeID, e.FirstName + N' ' + e.LastName AS Name,
 
 FROM Employee_Attendance_Record ear
 
-INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
+INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
 
 LEFT JOIN Attendance_Schedule sch ON ear.Attendance_ScheduleID = sch.ScheduleID AND sch.SchoolID = ear.SchoolID
 

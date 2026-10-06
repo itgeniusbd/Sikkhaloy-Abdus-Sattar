@@ -409,7 +409,7 @@ SELECT ear.EmployeeID,
        ear.AttendanceStatus,
        ISNULL(CONVERT(varchar(15), NULLIF(ear.EntryTime, CAST('00:00:00' AS time)), 100), N'Manual') AS EntryTime
 FROM Employee_Attendance_Record ear
-INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
+INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
 LEFT JOIN Attendance_Schedule schInfo
     ON schInfo.SchoolID = ear.SchoolID AND schInfo.ScheduleID = ear.Attendance_ScheduleID
 INNER JOIN Attendance_Schedule_Day sdCard
@@ -438,7 +438,7 @@ FROM (
                         ear.ExitTime DESC, ear.EntryTime DESC
            ) AS RowNum
     FROM Employee_Attendance_Record ear
-    INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
+    INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
     LEFT JOIN Attendance_Schedule schInfo
         ON schInfo.SchoolID = ear.SchoolID AND schInfo.ScheduleID = ear.Attendance_ScheduleID
     INNER JOIN Attendance_Schedule_Day sdCard
@@ -460,7 +460,7 @@ FROM (
            sd.StartTime AS SortStart,
            1 AS RowNum
     FROM Employee_Attendance_Schedule_Assign eas
-    INNER JOIN VW_Emp_Info e ON eas.EmployeeID = e.EmployeeID
+    INNER JOIN VW_Emp_Info e ON eas.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
     INNER JOIN Attendance_Schedule sch ON sch.ScheduleID = eas.ScheduleID AND sch.SchoolID = eas.SchoolID
     INNER JOIN Attendance_Schedule_Day sd ON sd.ScheduleID = sch.ScheduleID AND sd.SchoolID = sch.SchoolID
          AND sd.Day = DATENAME(dw, GETDATE()) AND ISNULL(sd.Is_OnDay, 1) = 1

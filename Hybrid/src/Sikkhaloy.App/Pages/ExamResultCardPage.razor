@@ -521,7 +521,7 @@
         return N(text);
     }
     private string MarksOf(ExamCardStudentDto student) =>
-        N($"{(student.Total % 1 == 0 ? student.Total.ToString("0") : student.Total.ToString("0.0"))}/{student.FullTotal.ToString("0")}");
+        N($"{student.Total.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}/{student.FullTotal.ToString("0")}");   // obtained total with real decimals (519.25); full total unchanged
     private string SubjectMarksOf(ExamCardSubjectDto subject)
     {
         var full = subject.FullMark % 1 == 0 ? subject.FullMark.ToString("0") : subject.FullMark.ToString("0.0");

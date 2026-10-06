@@ -822,6 +822,7 @@
     <Content Include="Handeler\TestHandler.ashx" />
     <Content Include="Handeler\SchoolNameLogo.ashx" />
     <Content Include="Handeler\Desktop_App.ashx" />
+    <Content Include="Handeler\Desktop_App_Update.ashx" />
     <Content Include="Home\.htaccess" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
@@ -2539,6 +2540,9 @@
     </Compile>
     <Compile Include="Handeler\Desktop_App.ashx.cs">
       <DependentUpon>Desktop_App.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Handeler\Desktop_App_Update.ashx.cs">
+      <DependentUpon>Desktop_App_Update.ashx</DependentUpon>
     </Compile>
     <Compile Include="Handeler\Authority_Photo.ashx.cs">
       <DependentUpon>Authority_Photo.ashx</DependentUpon>

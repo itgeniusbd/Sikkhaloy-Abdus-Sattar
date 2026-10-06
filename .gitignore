@@ -361,3 +361,5 @@ Hybrid/SCHOOL WEBSITE/**/*-dist.zip
 SIKKHALOY V2/App_Data/session_tracking_log.txt
 # Local secrets (ShurjoPay login etc.)
 **/appsettings.Secrets.json
+# Installer binaries in website download folders (published with the site, not stored in git)
+SIKKHALOY V2/**/App_For_Download/*.exe

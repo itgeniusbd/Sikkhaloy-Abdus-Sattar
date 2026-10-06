@@ -1264,41 +1264,62 @@ public sealed class SyncController : ControllerBase
     [HttpGet("attendance/student/records")]
     public async Task<ActionResult<IReadOnlyList<StudentAttendanceRecordDto>>> AttStudentRecords(
         string? status, int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken)
+        DateTime from, DateTime to, CancellationToken cancellationToken, string? scheduleIds = null)
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _attendance.ListStudentRecordsAsync(
-            session, status, classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken));
+            session, status, classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken,
+            ParseScheduleIds(scheduleIds)));
     }
 
     [HttpGet("attendance/student/summary")]
     public async Task<ActionResult<IReadOnlyList<StudentAttendanceSummaryDto>>> AttStudentSummary(
         int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken)
+        DateTime from, DateTime to, CancellationToken cancellationToken, string? scheduleIds = null)
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _attendance.ListStudentSummaryAsync(
-            session, classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken));
+            session, classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken,
+            ParseScheduleIds(scheduleIds)));
     }
 
     [HttpGet("attendance/employee/records")]
     public async Task<ActionResult<IReadOnlyList<EmployeeAttendanceRecordDto>>> AttEmployeeRecords(
         string? type, string? status, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? scheduleIds = null)
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _attendance.ListEmployeeRecordsAsync(
-            session, type, status, scheduleId, employeeId, from, to, cancellationToken));
+            session, type, status, scheduleId, employeeId, from, to, cancellationToken,
+            ParseScheduleIds(scheduleIds)));
     }
 
     [HttpGet("attendance/employee/summary")]
     public async Task<ActionResult<IReadOnlyList<EmployeeAttendanceSummaryDto>>> AttEmployeeSummary(
         string? type, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? scheduleIds = null)
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _attendance.ListEmployeeSummaryAsync(
-            session, type, scheduleId, employeeId, from, to, cancellationToken));
+            session, type, scheduleId, employeeId, from, to, cancellationToken,
+            ParseScheduleIds(scheduleIds)));
+    }
+
+    /// <summary>
+    /// "scheduleIds=3,5,8" of the attendance record / summary reports (one or more schedules); only positive
+    /// integers are kept (max 100). Empty = use the old single scheduleId (0 = all schedules).
+    /// </summary>
+    private static IReadOnlyCollection<int> ParseScheduleIds(string? scheduleIds)
+    {
+        if (string.IsNullOrWhiteSpace(scheduleIds))
+            return Array.Empty<int>();
+        return scheduleIds
+            .Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => int.TryParse(x, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : 0)
+            .Where(x => x > 0)
+            .Distinct()
+            .Take(100)
+            .ToList();
     }
 
     [HttpGet("attendance/leave-types")]
@@ -1629,8 +1650,23 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<ReceiptDetailDto?>> AccReceipt(string no, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.Money, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         var dto = await _accounts.GetReceiptAsync(session, no, cancellationToken);
         return dto is null ? NotFound() : Ok(dto);
+    }
+
+    /// <summary>
+    /// Receipt APIs (money, expense, others income, committee, inventory): Admin / Authority unchanged;
+    /// others need a menu page that creates or lists that receipt type (HybridMenuRoutes.ReceiptParents).
+    /// Data stays scoped to session.SchoolID inside each service.
+    /// </summary>
+    private async Task<bool> CanUseReceiptAsync(SessionSnapshot session, string kind, CancellationToken cancellationToken)
+    {
+        if (string.Equals(session.Role, "Admin", StringComparison.OrdinalIgnoreCase) || session.IsAuthority)
+            return true;
+        var menu = await _masters.GetMenuAsync(session, cancellationToken);
+        return menu.HasReceiptParent(kind);
     }
 
     [HttpGet("accounts/sms")]
@@ -1730,6 +1766,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<ExtraIncomeDto?>> AccExtraOne(int id, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.Others, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         return Ok(await _accounts.GetExtraIncomeAsync(session, id, cancellationToken));
     }
 
@@ -1822,6 +1860,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<ExpenseDto?>> AccExpenseOne(int id, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.Expense, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         return Ok(await _accounts.GetExpenseAsync(session, id, cancellationToken));
     }
 
@@ -2383,6 +2423,18 @@ public sealed class SyncController : ControllerBase
         return Ok(await _officeSms.GetStudentsAsync(session, classId, groupId, sectionId, shiftId, ids, cancellationToken));
     }
 
+    /// <summary>অভিভাবকের সাথে যোগাযোগ: office users only (Admin / Sub-Admin), own school, current session.</summary>
+    [HttpGet("guardian-contacts")]
+    public async Task<ActionResult<GuardianContactPageDto>> GuardianContacts(
+        int classId, int groupId, int sectionId, int shiftId, string? q, int skip, int take, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        if (!string.Equals(session.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(session.Role, "Sub-Admin", StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+        return Ok(await _officeSms.GetGuardianContactsAsync(session, classId, groupId, sectionId, shiftId, q, skip, take, cancellationToken));
+    }
+
     [HttpGet("sms/teachers")]
     public async Task<ActionResult<IReadOnlyList<SmsTeacherDto>>> SmsTeachers(CancellationToken cancellationToken)
     {
@@ -2761,6 +2813,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<DonationReceiptDto>> CommitteeReceipt(int id, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.Committee, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         var dto = await _committee.GetReceiptAsync(session, id, cancellationToken);
         return dto is null ? NotFound() : Ok(dto);
     }
@@ -3008,6 +3062,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<InventoryDocDto>> InvPurchase(int id, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.InventoryPurchase, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         return Ok(await _inventory.GetPurchaseAsync(session, id, cancellationToken) ?? new InventoryDocDto());
     }
 
@@ -3036,6 +3092,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<InventoryDocDto>> InvSale(int id, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
+        if (!await CanUseReceiptAsync(session, ReceiptKind.InventorySale, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden);
         return Ok(await _inventory.GetSaleAsync(session, id, cancellationToken) ?? new InventoryDocDto());
     }
 

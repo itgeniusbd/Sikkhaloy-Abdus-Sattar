@@ -145,15 +145,28 @@ ORDER BY ers.CreatedDate DESC";
 bool hasRoutines = false;
    int routineCount = 0;
 
-while (reader.Read())
-       {
-   hasRoutines = true;
-routineCount++;
-        
-  int routineId = Convert.ToInt32(reader["RoutineID"]);
-  string routineName = reader["RoutineName"].ToString();
-  string className = reader["Class"].ToString();
-  string educationYear = reader["EducationYear"].ToString();
+            // Read all routines first and close the reader: GenerateRoutineTable runs more readers on this
+            // connection, and without MARS a second reader can't open while this one is still open.
+            var routines = new List<Tuple<int, string, string, string>>();
+            while (reader.Read())
+            {
+                routines.Add(Tuple.Create(
+                    Convert.ToInt32(reader["RoutineID"]),
+                    reader["RoutineName"].ToString(),
+                    reader["Class"].ToString(),
+                    reader["EducationYear"].ToString()));
+            }
+            reader.Close();
+
+            foreach (var routine in routines)
+            {
+                hasRoutines = true;
+                routineCount++;
+
+                int routineId = routine.Item1;
+                string routineName = routine.Item2;
+                string className = routine.Item3;
+                string educationYear = routine.Item4;
 
  // Generate HTML for this routine
  html.Append("<div class='print-button'>");
@@ -173,7 +186,6 @@ routineCount++;
    html.Append(GenerateRoutineTable(routineId, con));
  html.Append("</div>");
  }
-  reader.Close();
 
       if (!hasRoutines)
  {
@@ -238,15 +250,25 @@ html.Append("</tr></thead>");
      SqlCommand rowCmd = new SqlCommand(rowQuery, con);
      rowCmd.Parameters.AddWithValue("@RoutineID", routineId);
 
-   SqlDataReader rowReader = rowCmd.ExecuteReader();
-  while (rowReader.Read())
-        {
-         int rowIndex = Convert.ToInt32(rowReader["RowIndex"]);
-    DateTime examDate = rowReader["ExamDate"] != DBNull.Value 
-      ? Convert.ToDateTime(rowReader["ExamDate"]) 
-  : DateTime.MinValue;
-  string dayName = rowReader["DayName"].ToString();
-   string examTime = rowReader["ExamTime"].ToString();
+            // Read all rows first and close the reader: GenerateRowCells runs its own reader on this connection (no MARS).
+            var rows = new List<Tuple<int, DateTime, string, string>>();
+            SqlDataReader rowReader = rowCmd.ExecuteReader();
+            while (rowReader.Read())
+            {
+                rows.Add(Tuple.Create(
+                    Convert.ToInt32(rowReader["RowIndex"]),
+                    rowReader["ExamDate"] != DBNull.Value ? Convert.ToDateTime(rowReader["ExamDate"]) : DateTime.MinValue,
+                    rowReader["DayName"].ToString(),
+                    rowReader["ExamTime"].ToString()));
+            }
+            rowReader.Close();
+
+            foreach (var row in rows)
+            {
+                int rowIndex = row.Item1;
+                DateTime examDate = row.Item2;
+                string dayName = row.Item3;
+                string examTime = row.Item4;
   
         // Format time compactly and calculate duration
      string compactTime = FormatTimeCompact(examTime);
@@ -270,7 +292,6 @@ html.Append(GenerateRowCells(routineId, rowIndex, classNames.Count, con));
 
  html.Append("</tr>");
  }
-     rowReader.Close();
 
   html.Append("</tbody>");
         html.Append("</table>");

@@ -10,6 +10,8 @@
               exist it covers only rows above the largest duplicate MoneyReceiptID
               (historical numbers stay), plus lookup index IX_Income_MoneyReceipt_School_SN
             - alters dbo.MoneyReceipt (same parameters/result) to use the new procedure
+            - grants EXECUTE on dbo.usp_NextMoneyReceiptSN to the app users (Step 6:
+              IIS APPPOOL\HybridApi etc.; without it Hybrid fee collection is denied)
    Run    : in SSMS on the live DB, preferably at a quiet time (index build).
             Run check_duplicates_readonly.sql first; set @ReviewedDuplicateCutoff
             in Step 3 if its duplicate list changed.
@@ -30,7 +32,7 @@ BEGIN
     SET NOEXEC ON;
 END
 GO
-PRINT N'Step 1/5: dbo.usp_NextMoneyReceiptSN';
+PRINT N'Step 1/6: dbo.usp_NextMoneyReceiptSN';
 GO
 /* ---------------------------------------------------------------------
    dbo.usp_NextMoneyReceiptSN  @SchoolID, @SN OUTPUT
@@ -136,7 +138,7 @@ BEGIN
     END CATCH;
 END;
 GO
-PRINT N'Step 2/5: dbo.usp_SkipMoneyReceiptSN';
+PRINT N'Step 2/6: dbo.usp_SkipMoneyReceiptSN';
 GO
 /* ---------------------------------------------------------------------
    dbo.usp_SkipMoneyReceiptSN  @SchoolID = NULL (all schools), @Skip = 50
@@ -189,7 +191,7 @@ BEGIN
     SELECT * FROM @Out ORDER BY SchoolID;
 END;
 GO
-PRINT N'Step 3/5: unique index (SchoolID, MoneyReceipt_SN) + lookup index';
+PRINT N'Step 3/6: unique index (SchoolID, MoneyReceipt_SN) + lookup index';
 GO
 /* ---------------------------------------------------------------------
    Historical duplicates are NOT renumbered (parents hold the paper receipts).
@@ -281,7 +283,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT N'Step 4/5: one sequence per school (start = MAX+1, existing sequences are left alone)';
+PRINT N'Step 4/6: one sequence per school (start = MAX+1, existing sequences are left alone)';
 GO
 DECLARE @sid int, @Seq nvarchar(300), @Max int, @Start bigint, @sql nvarchar(max), @res nvarchar(255), @rc int,
         @created int = 0, @existing int = 0;
@@ -323,7 +325,7 @@ CLOSE sc; DEALLOCATE sc;
 PRINT N'  sequences created: ' + CONVERT(nvarchar(11), @created) + N', already existing: ' + CONVERT(nvarchar(11), @existing)
     + N'. Schools without receipts get theirs on the first collection.';
 GO
-PRINT N'Step 5/5: dbo.MoneyReceipt -> usp_NextMoneyReceiptSN (fallback F_MoneyReceipt_SN)';
+PRINT N'Step 5/6: dbo.MoneyReceipt -> usp_NextMoneyReceiptSN (fallback F_MoneyReceipt_SN)';
 GO
 /* ---------------------------------------------------------------------
    dbo.MoneyReceipt  (used by every SIKKHALOY V2 collection path)
@@ -357,6 +359,52 @@ BEGIN
     SELECT SCOPE_IDENTITY()
 END
 GO
+PRINT N'Step 6/6: EXECUTE on dbo.usp_NextMoneyReceiptSN for the app database users';
+GO
+/* ---------------------------------------------------------------------
+   The Hybrid SyncApi calls dbo.usp_NextMoneyReceiptSN directly, and its database user
+   (IIS APPPOOL\HybridApi) only has per-object grants, so without this step every Hybrid
+   fee collection fails with "The EXECUTE permission was denied on the object
+   'usp_NextMoneyReceiptSN'". Only EXECUTE is needed: the procedure is WITH EXECUTE AS OWNER,
+   so its sequences / CREATE SEQUENCE / table reads run as dbo.
+   SIKKHALOY V2 reaches the procedure through dbo.MoneyReceipt (ownership chaining, no check);
+   its pool users are granted too if present (harmless). Missing users are skipped.
+   Re-runnable; the same grant on its own: receipt_sn_grant.sql (with a permission preview).
+   --------------------------------------------------------------------- */
+DECLARE @GrantUsers TABLE (UserName sysname PRIMARY KEY);
+INSERT INTO @GrantUsers (UserName) VALUES
+    (N'IIS APPPOOL\HybridApi'), (N'IIS APPPOOL\SIKKHALOY'), (N'IIS APPPOOL\SIKKHALOY API');
+INSERT INTO @GrantUsers (UserName)
+SELECT dp.name FROM sys.database_principals dp
+WHERE dp.type IN ('U', 'S', 'G') AND dp.name LIKE N'IIS APPPOOL\%Hybrid%'
+  AND NOT EXISTS (SELECT 1 FROM @GrantUsers g WHERE g.UserName = dp.name);
+
+DECLARE @gu sysname, @gsql nvarchar(max), @granted int = 0, @skipped int = 0;
+DECLARE gcur CURSOR LOCAL FAST_FORWARD FOR SELECT UserName FROM @GrantUsers;
+OPEN gcur;
+FETCH NEXT FROM gcur INTO @gu;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    IF DATABASE_PRINCIPAL_ID(@gu) IS NULL
+        SET @skipped += 1;
+    ELSE IF OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL
+    BEGIN
+        BEGIN TRY
+            SET @gsql = N'GRANT EXECUTE ON OBJECT::dbo.usp_NextMoneyReceiptSN TO ' + QUOTENAME(@gu) + N';';
+            EXEC sys.sp_executesql @gsql;
+            SET @granted += 1;
+            PRINT N'  EXECUTE granted to ' + @gu;
+        END TRY
+        BEGIN CATCH
+            PRINT N'  grant to ' + @gu + N' failed: ' + ERROR_MESSAGE();
+        END CATCH
+    END
+    FETCH NEXT FROM gcur INTO @gu;
+END
+CLOSE gcur; DEALLOCATE gcur;
+PRINT N'  app users granted: ' + CONVERT(nvarchar(11), @granted) + N', not in this database (skipped): ' + CONVERT(nvarchar(11), @skipped)
+    + N'. If the Hybrid API runs under another login, run receipt_sn_grant.sql with that user.';
+GO
 /* ---------------- verification (read-only) ---------------- */
 SELECT
     CASE WHEN OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL THEN 'OK' ELSE 'MISSING' END AS usp_NextMoneyReceiptSN,
@@ -366,7 +414,12 @@ SELECT
             FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Income_MoneyReceipt')
               AND name = N'UX_Income_MoneyReceipt_School_SN'), N'NOT CREATED') AS UniqueIndex,
     (SELECT COUNT(DISTINCT SchoolID) FROM dbo.Income_MoneyReceipt WITH (NOLOCK) WHERE SchoolID > 0) AS SchoolsWithReceipts,
-    (SELECT COUNT(*) FROM sys.sequences WHERE schema_id = SCHEMA_ID(N'dbo') AND name LIKE N'Seq[_]MoneyReceipt[_]%') AS Sequences;
+    (SELECT COUNT(*) FROM sys.sequences WHERE schema_id = SCHEMA_ID(N'dbo') AND name LIKE N'Seq[_]MoneyReceipt[_]%') AS Sequences,
+    ISNULL(STUFF((SELECT N', ' + dp.name FROM sys.database_permissions pe
+                  JOIN sys.database_principals dp ON dp.principal_id = pe.grantee_principal_id
+                  WHERE pe.class = 1 AND pe.major_id = OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN')
+                    AND pe.permission_name = N'EXECUTE' AND pe.state IN ('G', 'W')
+                  FOR XML PATH('')), 1, 2, N''), N'NONE (Hybrid fee collection needs IIS APPPOOL\HybridApi)') AS ExecuteGrantedTo;
 
 /* per school: next number that will be issued vs current MAX (NextToIssue must be > MaxSN;
    'will self-heal' only appears if old code inserted after the sequence was created) */

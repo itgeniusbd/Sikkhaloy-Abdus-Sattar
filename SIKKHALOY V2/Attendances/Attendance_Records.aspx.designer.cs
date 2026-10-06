@@ -103,13 +103,13 @@ namespace EDUCATION.COM.ATTENDANCES {
         protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
         
         /// <summary>
-        /// ScheduleDropDownList control.
+        /// ScheduleCheckBoxList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ScheduleDropDownList;
+        protected global::System.Web.UI.WebControls.CheckBoxList ScheduleCheckBoxList;
         
         /// <summary>
         /// ScheduleSQL control.

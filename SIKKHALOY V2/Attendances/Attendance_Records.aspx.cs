@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -9,6 +10,8 @@ namespace EDUCATION.COM.ATTENDANCES
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            ApplyScheduleFilter();
+
             if (!this.IsPostBack)
             {
                 if (Session["SchoolID"] != null)
@@ -20,7 +23,6 @@ namespace EDUCATION.COM.ATTENDANCES
                 Session["Group"] = "%";
                 Session["Shift"] = "%";
                 Session["Section"] = "%";
-                Session["Schedule"] = "0";
 
                 GroupDropDownList.Visible = false;
                 SectionDropDownList.Visible = false;
@@ -34,7 +36,36 @@ namespace EDUCATION.COM.ATTENDANCES
                 Session["Group"] = GroupDropDownList.SelectedValue;
                 Session["Shift"] = ShiftDropDownList.SelectedValue;
                 Session["Section"] = SectionDropDownList.SelectedValue;
-                Session["Schedule"] = ScheduleDropDownList.SelectedValue ?? "0";
+            }
+        }
+
+        /// <summary>
+        /// Ticked schedules as ",3,5," (only validated integers). Empty = all schedules
+        /// (nothing ticked or every schedule ticked), same as the old [ ALL SCHEDULE ].
+        /// </summary>
+        private string SelectedScheduleIds()
+        {
+            var ids = ScheduleCheckBoxList.Items.Cast<ListItem>()
+                .Where(i => i.Selected)
+                .Select(i => { int n; return int.TryParse(i.Value, out n) ? n : 0; })
+                .Where(n => n > 0)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0 || ids.Count >= ScheduleCheckBoxList.Items.Count)
+                return "";
+
+            return "," + string.Join(",", ids) + ",";
+        }
+
+        private void ApplyScheduleFilter()
+        {
+            var csv = SelectedScheduleIds();
+            foreach (var ds in new[] { AttendanceSQL, SummerySQL })
+            {
+                var p = ds.SelectParameters["ScheduleIDs"];
+                if (p != null)
+                    p.DefaultValue = csv;
             }
         }
 
@@ -97,7 +128,6 @@ namespace EDUCATION.COM.ATTENDANCES
             Session["Group"] = "%";
             Session["Shift"] = "%";
             Session["Section"] = "%";
-            Session["Schedule"] = "0";
 
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
@@ -143,12 +173,6 @@ namespace EDUCATION.COM.ATTENDANCES
                 ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
 
-        //Schedule DDL
-        protected void ScheduleDropDownList_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            Session["Schedule"] = ScheduleDropDownList.SelectedValue;
-            view();
-        }
 
 
 

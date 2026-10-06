@@ -258,18 +258,19 @@ public interface ISyncApiClient
         string accessToken, int scheduleId, string? type, DateTime date, CancellationToken cancellationToken = default);
     Task<AttendanceResult> SaveEmployeeManualAsync(
         string accessToken, SaveEmployeeManualRequest request, CancellationToken cancellationToken = default);
+    // scheduleIds: one or more schedules (empty / null = the single scheduleId, 0 = all schedules)
     Task<IReadOnlyList<StudentAttendanceRecordDto>> GetStudentAttendanceRecordsAsync(
         string accessToken, string? status, int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken = default);
+        DateTime from, DateTime to, IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentAttendanceSummaryDto>> GetStudentAttendanceSummaryAsync(
         string accessToken, int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken = default);
+        DateTime from, DateTime to, IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmployeeAttendanceRecordDto>> GetEmployeeAttendanceRecordsAsync(
         string accessToken, string? type, string? status, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken = default);
+        IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmployeeAttendanceSummaryDto>> GetEmployeeAttendanceSummaryAsync(
         string accessToken, string? type, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken = default);
+        IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetAttendanceLeaveTypesAsync(
         string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AttendanceLeaveTypeDto>> GetAttendanceLeaveTypeRowsAsync(
@@ -515,6 +516,7 @@ public interface ISyncApiClient
 
     Task<SmsBalanceDto> GetSmsBalanceAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SmsStudentDto>> GetSmsStudentsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? ids, CancellationToken cancellationToken = default);
+    Task<GuardianContactPageDto> GetGuardianContactsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? search, int skip, int take, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SmsTeacherDto>> GetSmsTeachersAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<SmsResult> SendOfficeSmsAsync(string accessToken, SendOfficeSmsRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SmsGroupDto>> GetSmsGroupsAsync(string accessToken, CancellationToken cancellationToken = default);
@@ -2472,36 +2474,43 @@ public sealed class SyncApiClient : ISyncApiClient
         string accessToken, SaveEmployeeManualRequest request, CancellationToken cancellationToken = default) =>
         PostAttendanceAsync(accessToken, "api/sync/attendance/employee/manual", request, cancellationToken);
 
+    /// <summary>"&amp;scheduleIds=3,5" for the attendance report endpoints (nothing when no list is given).</summary>
+    private static string ScheduleIdsQuery(IReadOnlyCollection<int>? scheduleIds)
+    {
+        var ids = (scheduleIds ?? Array.Empty<int>()).Where(x => x > 0).Distinct().ToList();
+        return ids.Count == 0 ? "" : "&scheduleIds=" + string.Join(",", ids);
+    }
+
     public Task<IReadOnlyList<StudentAttendanceRecordDto>> GetStudentAttendanceRecordsAsync(
         string accessToken, string? status, int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken = default) =>
+        DateTime from, DateTime to, IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default) =>
         GetListAsync<StudentAttendanceRecordDto>(
             accessToken,
-            $"api/sync/attendance/student/records?status={Uri.EscapeDataString(status ?? "%")}&classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&scheduleId={scheduleId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}",
+            $"api/sync/attendance/student/records?status={Uri.EscapeDataString(status ?? "%")}&classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&scheduleId={scheduleId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + ScheduleIdsQuery(scheduleIds),
             cancellationToken);
 
     public Task<IReadOnlyList<StudentAttendanceSummaryDto>> GetStudentAttendanceSummaryAsync(
         string accessToken, int classId, int groupId, int sectionId, int shiftId, int scheduleId,
-        DateTime from, DateTime to, CancellationToken cancellationToken = default) =>
+        DateTime from, DateTime to, IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default) =>
         GetListAsync<StudentAttendanceSummaryDto>(
             accessToken,
-            $"api/sync/attendance/student/summary?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&scheduleId={scheduleId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}",
+            $"api/sync/attendance/student/summary?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&scheduleId={scheduleId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + ScheduleIdsQuery(scheduleIds),
             cancellationToken);
 
     public Task<IReadOnlyList<EmployeeAttendanceRecordDto>> GetEmployeeAttendanceRecordsAsync(
         string accessToken, string? type, string? status, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken = default) =>
+        IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default) =>
         GetListAsync<EmployeeAttendanceRecordDto>(
             accessToken,
-            $"api/sync/attendance/employee/records?type={Uri.EscapeDataString(type ?? "%")}&status={Uri.EscapeDataString(status ?? "%")}&scheduleId={scheduleId}&employeeId={employeeId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}",
+            $"api/sync/attendance/employee/records?type={Uri.EscapeDataString(type ?? "%")}&status={Uri.EscapeDataString(status ?? "%")}&scheduleId={scheduleId}&employeeId={employeeId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + ScheduleIdsQuery(scheduleIds),
             cancellationToken);
 
     public Task<IReadOnlyList<EmployeeAttendanceSummaryDto>> GetEmployeeAttendanceSummaryAsync(
         string accessToken, string? type, int scheduleId, int employeeId, DateTime from, DateTime to,
-        CancellationToken cancellationToken = default) =>
+        IReadOnlyCollection<int>? scheduleIds = null, CancellationToken cancellationToken = default) =>
         GetListAsync<EmployeeAttendanceSummaryDto>(
             accessToken,
-            $"api/sync/attendance/employee/summary?type={Uri.EscapeDataString(type ?? "%")}&scheduleId={scheduleId}&employeeId={employeeId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}",
+            $"api/sync/attendance/employee/summary?type={Uri.EscapeDataString(type ?? "%")}&scheduleId={scheduleId}&employeeId={employeeId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + ScheduleIdsQuery(scheduleIds),
             cancellationToken);
 
     public Task<IReadOnlyList<string>> GetAttendanceLeaveTypesAsync(
@@ -3690,6 +3699,9 @@ public sealed class SyncApiClient : ISyncApiClient
 
     public Task<IReadOnlyList<SmsStudentDto>> GetSmsStudentsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? ids, CancellationToken cancellationToken = default) =>
         GetListAsync<SmsStudentDto>(accessToken, $"api/sync/sms/students?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}{Q("ids", ids)}", cancellationToken);
+
+    public Task<GuardianContactPageDto> GetGuardianContactsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? search, int skip, int take, CancellationToken cancellationToken = default) =>
+        GetItemAsync<GuardianContactPageDto>(accessToken, $"api/sync/guardian-contacts?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}{Q("q", search)}&skip={skip}&take={take}", cancellationToken);
 
     public Task<IReadOnlyList<SmsTeacherDto>> GetSmsTeachersAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetListAsync<SmsTeacherDto>(accessToken, "api/sync/sms/teachers", cancellationToken);

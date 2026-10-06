@@ -954,9 +954,37 @@ ELSE
         return new AttendanceResult { Succeeded = true, Saved = saved };
     }
 
+    /// <summary>
+    /// Schedules for the attendance record / summary filters: the list (one or more schedules) when given,
+    /// otherwise the single scheduleId (0 = all schedules, as before). Non-positive ids dropped, max 100.
+    /// </summary>
+    private static List<int> ReportSchedules(int scheduleId, IReadOnlyCollection<int>? scheduleIds)
+    {
+        var list = (scheduleIds ?? Array.Empty<int>()).Where(x => x > 0).Distinct().Take(100).ToList();
+        if (list.Count == 0 && scheduleId > 0)
+            list.Add(scheduleId);
+        return list;
+    }
+
+    /// <summary>SQL condition for <paramref name="column"/> in the schedules; one int parameter per id (no SQL text from input).</summary>
+    private static string ScheduleCondition(SqlCommand cmd, string column, IReadOnlyList<int> schedules)
+    {
+        if (schedules.Count == 0)
+            return "1 = 1";
+        var names = new List<string>(schedules.Count);
+        for (var i = 0; i < schedules.Count; i++)
+        {
+            var name = "@Sch" + i.ToString(CultureInfo.InvariantCulture);
+            cmd.Parameters.Add(name, SqlDbType.Int).Value = schedules[i];
+            names.Add(name);
+        }
+        return "ISNULL(" + column + ", 0) IN (" + string.Join(", ", names) + ")";
+    }
+
     public async Task<IReadOnlyList<StudentAttendanceRecordDto>> ListStudentRecordsAsync(
         SessionSnapshot session, string? status, int classId, int groupId, int sectionId, int shiftId,
-        int scheduleId, DateTime from, DateTime to, CancellationToken cancellationToken)
+        int scheduleId, DateTime from, DateTime to, CancellationToken cancellationToken,
+        IReadOnlyCollection<int>? scheduleIds = null)
     {
         var like = string.IsNullOrWhiteSpace(status) || status == "%" ? "%" : status.Trim();
         await using var con = _connections.Create();
@@ -976,7 +1004,7 @@ WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EducationYearID
   AND CAST(ar.AttendanceDate AS DATE) >= @FromDate
   AND CAST(ar.AttendanceDate AS DATE) <= @ToDate
   AND (@ClassID = 0 OR ar.ClassID = @ClassID)
-  AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)
+  AND /*SCHEDULES*/
   AND (@GroupID = 0 OR ISNULL(sc.SubjectGroupID, 0) = @GroupID)
   AND (@SectionID = 0 OR ISNULL(sc.SectionID, 0) = @SectionID)
   AND (@ShiftID = 0 OR ISNULL(sc.ShiftID, 0) = @ShiftID)
@@ -988,7 +1016,8 @@ ORDER BY ar.AttendanceDate DESC, s.ID
         cmd.Parameters.AddWithValue("@FromDate", from.Date);
         cmd.Parameters.AddWithValue("@ToDate", to.Date);
         cmd.Parameters.AddWithValue("@ClassID", classId);
-        cmd.Parameters.AddWithValue("@ScheduleID", scheduleId);
+        cmd.CommandText = cmd.CommandText.Replace("/*SCHEDULES*/",
+            ScheduleCondition(cmd, "ar.Attendance_ScheduleID", ReportSchedules(scheduleId, scheduleIds)));
         cmd.Parameters.AddWithValue("@GroupID", groupId);
         cmd.Parameters.AddWithValue("@SectionID", sectionId);
         cmd.Parameters.AddWithValue("@ShiftID", shiftId);
@@ -1014,10 +1043,11 @@ ORDER BY ar.AttendanceDate DESC, s.ID
 
     public async Task<IReadOnlyList<StudentAttendanceSummaryDto>> ListStudentSummaryAsync(
         SessionSnapshot session, int classId, int groupId, int sectionId, int shiftId,
-        int scheduleId, DateTime from, DateTime to, CancellationToken cancellationToken)
+        int scheduleId, DateTime from, DateTime to, CancellationToken cancellationToken,
+        IReadOnlyCollection<int>? scheduleIds = null)
     {
         var records = await ListStudentRecordsAsync(
-            session, "%", classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken);
+            session, "%", classId, groupId, sectionId, shiftId, scheduleId, from, to, cancellationToken, scheduleIds);
         return records
             .GroupBy(x => new { x.ID, x.Name, x.RollNo })
             .Select(g => new StudentAttendanceSummaryDto
@@ -1038,7 +1068,8 @@ ORDER BY ar.AttendanceDate DESC, s.ID
 
     public async Task<IReadOnlyList<EmployeeAttendanceRecordDto>> ListEmployeeRecordsAsync(
         SessionSnapshot session, string? type, string? status, int scheduleId, int employeeId,
-        DateTime from, DateTime to, CancellationToken cancellationToken)
+        DateTime from, DateTime to, CancellationToken cancellationToken,
+        IReadOnlyCollection<int>? scheduleIds = null)
     {
         var employeeType = string.IsNullOrWhiteSpace(type) || type == "%" ? "%" : type.Trim();
         var like = string.IsNullOrWhiteSpace(status) || status == "%" ? "%" : status.Trim();
@@ -1057,7 +1088,7 @@ WHERE r.SchoolID = @SchoolID
   AND r.AttendanceStatus LIKE @Status
   AND CAST(r.AttendanceDate AS DATE) >= @FromDate
   AND CAST(r.AttendanceDate AS DATE) <= @ToDate
-  AND (@ScheduleID = 0 OR ISNULL(r.Attendance_ScheduleID, 0) = @ScheduleID)
+  AND /*SCHEDULES*/
   AND (@EmployeeID = 0 OR r.EmployeeID = @EmployeeID)
 ORDER BY r.AttendanceDate DESC, v.ID
 """, con);
@@ -1066,7 +1097,8 @@ ORDER BY r.AttendanceDate DESC, v.ID
         cmd.Parameters.AddWithValue("@Status", like);
         cmd.Parameters.AddWithValue("@FromDate", from.Date);
         cmd.Parameters.AddWithValue("@ToDate", to.Date);
-        cmd.Parameters.AddWithValue("@ScheduleID", scheduleId);
+        cmd.CommandText = cmd.CommandText.Replace("/*SCHEDULES*/",
+            ScheduleCondition(cmd, "r.Attendance_ScheduleID", ReportSchedules(scheduleId, scheduleIds)));
         cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
         var items = new List<EmployeeAttendanceRecordDto>();
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -1089,10 +1121,11 @@ ORDER BY r.AttendanceDate DESC, v.ID
 
     public async Task<IReadOnlyList<EmployeeAttendanceSummaryDto>> ListEmployeeSummaryAsync(
         SessionSnapshot session, string? type, int scheduleId, int employeeId,
-        DateTime from, DateTime to, CancellationToken cancellationToken)
+        DateTime from, DateTime to, CancellationToken cancellationToken,
+        IReadOnlyCollection<int>? scheduleIds = null)
     {
         var records = await ListEmployeeRecordsAsync(
-            session, type, "%", scheduleId, employeeId, from, to, cancellationToken);
+            session, type, "%", scheduleId, employeeId, from, to, cancellationToken, scheduleIds);
         return records
             .GroupBy(x => new { x.ID, x.Name, x.Designation })
             .Select(g => new EmployeeAttendanceSummaryDto

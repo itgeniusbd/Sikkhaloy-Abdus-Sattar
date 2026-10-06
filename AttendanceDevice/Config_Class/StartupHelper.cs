@@ -101,11 +101,15 @@ namespace AttendanceDevice.Config_Class
                     connected++;
 
                     var todayLog = await Task.Run(() => device.DownloadTodayLogs());
+                    var fullHistory = recoverDays >= LocalData.FullDeviceHistoryDays;
                     DateTime? recoverFrom = recoverDays > 0
                         ? LocalData.Instance.GetAttendanceDate().Date.AddDays(-recoverDays)
                         : (DateTime?)null;
-                    var prevLog = await Task.Run(() => device.DownloadPrevLogs(recoverFrom));
-                    await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, institution, device.Device);
+                    var prevLog = await Task.Run(() => device.DownloadPrevLogs(recoverFrom, allowBeyondWindow: fullHistory));
+                    await Machine.SaveLogsOrAttendanceInPc(
+                        prevLog, todayLog, institution, device.Device,
+                        useSessionLedger: true,
+                        applyAllDates: fullHistory);
                     imported++;
 
                     try
@@ -148,6 +152,33 @@ namespace AttendanceDevice.Config_Class
                     ? $"device logs imported from {imported} device(s)"
                     : $"device logs incomplete (imported {imported}/{connected})");
 
+            return ok;
+        }
+
+        /// <summary>
+        /// Sync Record: re-read every log the device still holds (chunked by month), back it up locally,
+        /// apply punches of all dates as attendance, then the caller uploads unsynced rows.
+        /// Live timer / startup keep using <see cref="ImportTodayDeviceLogsAsync"/> with recoverDays=0/6.
+        /// </summary>
+        public static async Task<bool> ImportFullDeviceHistoryAsync(
+            IEnumerable<DeviceConnection> devices,
+            Institution institution,
+            Action<string> progress = null)
+        {
+            progress?.Invoke("Reading full device history...");
+            var ok = await ImportTodayDeviceLogsAsync(devices, institution, LocalData.FullDeviceHistoryDays);
+            if (ok)
+            {
+                progress?.Invoke("Replaying local Device Logs for all dates...");
+                try
+                {
+                    await Machine.ReplayBackupLogsAsync(institution, refreshSchedulesFromNetwork: false, allDates: true);
+                }
+                catch (Exception ex)
+                {
+                    StartupLogger.LogFailure("full history: replay backups", ex);
+                }
+            }
             return ok;
         }
     }

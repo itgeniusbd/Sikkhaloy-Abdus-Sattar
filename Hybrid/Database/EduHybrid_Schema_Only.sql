@@ -15937,6 +15937,30 @@ BEGIN
     SELECT * FROM @Out ORDER BY SchoolID;
 END;
 GO
+PRINT N'Granting EXECUTE on [dbo].[usp_NextMoneyReceiptSN] to the app users...';
+GO
+/* Hybrid SyncApi calls dbo.usp_NextMoneyReceiptSN directly; its user (IIS APPPOOL\HybridApi) has
+   per-object grants only, so without this every Hybrid fee collection is denied. The procedure is
+   WITH EXECUTE AS OWNER, so EXECUTE is all it needs. Users missing in this database are skipped. */
+DECLARE @gu sysname, @gsql nvarchar(max);
+DECLARE gcur CURSOR LOCAL FAST_FORWARD FOR
+    SELECT name FROM sys.database_principals
+    WHERE type IN ('U', 'S', 'G')
+      AND (name IN (N'IIS APPPOOL\HybridApi', N'IIS APPPOOL\SIKKHALOY', N'IIS APPPOOL\SIKKHALOY API')
+           OR name LIKE N'IIS APPPOOL\%Hybrid%');
+OPEN gcur;
+FETCH NEXT FROM gcur INTO @gu;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    IF OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL
+    BEGIN
+        SET @gsql = N'GRANT EXECUTE ON OBJECT::dbo.usp_NextMoneyReceiptSN TO ' + QUOTENAME(@gu) + N';';
+        EXEC sys.sp_executesql @gsql;
+    END
+    FETCH NEXT FROM gcur INTO @gu;
+END
+CLOSE gcur; DEALLOCATE gcur;
+GO
 PRINT N'Creating Procedure [dbo].[MoneyReceipt]...';
 
 

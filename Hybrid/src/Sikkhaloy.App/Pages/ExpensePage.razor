@@ -522,6 +522,15 @@ else
         Nav.LocationChanged += OnLocationChanged;
     }
 
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        // The menu opens "/accounts/expense" and "/accounts/expense-edit" by client-side navigation, so this
+        // page instance is reused when coming from a receipt ("/accounts/expense/{Id}"). Blazor does not clear
+        // a parameter the new route lacks, so reset Id first - else the old receipt would stay on screen.
+        Id = 0;
+        return base.SetParametersAsync(parameters);
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
         if (!CanEdit)

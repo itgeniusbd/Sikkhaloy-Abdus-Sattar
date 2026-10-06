@@ -398,7 +398,7 @@ namespace EDUCATION.COM.Exam.Result
                 // Get values from the row with proper null checking using correct field names
                 var obtainedDecimal = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? 0m :
                     Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]);
-                obtainedMarks = obtainedDecimal % 1 == 0 ? obtainedDecimal.ToString("F0") : obtainedDecimal.ToString("F1");
+                obtainedMarks = FormatCardMark(obtainedDecimal);   // real decimals (519.25); whole stays whole
 
                 totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" :
                     Convert.ToDecimal(row["TotalMark_ofStudent"]).ToString("F0");
@@ -1207,8 +1207,7 @@ namespace EDUCATION.COM.Exam.Result
                         bool isAbsent = (obtainedMark == 0 && string.IsNullOrWhiteSpace(subjectGrades));
                         
                         // FIXED: Show decimal for obtained marks if it has fractional part
-                        string displayMark = isAbsent ? "Abs" : 
-                            (obtainedMark % 1 != 0 ? obtainedMark.ToString("F1") : obtainedMark.ToString("F0"));
+                        string displayMark = isAbsent ? "Abs" : FormatCardMark(obtainedMark);
 
                         // Show actual grade from database
                         string displayGrade = string.IsNullOrWhiteSpace(subjectGrades) ? "-" : subjectGrades;
@@ -1255,11 +1254,11 @@ namespace EDUCATION.COM.Exam.Result
                             html += $@"<td style=""{standardCellStyle}"">{positionSection}</td>";
                         }
 
-                        html += $@"<td style=""{standardCellStyle}"">{(hmcValue > 0 ? hmcValue.ToString("F0") : "-")}</td>";
+                        html += $@"<td style=""{standardCellStyle}"">{(hmcValue > 0 ? FormatCardMark(hmcValue) : "-")}</td>";
 
                         if (HasSections && !IS_Hide_Sec_Position)
                         {
-                            html += $@"<td style=""{standardCellStyle}"">{(hmsValue > 0 ? hmsValue.ToString("F0") : "-")}</td>";
+                            html += $@"<td style=""{standardCellStyle}"">{(hmsValue > 0 ? FormatCardMark(hmsValue) : "-")}</td>";
                         }
 
                         html += @"</tr>";
@@ -1357,8 +1356,7 @@ namespace EDUCATION.COM.Exam.Result
                 // FIXED: Format marks with decimal if needed
                 bool isAbsent = (obtainedMarkDecimal == 0 && string.IsNullOrWhiteSpace(subjectGrades));
                 
-                string displayObtainedMark = isAbsent ? "Abs" : 
-                    (obtainedMarkDecimal % 1 != 0 ? obtainedMarkDecimal.ToString("F1") : obtainedMarkDecimal.ToString("F0"));
+                string displayObtainedMark = isAbsent ? "Abs" : FormatCardMark(obtainedMarkDecimal);
                 
                 string displayFullMark = fullMarkDecimal % 1 != 0 ? fullMarkDecimal.ToString("F1") : fullMarkDecimal.ToString("F0");
 
@@ -1412,12 +1410,12 @@ namespace EDUCATION.COM.Exam.Result
                 }
 
                 // HMC data - always show
-                html += $@"<td style=""{cellStyle}background-color: #e8f4fd;"">{(hmcValue > 0 ? hmcValue.ToString("F0") : "-")}</td>";
+                html += $@"<td style=""{cellStyle}background-color: #e8f4fd;"">{(hmcValue > 0 ? FormatCardMark(hmcValue) : "-")}</td>";
 
                 // Add HMS data conditionally
                 if (HasSections && !IS_Hide_Sec_Position)
                 {
-                    html += $@"<td style=""{cellStyle}background-color: #e8f4fd;"">{(hmsValue > 0 ? hmsValue.ToString("F0") : "-")}</td>";
+                    html += $@"<td style=""{cellStyle}background-color: #e8f4fd;"">{(hmsValue > 0 ? FormatCardMark(hmsValue) : "-")}</td>";
                 }
 
                 html += @"</tr>";
@@ -1467,6 +1465,12 @@ namespace EDUCATION.COM.Exam.Result
             return list;
         }
 
+        /// <summary>Result card marks (OM, MARKS, obtained total, HMC, HMS): real decimals like the old card (99.75, 99.5, 519.25), whole numbers stay whole. Page-local.</summary>
+        private static string FormatCardMark(decimal value)
+        {
+            return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         // Overload: align marks to correct column using global SubExamID list, respecting FM/PM visibility
         private string GetSubExamMarksForSubject(string studentResultID, int subjectID, int examID, List<int> globalSubExamIDs, bool hideFullMark = false, bool hidePassMark = false)
         {
@@ -1508,7 +1512,7 @@ namespace EDUCATION.COM.Exam.Result
                                     string.Equals(om, "ABSENT", StringComparison.OrdinalIgnoreCase))
                                     om = "Abs";
                                 else if (decimal.TryParse(om, out decimal omVal))
-                                    om = omVal % 1 != 0 ? omVal.ToString("F1") : omVal.ToString("F0");
+                                    om = FormatCardMark(omVal);
 
                                 marksDict[sid] = Tuple.Create(fm, pm, om);
                             }

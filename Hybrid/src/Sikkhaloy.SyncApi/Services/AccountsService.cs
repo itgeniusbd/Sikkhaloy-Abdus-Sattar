@@ -1278,11 +1278,14 @@ ORDER BY CASE WHEN sc.EducationYearID = @YearID THEN 0 ELSE 1 END,
                 }
             }
             // Receipt number: per-school SEQUENCE via dbo.usp_NextMoneyReceiptSN (never reused after a
-            // crash / deleted receipt). Falls back to the old MAX+1 when the procedure is not installed yet,
-            // so this code can be published before Database\ReceiptSN\receipt_sn_setup.sql is run.
+            // crash / deleted receipt). Falls back to the old MAX+1 when the procedure is not installed yet
+            // or this app's DB user has no EXECUTE on it (Database\ReceiptSN\receipt_sn_grant.sql not run),
+            // so fee collection never fails with "EXECUTE permission was denied". The procedure self-heals
+            // past any number the fallback used, and the unique index still blocks duplicates.
             await using (var rec = new SqlCommand("""
 DECLARE @Sn int;
 IF OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL
+   AND HAS_PERMS_BY_NAME(N'dbo.usp_NextMoneyReceiptSN', N'OBJECT', N'EXECUTE') = 1
     EXEC dbo.usp_NextMoneyReceiptSN @SchoolID = @SchoolID, @SN = @Sn OUTPUT;
 ELSE
 BEGIN

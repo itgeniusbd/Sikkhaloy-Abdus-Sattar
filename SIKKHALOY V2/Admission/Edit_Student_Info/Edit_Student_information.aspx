@@ -24,7 +24,7 @@
                 </div>
             </div>
         </div>
-        <asp:FormView ID="StudentInfoFormView" DefaultMode="Edit" runat="server" DataKeyNames="StudentClassID" DataSourceID="StudentInfoSQL" Width="100%">
+        <asp:FormView ID="StudentInfoFormView" DefaultMode="Edit" OnDataBound="StudentInfoFormView_DataBound" OnItemUpdating="StudentInfoFormView_ItemUpdating" runat="server" DataKeyNames="StudentClassID" DataSourceID="StudentInfoSQL" Width="100%">
             <EditItemTemplate>
                 <div class="card-body">
                     <h4 class="badge stylish-color-dark"><%# Eval("StudentsName") %></h4>
@@ -52,7 +52,7 @@
                     </div>
                     <div class="form-group">
                         <label>Gender</label>
-                        <asp:RadioButtonList ID="GenderRadioButtonList" runat="server" RepeatDirection="Horizontal" SelectedValue='<%#Bind("Gender") %>'>
+                        <asp:RadioButtonList ID="GenderRadioButtonList" runat="server" RepeatDirection="Horizontal">
                             <asp:ListItem>Male</asp:ListItem>
                             <asp:ListItem>Female</asp:ListItem>
                         </asp:RadioButtonList>
@@ -70,7 +70,7 @@
 
                     <div class="form-group">
                         <label>Blood Group</label>
-                        <asp:DropDownList ID="BloodGroupDropDownList"  SelectedValue='<%#Bind("BloodGroup") %>' runat="server" CssClass="form-control">
+                        <asp:DropDownList ID="BloodGroupDropDownList" runat="server" CssClass="form-control">
                         <asp:ListItem>Unknown</asp:ListItem>
                         <asp:ListItem>A+</asp:ListItem>
                         <asp:ListItem>A-</asp:ListItem>
@@ -84,7 +84,7 @@
                     </div>
                     <div class="form-group">
                         <label>Religion</label>
-                        <asp:DropDownList ID="ReligionDropDownList" SelectedValue='<%#Bind("Religion") %>' runat="server" CssClass="form-control">
+                        <asp:DropDownList ID="ReligionDropDownList" runat="server" CssClass="form-control">
                             <asp:ListItem>Islam</asp:ListItem>
                             <asp:ListItem>Hinduism</asp:ListItem>
                             <asp:ListItem>Buddhism</asp:ListItem>
@@ -213,6 +213,10 @@
     <script src="/JS/DateMask.js"></script>
     <script>
         function isNumberKey(a) { a = a.which ? a.which : event.keyCode; return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 };
+        // Student photo save helpers: StudentID from the query string, readable error text
+        function Edit_StudentID() { var m = /[?&]Student=([^&#]*)/i.exec(location.search); return m ? decodeURIComponent(m[1]) : ''; }
+        function Edit_ImgError(xhr) { return (xhr && xhr.responseJSON && xhr.responseJSON.Message) || (xhr && xhr.statusText) || 'Error'; }
+
         $(function () {
             $('[id*=DateofBirthTextBox]').mask("99/99/9999", { placeholder: 'dd/mm/yyyy' });
 
@@ -249,14 +253,21 @@
                         width: 250,
                         quality: 70,
                         callback: function (idata) {
+                            var prevSrc = $('.S_img').attr('src');
                             $('.S_img').attr('src', idata);
 
                             $.ajax({
                                 url: "Edit_Student_information.aspx/Update_Student_Image",
-                                data: JSON.stringify({ 'StudentImageID': $('#ImgID').val(), 'Image': idata.split(",")[1] }),
+                                data: JSON.stringify({ 'StudentImageID': $('#ImgID').val(), 'StudentID': Edit_StudentID(), 'Image': idata.split(",")[1] }),
                                 dataType: "json",
                                 type: "POST",
-                                contentType: "application/json; charset=utf-8"
+                                contentType: "application/json; charset=utf-8",
+                                success: function (r) { if (r && r.d) $('#ImgID').val(r.d); },
+                                error: function (xhr) {
+                                    $('.S_img').attr('src', prevSrc);
+                                    $('input[name=Student_photo]').val('');
+                                    alert("Student's photo was not saved (ছবি সেভ হয়নি): " + Edit_ImgError(xhr));
+                                }
                             });
                         }
                     });
@@ -277,13 +288,20 @@
                         width: 250,
                         quality: 70,
                         callback: function (idata) {
+                            var prevSrc = $('.g_img').attr('src');
                             $('.g_img').attr('src', idata);
                             $.ajax({
                                 url: "Edit_Student_information.aspx/Update_Guardian_Image",
-                                data: JSON.stringify({ 'StudentImageID': $('#ImgID').val(), 'Image': idata.split(",")[1] }),
+                                data: JSON.stringify({ 'StudentImageID': $('#ImgID').val(), 'StudentID': Edit_StudentID(), 'Image': idata.split(",")[1] }),
                                 dataType: "json",
                                 type: "POST",
-                                contentType: "application/json; charset=utf-8"
+                                contentType: "application/json; charset=utf-8",
+                                success: function (r) { if (r && r.d) $('#ImgID').val(r.d); },
+                                error: function (xhr) {
+                                    $('.g_img').attr('src', prevSrc);
+                                    $('input[name=Guardian_photo]').val('');
+                                    alert("Guardian's photo was not saved (ছবি সেভ হয়নি): " + Edit_ImgError(xhr));
+                                }
                             });
                         }
                     });

@@ -898,13 +898,76 @@ namespace AttendanceDevice.Config_Class
             return users;
         }
         /// <param name="recoverFrom">
-        /// Optional earlier lower bound (max <see cref="PrevDayLogCountable"/> days back): re-read punches that
-        /// are older than Last_Down_Log_Time, e.g. ones lost from the PC by a power cut or an app update.
+        /// Optional earlier lower bound: re-read punches older than Last_Down_Log_Time (power cut / restart).
         /// Re-reading is safe: already-applied punches are ignored by the duplicate / 10-minute rules.
         /// </param>
-        public List<LogView> DownloadPrevLogs(DateTime? recoverFrom = null)
+        /// <param name="allowBeyondWindow">
+        /// false (live path): capped at <see cref="PrevDayLogCountable"/> days.
+        /// true (Sync Record): honour recoverFrom even when older, so every device log can be backed up.
+        /// </param>
+        public List<LogView> DownloadPrevLogs(DateTime? recoverFrom = null, bool allowBeyondWindow = false)
         {
             if (!IsConnected()) return new List<LogView>();
+
+            if (allowBeyondWindow && recoverFrom.HasValue)
+            {
+                // Chunk by month so a multi-year device log does not load into one giant SDK call / list.
+                var all = new List<LogView>();
+                var endExclusive = DateTime.Today.Date; // today is DownloadTodayLogs
+                var cursor = recoverFrom.Value.Date;
+                if (cursor >= endExclusive)
+                    return all;
+
+                while (cursor < endExclusive)
+                {
+                    var chunkEnd = cursor.AddDays(31);
+                    if (chunkEnd > endExclusive)
+                        chunkEnd = endExclusive;
+                    all.AddRange(DownloadLogsInRange(cursor, chunkEnd));
+                    cursor = chunkEnd;
+                }
+
+                return all.OrderBy(l => l.EntryDateTime).ToList();
+            }
+
+            var fromTime = DateTime.Today.AddDays(-PrevDayLogCountable);
+            var prevLowerBound = fromTime;
+            var fromTimeString = fromTime.ToString("yyyy-MM-dd 00:00:00");
+
+            if (DateTime.TryParse(Device.Last_Down_Log_Time, out var deviceLastUpdate))
+            {
+                if ((DateTime.Today - deviceLastUpdate).TotalDays < PrevDayLogCountable)
+                    fromTimeString = Device.Last_Down_Log_Time;
+            }
+
+            if (DateTime.TryParse(Device.Last_Down_Log_Time, out var prevLastDown) &&
+                (DateTime.Today - prevLastDown).TotalDays < PrevDayLogCountable && prevLastDown > fromTime)
+                prevLowerBound = prevLastDown;
+
+            if (recoverFrom.HasValue)
+            {
+                var recoverLower = recoverFrom.Value.Date;
+                if (recoverLower < fromTime)
+                    recoverLower = fromTime;
+                if (recoverLower < prevLowerBound)
+                {
+                    prevLowerBound = recoverLower;
+                    fromTimeString = recoverLower.ToString("yyyy-MM-dd 00:00:00");
+                }
+            }
+
+            var toTime = DateTime.Today.Date;
+            return DownloadLogsInRange(DateTime.Parse(fromTimeString), toTime, prevLowerBoundFallback: prevLowerBound);
+        }
+
+        /// <summary>
+        /// Read device punches in [fromInclusive, toExclusive). Used by the live 7-day path and by Sync
+        /// Record month chunks. Dedupes by device+second so overlapping chunk edges are harmless.
+        /// </summary>
+        public List<LogView> DownloadLogsInRange(DateTime fromInclusive, DateTime toExclusive, DateTime? prevLowerBoundFallback = null)
+        {
+            if (!IsConnected()) return new List<LogView>();
+            if (toExclusive <= fromInclusive) return new List<LogView>();
 
             var logs = new List<LogView>();
             axCZKEM1.EnableDevice(Machine.Number, false);
@@ -919,93 +982,50 @@ namespace AttendanceDevice.Config_Class
                 var idwSecond = 0;
                 var idWorkCode = 0;
 
-                var fromTime = DateTime.Today.AddDays(-PrevDayLogCountable);
-                var fromTimeString = fromTime.ToString("yyyy-MM-dd 00:00:00");
-
-                if (DateTime.TryParse(Device.Last_Down_Log_Time, out var deviceLastUpdate))
-                {
-                    if ((DateTime.Today - deviceLastUpdate).TotalDays < PrevDayLogCountable)
-                    {
-                        fromTimeString = Device.Last_Down_Log_Time;
-                    }
-                }
-
-                var toTime = DateTime.Today.Date;
-                // Fallback (ReadGeneralLogData) lower bound = same window as the ReadTimeGLogData path.
-                var prevLowerBound = fromTime;
-                if (DateTime.TryParse(Device.Last_Down_Log_Time, out var prevLastDown) &&
-                    (DateTime.Today - prevLastDown).TotalDays < PrevDayLogCountable && prevLastDown > fromTime)
-                    prevLowerBound = prevLastDown;
-                var toTimeString = toTime.ToString("yyyy-MM-dd 00:00:00");
-
-                if (recoverFrom.HasValue)
-                {
-                    var recoverLower = recoverFrom.Value.Date;
-                    if (recoverLower < fromTime)
-                        recoverLower = fromTime;
-                    if (recoverLower < prevLowerBound)
-                    {
-                        prevLowerBound = recoverLower;
-                        fromTimeString = recoverLower.ToString("yyyy-MM-dd 00:00:00");
-                    }
-                }
+                var fromTimeString = fromInclusive.ToString("yyyy-MM-dd HH:mm:ss");
+                var toTimeString = toExclusive.ToString("yyyy-MM-dd HH:mm:ss");
+                var prevLowerBound = prevLowerBoundFallback ?? fromInclusive;
 
                 if (axCZKEM1.ReadTimeGLogData(Machine.Number, fromTimeString, toTimeString))
                 {
-                    while (axCZKEM1.SSR_GetGeneralLogData(Machine.Number, out sdwEnrollNumber, out _, out _, out idwYear, out idwMonth, out idwDay, out idwHour, out idwMinute, out idwSecond, ref idWorkCode))//get records from the memory
+                    while (axCZKEM1.SSR_GetGeneralLogData(Machine.Number, out sdwEnrollNumber, out _, out _, out idwYear, out idwMonth, out idwDay, out idwHour, out idwMinute, out idwSecond, ref idWorkCode))
                     {
                         var deviceId = Convert.ToInt32(sdwEnrollNumber);
                         var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
-                        var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                        var sDate = dt.ToString("dd-MMM-yy");
-
-                        var log = new LogView
+                        if (dt < fromInclusive || dt >= toExclusive) continue;
+                        logs.Add(new LogView
                         {
                             DeviceId = deviceId,
-                            EntryDate = sDate,
-                            EntryTime = time,
+                            EntryDate = dt.ToString("dd-MMM-yy"),
+                            EntryTime = new TimeSpan(idwHour, idwMinute, idwSecond),
                             EntryDay = dt.ToString("dddd"),
                             EntryDateTime = dt
-                        };
-                        logs.Add(log);
+                        });
                     }
                 }
                 else
                 {
                     var idwErrorCode = 0;
                     axCZKEM1.GetLastError(ref idwErrorCode);
-                    //check no data found or a error  
-                    if (idwErrorCode != 0)
+                    if (idwErrorCode != 0 && axCZKEM1.ReadGeneralLogData(Machine.Number))
                     {
-                        if (axCZKEM1.ReadGeneralLogData(Machine.Number))
+                        while (axCZKEM1.SSR_GetGeneralLogData(Machine.Number, out sdwEnrollNumber, out _, out _,
+                            out idwYear, out idwMonth, out idwDay, out idwHour, out idwMinute, out idwSecond,
+                            ref idWorkCode))
                         {
-                            while (axCZKEM1.SSR_GetGeneralLogData(Machine.Number, out sdwEnrollNumber, out _, out _,
-                                out idwYear, out idwMonth, out idwDay, out idwHour, out idwMinute, out idwSecond,
-                                ref idWorkCode)) //get records from the memory
+                            var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
+                            if (dt < prevLowerBound || dt >= toExclusive) continue;
+                            if (dt < fromInclusive) continue;
+                            logs.Add(new LogView
                             {
-                                var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
-
-                                //Check data in Last Downloaded Log Time 
-                                if (dt < prevLowerBound || dt >= toTime) continue;
-
-                                var deviceId = Convert.ToInt32(sdwEnrollNumber);
-                                var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                                var sDate = dt.ToString("dd-MMM-yy");
-
-                                var log = new LogView
-                                {
-                                    DeviceId = deviceId,
-                                    EntryDate = sDate,
-                                    EntryTime = time,
-                                    EntryDay = dt.ToString("dddd"),
-                                    EntryDateTime = dt,
-                                };
-
-                                logs.Add(log);
-                            }
+                                DeviceId = Convert.ToInt32(sdwEnrollNumber),
+                                EntryDate = dt.ToString("dd-MMM-yy"),
+                                EntryTime = new TimeSpan(idwHour, idwMinute, idwSecond),
+                                EntryDay = dt.ToString("dddd"),
+                                EntryDateTime = dt
+                            });
                         }
                     }
-
                 }
             }
             catch

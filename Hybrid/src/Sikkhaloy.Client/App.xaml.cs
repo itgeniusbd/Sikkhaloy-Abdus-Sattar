@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sikkhaloy.App.Services;
+using Sikkhaloy.Client.Updates;
 using Sikkhaloy.LocalData;
 using Sikkhaloy.LocalData.Auth;
 using Sikkhaloy.LocalData.Sync;
@@ -12,6 +13,7 @@ namespace Sikkhaloy.Client;
 public partial class App : System.Windows.Application
 {
     private SyncLoopService? _syncLoop;
+    private HybridUpdateService? _updater;
 
     public App()
     {
@@ -33,10 +35,16 @@ public partial class App : System.Windows.Application
 
         var window = new MainWindow();
         window.Show();
+
+        // Desktop auto-update: silent when offline or already up to date; shows a banner when a newer version exists.
+        _updater = services.GetRequiredService<HybridUpdateService>();
+        window.AttachUpdater(_updater);
+        _updater.Start();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _updater?.Dispose();
         _syncLoop?.Dispose();
         base.OnExit(e);
     }
@@ -75,6 +83,7 @@ public partial class App : System.Windows.Application
         collection.AddSingleton<ISyncApiClient, SyncApiClient>();
         collection.AddSingleton<SyncEngine>();
         collection.AddSingleton<SyncLoopService>();
+        collection.AddSingleton(sp => new HybridUpdateService(configuration["Update:InfoUrl"], sp.GetRequiredService<SyncEngine>()));
         collection.AddHttpClient(SyncApiClient.HttpClientName, client =>
         {
             client.BaseAddress = new Uri(baseUrl);

@@ -34,12 +34,14 @@ namespace AttendanceDevice.Config_Class
         // same rows concurrently.
         private static readonly SemaphoreSlim PushLock = new SemaphoreSlim(1, 1);
 
-        public static async Task<AttendanceWebsiteSyncResult> PushPendingAsync(Institution institution)
+        public static async Task<AttendanceWebsiteSyncResult> PushPendingAsync(
+            Institution institution,
+            Action<string> progress = null)
         {
             await PushLock.WaitAsync();
             try
             {
-                return await PushPendingCoreAsync(institution);
+                return await PushPendingCoreAsync(institution, progress);
             }
             finally
             {
@@ -47,7 +49,9 @@ namespace AttendanceDevice.Config_Class
             }
         }
 
-        private static async Task<AttendanceWebsiteSyncResult> PushPendingCoreAsync(Institution institution)
+        private static async Task<AttendanceWebsiteSyncResult> PushPendingCoreAsync(
+            Institution institution,
+            Action<string> progress)
         {
             var result = new AttendanceWebsiteSyncResult();
             if (institution == null)
@@ -72,16 +76,31 @@ namespace AttendanceDevice.Config_Class
 
             var client = new RestClient(ApiUrl.EndPoint);
             LocalData.Instance.RepairStudentUserFlags();
+            progress?.Invoke("Replaying Device Logs...");
             await Machine.ReplayRejectedLogsAsAttendance(institution);
             LocalData.Instance.FlagIncompleteRecordsForResync();
             LocalData.Instance.RecalculateTodayEntryStatusesFromSchedules();
 
-            using (var db = new ModelContext())
+            // Loop in batches until every unsynced row of any date is sent (or a batch makes no progress).
+            const int maxRounds = 50;
+            for (var round = 1; round <= maxRounds; round++)
             {
-                result.StudentPosted = await PostStudentsAsync(db, client, institution, result);
-                result.StudentUpdated = await PutStudentsAsync(db, client, institution, result);
-                result.EmployeePosted = await PostEmployeesAsync(db, client, institution, result);
-                result.EmployeeUpdated = await PutEmployeesAsync(db, client, institution, result);
+                var before = LocalData.Instance.GetPendingAttendanceCount();
+                if (before == 0)
+                    break;
+
+                progress?.Invoke($"Uploading batch {round} ({before} pending)...");
+                using (var db = new ModelContext())
+                {
+                    result.StudentPosted += await PostStudentsAsync(db, client, institution, result);
+                    result.StudentUpdated += await PutStudentsAsync(db, client, institution, result);
+                    result.EmployeePosted += await PostEmployeesAsync(db, client, institution, result);
+                    result.EmployeeUpdated += await PutEmployeesAsync(db, client, institution, result);
+                }
+
+                var after = LocalData.Instance.GetPendingAttendanceCount();
+                if (after >= before)
+                    break; // no progress (server reject / DeviceID mismatch) — stop to avoid a loop
             }
 
             var remaining = LocalData.Instance.GetPendingAttendanceCount();
@@ -118,7 +137,8 @@ namespace AttendanceDevice.Config_Class
             Institution institution,
             AttendanceWebsiteSyncResult result)
         {
-            var studentLog = await LocalData.Instance.StudentLog_Post();
+            var studentLog = (await LocalData.Instance.StudentLog_Post())
+                .Take(LocalData.WebsiteSyncBatchSize).ToList();
             if (studentLog.Count == 0)
                 return 0;
 
@@ -166,7 +186,8 @@ namespace AttendanceDevice.Config_Class
             Institution institution,
             AttendanceWebsiteSyncResult result)
         {
-            var studentLogUpdate = await LocalData.Instance.StudentLog_Put();
+            var studentLogUpdate = (await LocalData.Instance.StudentLog_Put())
+                .Take(LocalData.WebsiteSyncBatchSize).ToList();
             if (studentLogUpdate.Count == 0)
                 return 0;
 
@@ -239,7 +260,8 @@ namespace AttendanceDevice.Config_Class
             Institution institution,
             AttendanceWebsiteSyncResult result)
         {
-            var empLog = await LocalData.Instance.EmpLog_Post();
+            var empLog = (await LocalData.Instance.EmpLog_Post())
+                .Take(LocalData.WebsiteSyncBatchSize).ToList();
             if (empLog.Count == 0)
                 return 0;
 
@@ -279,7 +301,8 @@ namespace AttendanceDevice.Config_Class
             Institution institution,
             AttendanceWebsiteSyncResult result)
         {
-            var empLogUpdate = await LocalData.Instance.EmpLog_Put();
+            var empLogUpdate = (await LocalData.Instance.EmpLog_Put())
+                .Take(LocalData.WebsiteSyncBatchSize).ToList();
             if (empLogUpdate.Count == 0)
                 return 0;
 

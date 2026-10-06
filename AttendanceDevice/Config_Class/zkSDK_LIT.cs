@@ -13,7 +13,13 @@ namespace AttendanceDevice.Config_Class
     {
         public static readonly int Number = 1;
 
-        public static async Task SaveLogsOrAttendanceInPc(List<LogView> prevLog, List<LogView> todayLog, Institution institution, Device device, bool useSessionLedger = true)
+        public static async Task SaveLogsOrAttendanceInPc(
+            List<LogView> prevLog,
+            List<LogView> todayLog,
+            Institution institution,
+            Device device,
+            bool useSessionLedger = true,
+            bool applyAllDates = false)
         {
             var DuplicatePunchCountableMin = 10;
 
@@ -28,19 +34,25 @@ namespace AttendanceDevice.Config_Class
                 var existingBackups = db.attendanceLog_Backups.ToList();
                 var localDeviceIds = new HashSet<int>(db.Users.Select(u => u.DeviceID).ToList());
 
-                // Previous-day punches inside the auto-push window (missed while the PC was off / the app was
-                // restarting or updating) are applied to their own date below. Only older ones, or punches of
-                // users unknown to this PC, stay in Device Data as "Not Current Data" (never duplicated).
+                // Live path: only the auto-push window is applied as attendance; older punches stay in Device
+                // Data. Sync Record (applyAllDates): every known user's past punch is applied to its own date
+                // AND mirrored in Device Data so nothing is lost after a power cut.
                 var recoverablePrev = new List<LogView>();
                 foreach (var a in prevLog.OrderBy(l => l.EntryDateTime))
                 {
+                    var knownUser = localDeviceIds.Contains(a.DeviceId);
+                    var isPast = a.EntryDateTime.Date < todayDate;
+                    var inWindow = LocalData.Instance.IsInRecoveryWindow(a.EntryDateTime.Date);
                     var isRecoverable = institution.Is_Device_Attendance_Enable &&
-                                        localDeviceIds.Contains(a.DeviceId) &&
-                                        a.EntryDateTime.Date < todayDate &&
-                                        LocalData.Instance.IsInRecoveryWindow(a.EntryDateTime.Date);
+                                        knownUser &&
+                                        isPast &&
+                                        (applyAllDates || inWindow);
                     if (isRecoverable)
                     {
                         recoverablePrev.Add(a);
+                        // Sync Record: also keep a durable Device Logs copy (live path applies without backing up).
+                        if (applyAllDates)
+                            AddBackupIfMissing(db, existingBackups, a.DeviceId, a.EntryDate, a.EntryTime.ToString(), a.EntryDay, "Device log backup");
                         continue;
                     }
 
@@ -308,7 +320,8 @@ namespace AttendanceDevice.Config_Class
 
         internal static async Task<BackupReplayResult> ReplayBackupLogsAsync(
             Institution institution,
-            bool refreshSchedulesFromNetwork = true)
+            bool refreshSchedulesFromNetwork = true,
+            bool allDates = false)
         {
             var result = new BackupReplayResult();
             if (institution == null)
@@ -329,7 +342,7 @@ namespace AttendanceDevice.Config_Class
                 {
                     if (!AttendanceDateHelper.TryParse(backup.Entry_Date, out var date))
                         continue;
-                    if (!LocalData.Instance.IsInRecoveryWindow(date))
+                    if (!allDates && !LocalData.Instance.IsInRecoveryWindow(date))
                         continue;
 
                     var reason = backup.Backup_Reason ?? string.Empty;
@@ -367,7 +380,8 @@ namespace AttendanceDevice.Config_Class
                 todayLogs.OrderBy(l => l.EntryDateTime).ToList(),
                 institution,
                 null,
-                useSessionLedger: false);
+                useSessionLedger: false,
+                applyAllDates: allDates);
 
             using (var db = new ModelContext())
             {

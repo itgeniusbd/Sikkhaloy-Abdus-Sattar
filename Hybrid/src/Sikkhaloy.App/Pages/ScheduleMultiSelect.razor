@@ -1,0 +1,97 @@
+@inherits LocaleAwareComponent
+@* Checkbox drop-down for one or more attendance schedules (attendance record / summary reports).
+   The choice is applied when the panel closes (OK / click outside), so the report loads once.
+   Nothing ticked or every schedule ticked = all schedules. *@
+
+<div class="sch-ms @(open ? "is-open" : null)">
+    <button type="button" class="sch-ms-btn" disabled="@Disabled" title="@Names" aria-haspopup="listbox"
+            aria-expanded="@(open ? "true" : "false")" @onclick="ToggleAsync">
+        <span class="sch-ms-text">@Label</span>
+        <span class="sch-ms-caret" aria-hidden="true">&#9662;</span>
+    </button>
+    @if (open)
+    {
+        <div class="sch-ms-backdrop" @onclick="ApplyAsync"></div>
+        <div class="sch-ms-panel" role="listbox" aria-multiselectable="true">
+            <div class="sch-ms-tools">
+                <button type="button" @onclick="SelectAll">@Locale.T("att.schSelectAll")</button>
+                <button type="button" @onclick="ClearAll">@Locale.T("att.schClear")</button>
+            </div>
+            <div class="sch-ms-list">
+                @if (Items.Count == 0)
+                {
+                    <span class="sch-ms-empty">@Locale.T("att.empty")</span>
+                }
+                @foreach (var item in Items)
+                {
+                    var id = item.ScheduleID;
+                    <label class="sch-ms-item">
+                        <input type="checkbox" checked="@draft.Contains(id)" @onchange="e => Flip(id, e)" />
+                        <span>@item.ScheduleName</span>
+                    </label>
+                }
+            </div>
+            <div class="sch-ms-foot">
+                <span class="sch-ms-count">@DraftLabel</span>
+                <button type="button" class="sch-ms-ok" @onclick="ApplyAsync">@Locale.T("att.schApply")</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<AttendanceScheduleDto> Items { get; set; } = Array.Empty<AttendanceScheduleDto>();
+    /// <summary>Ticked schedule ids (empty = all schedules).</summary>
+    [Parameter] public IReadOnlyList<int> Selected { get; set; } = Array.Empty<int>();
+    [Parameter] public EventCallback<IReadOnlyList<int>> SelectedChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private bool open;
+    private HashSet<int> draft = new();
+
+    private string Label => Text(Selected);
+    private string DraftLabel => Text(draft);
+    private string Names => string.Join(", ", Items.Where(x => Selected.Contains(x.ScheduleID)).Select(x => x.ScheduleName));
+
+    /// <summary>"[ ALL SCHEDULE ]" (none or all ticked), the schedule name (one), or "N schedules selected".</summary>
+    private string Text(IEnumerable<int> ids)
+    {
+        var chosen = Items.Where(x => ids.Contains(x.ScheduleID)).ToList();
+        if (chosen.Count == 0 || chosen.Count == Items.Count)
+            return Locale.T("att.allSchedules");
+        return chosen.Count == 1 ? chosen[0].ScheduleName : Locale.T("att.schedulesSelected", chosen.Count);
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (open)
+        {
+            await ApplyAsync();
+            return;
+        }
+        draft = new HashSet<int>(Selected);
+        open = true;
+    }
+
+    private void Flip(int id, ChangeEventArgs e)
+    {
+        if (e.Value is bool on && on)
+            draft.Add(id);
+        else
+            draft.Remove(id);
+    }
+
+    private void SelectAll() => draft = Items.Select(x => x.ScheduleID).ToHashSet();
+
+    private void ClearAll() => draft.Clear();
+
+    private async Task ApplyAsync()
+    {
+        if (!open)
+            return;
+        open = false;
+        var next = Items.Select(x => x.ScheduleID).Where(draft.Contains).ToList();
+        if (!next.SequenceEqual(Selected))
+            await SelectedChanged.InvokeAsync(next);
+    }
+}

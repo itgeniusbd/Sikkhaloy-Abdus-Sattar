@@ -149,7 +149,8 @@ namespace Attendance_API.Helpers
                         record.EmployeeID,
                         record.AttendanceDate,
                         attendanceType,
-                        smsText))
+                        smsText,
+                        GetScheduleTime(record, empSetting, attendanceType)))
                 {
                     result.Skipped++;
                     continue;

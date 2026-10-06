@@ -2307,7 +2307,7 @@ ORDER BY ISNULL(sub.SN, 999), sub.SubjectName
                 {
                     SubjectID = subjectId,
                     SubjectName = Text(reader["SubjectName"]),
-                    Obtained = absent ? "Abs" : obtained.ToString(obtained % 1 == 0 ? "0" : "0.0"),
+                    Obtained = absent ? "Abs" : obtained.ToString("0.##", CultureInfo.InvariantCulture),   // real decimals like the old V2 card (79.75); whole stays whole
                     FullMark = full,
                     PassMark = pass,
                     Grade = string.IsNullOrWhiteSpace(grade) ? "-" : grade,
@@ -2315,8 +2315,9 @@ ORDER BY ISNULL(sub.SN, 999), sub.SubjectName
                     PassStatus = passStatus,
                     PositionClass = Text(reader["Position_InSubject_Class"]),
                     PositionSection = Text(reader["Position_InSubject_Subsection"]),
-                    HighestClass = ToDbl(reader["HighestMark_InSubject_Class"]) > 0 ? ToDbl(reader["HighestMark_InSubject_Class"]).ToString("0") : "-",
-                    HighestSection = ToDbl(reader["HighestMark_InSubject_Subsection"]) > 0 ? ToDbl(reader["HighestMark_InSubject_Subsection"]).ToString("0") : "-",
+                    // HMC: keep the real decimals like the old V2 card (99.75, 99.5; whole numbers stay 99)
+                    HighestClass = ToDbl(reader["HighestMark_InSubject_Class"]) > 0 ? ToDbl(reader["HighestMark_InSubject_Class"]).ToString("0.##", CultureInfo.InvariantCulture) : "-",
+                    HighestSection = ToDbl(reader["HighestMark_InSubject_Subsection"]) > 0 ? ToDbl(reader["HighestMark_InSubject_Subsection"]).ToString("0.##", CultureInfo.InvariantCulture) : "-",   // HMS: real decimals
                     Failed = failed
                 });
             }
@@ -2355,7 +2356,7 @@ WHERE Exam_Obtain_Marks.SchoolID = @SchoolID AND Exam_Obtain_Marks.EducationYear
                     {
                         SubExamID = subId,
                         SubExamName = Text(reader["SubExamName"]),
-                        Obtained = absent ? "A" : ToDbl(obtained).ToString("0.##"),
+                        Obtained = absent ? "A" : ToDbl(obtained).ToString("0.##", CultureInfo.InvariantCulture),
                         FullMark = pair.Full,
                         PassMark = pair.Pass
                     });

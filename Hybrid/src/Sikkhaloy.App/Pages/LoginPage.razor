@@ -65,11 +65,11 @@
 
             <div class="lc-right">
                 <h1>@Locale.T("login.heading") <em>@Locale.T("login.dash")</em></h1>
-                <p class="desc">@Locale.T("login.desc")</p>
-                <p class="desc" style="margin-top:-12px;font-size:.82rem">
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:@(apiChecked ? (apiUp ? "#22c55e" : "#e11d48") : "#94a3b8");margin-right:6px"></span>
-                    @Locale.T("login.server", ServerLabel)
-                </p>
+                @if (apiChecked && !apiUp)
+                {
+                    @* server status is shown only when the API is unreachable *@
+                    <p class="srv-off" role="status"><span class="dot"></span>@Locale.T("login.server", Locale.T("offline"))</p>
+                }
 
                 @if (!string.IsNullOrWhiteSpace(message) && !Locale.IsNetNotice(message))
                 {
@@ -116,7 +116,7 @@
                 </p>
             </div>
         </div>
-        <p class="foot-note">© ২০২৬ <b>Sikkhaloy.com</b> · @Locale.T("login.powered") <b>IT Genius</b> <span class="rr"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span> · @PhoneIcon <a href="tel:09638669966" style="font-weight:700;color:var(--muted)">09638 66 99 66</a></p>
+        <p class="foot-note">© @FooterYears <b>Sikkhaloy.com</b> · @Locale.T("login.powered") <b>IT Genius</b> <span class="rr"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span> · @PhoneIcon <a href="tel:09638669966" style="font-weight:700;color:var(--muted)">09638 66 99 66</a></p>
     </div>
 </div>
 
@@ -138,15 +138,19 @@
     private bool UserFilled => !string.IsNullOrWhiteSpace(model.UserName);
     private bool PassFilled => !string.IsNullOrWhiteSpace(model.Password);
 
-    private string ServerLabel
+    /// <summary>"২০১৫ - ২০২৬" (Bangla digits in BN, Latin in EN); the end year is the running year in Bangladesh time.</summary>
+    private string FooterYears
     {
         get
         {
-            if (!apiChecked)
-                return Locale.T("login.checking");
-            var status = apiUp ? Locale.T("online") : Locale.T("offline");
-            var host = Api.ApiHost;
-            return string.IsNullOrWhiteSpace(host) ? status : $"{status} · {host}";
+            var text = $"2015 - {DateTime.UtcNow.AddHours(6).Year}";   // Asia/Dhaka = UTC+6, no DST
+            if (!Locale.IsBengali)
+                return text;
+            var chars = text.ToCharArray();
+            for (var i = 0; i < chars.Length; i++)
+                if (chars[i] is >= '0' and <= '9')
+                    chars[i] = (char)('\u09E6' + (chars[i] - '0'));
+            return new string(chars);
         }
     }
 

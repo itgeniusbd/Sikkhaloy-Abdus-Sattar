@@ -64,7 +64,8 @@ namespace Attendance_API.Helpers
                 studentId,
                 0,
                 attendanceDate,
-                attendanceStatus);
+                attendanceStatus,
+                scheduleTime);
 
         }
 
@@ -315,7 +316,8 @@ namespace Attendance_API.Helpers
                         0,
                         record.AttendanceDate,
                         attendanceType,
-                        smsText))
+                        smsText,
+                        GetScheduleTime(record, stuSetting, attendanceType)))
                 {
                     result.Skipped++;
                     continue;

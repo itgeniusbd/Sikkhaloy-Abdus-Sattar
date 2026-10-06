@@ -2,6 +2,22 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="CSS/Attendance_Records.css?v=1" rel="stylesheet" />
+    <style>
+        /* multi-schedule picker */
+        .sch-ms { position: relative; display: inline-block; vertical-align: middle; }
+        .sch-ms .sch-ms-btn { min-width: 200px; max-width: 320px; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 28px; position: relative; }
+        .sch-ms .sch-ms-btn:after { content: ""; position: absolute; right: 10px; top: 50%; margin-top: -2px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #666; }
+        .sch-ms-panel { display: none; position: absolute; z-index: 1050; left: 0; top: 100%; margin-top: 2px; min-width: 100%; width: max-content; max-width: 90vw; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.18); padding: 8px 12px; text-align: left; }
+        .sch-ms.open .sch-ms-panel { display: block; }
+        .sch-ms-tools { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 6px; font-size: 13px; }
+        .sch-ms-tools a { color: #0d6efd; }
+        .sch-ms-count { color: #777; padding: 0 12px; }
+        .sch-ms-list { display: block; position: relative; max-height: 260px; overflow-y: auto; }
+        .sch-ms-list br { display: none; }
+        .sch-ms-list label { display: block !important; margin: 3px 0; white-space: nowrap; cursor: pointer; }
+        .sch-ms-foot { border-top: 1px solid #eee; padding-top: 6px; margin-top: 6px; text-align: right; }
+        @media print { .sch-ms { display: none !important; } }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -67,9 +83,21 @@
                         </asp:SqlDataSource>
                     </div>
                     <div class="form-group">
-                        <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID" AutoPostBack="True" OnSelectedIndexChanged="ScheduleDropDownList_SelectedIndexChanged">
-                            <asp:ListItem Value="0">[ ALL SCHEDULE ]</asp:ListItem>
-                        </asp:DropDownList>
+                        <div class="sch-ms">
+                            <button type="button" class="form-control sch-ms-btn" onclick="schMsToggle(this)"><span class="sch-ms-text">[ ALL SCHEDULE ]</span></button>
+                            <div class="sch-ms-panel">
+                                <div class="sch-ms-tools">
+                                    <a href="#" onclick="return schMsAll(this, true);">Select all</a>
+                                    <span class="sch-ms-count"></span>
+                                    <a href="#" onclick="return schMsAll(this, false);">Clear</a>
+                                </div>
+                                <asp:CheckBoxList ID="ScheduleCheckBoxList" runat="server" CssClass="sch-ms-list" RepeatLayout="Flow" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID">
+                                </asp:CheckBoxList>
+                                <div class="sch-ms-foot">
+                                    <button type="button" class="btn btn-sm btn-primary m-0" onclick="schMsClose()">OK</button>
+                                </div>
+                            </div>
+                        </div>
                         <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID)">
                             <SelectParameters>
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -123,7 +151,7 @@
                                 <PagerStyle CssClass="pgr" />
                             </asp:GridView>
                             <asp:SqlDataSource ID="AttendanceSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                SelectCommand="SELECT Attendance_Record.AttendanceDate, Attendance_Record.Reason, CreateClass.Class, StudentsClass.RollNo, Student.StudentsName, Student.SMSPhoneNo, Student.ID, CASE WHEN Attendance_Record.EntryTime IS NULL OR CAST(Attendance_Record.EntryTime AS time) = CAST('00:00:00' AS time) THEN '' ELSE CONVERT (varchar(15), Attendance_Record.EntryTime, 100) END AS EntryTime, CASE WHEN Attendance_Record.ExitTime IS NULL OR CAST(Attendance_Record.ExitTime AS time) = CAST('00:00:00' AS time) THEN '' ELSE CONVERT (varchar(15), Attendance_Record.ExitTime, 100) END AS ExitTime, Attendance_Record.Attendance, Attendance_Record.StudentClassID, Attendance_Record.StudentID, Attendance_Record.ExitStatus FROM Attendance_Record INNER JOIN CreateClass ON Attendance_Record.ClassID = CreateClass.ClassID INNER JOIN StudentsClass ON Attendance_Record.StudentClassID = StudentsClass.StudentClassID INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID WHERE (Student.Status = 'Active') AND (Attendance_Record.Attendance LIKE @Attendance) AND (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.EducationYearID = @EducationYearID) AND (CAST(Attendance_Record.AttendanceDate AS DATE) >= CAST(@FromDate AS DATE)) AND (CAST(Attendance_Record.AttendanceDate AS DATE) <= CAST(@ToDate AS DATE)) AND ((StudentsClass.ClassID = @ClassID AND @ClassID != 0) OR @ClassID = 0) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (@ScheduleID = 0 OR ISNULL(Attendance_Record.Attendance_ScheduleID, 0) = @ScheduleID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS INT) ELSE 0 END">
+                SelectCommand="SELECT Attendance_Record.AttendanceDate, Attendance_Record.Reason, CreateClass.Class, StudentsClass.RollNo, Student.StudentsName, Student.SMSPhoneNo, Student.ID, CASE WHEN Attendance_Record.EntryTime IS NULL OR CAST(Attendance_Record.EntryTime AS time) = CAST('00:00:00' AS time) THEN '' ELSE CONVERT (varchar(15), Attendance_Record.EntryTime, 100) END AS EntryTime, CASE WHEN Attendance_Record.ExitTime IS NULL OR CAST(Attendance_Record.ExitTime AS time) = CAST('00:00:00' AS time) THEN '' ELSE CONVERT (varchar(15), Attendance_Record.ExitTime, 100) END AS ExitTime, Attendance_Record.Attendance, Attendance_Record.StudentClassID, Attendance_Record.StudentID, Attendance_Record.ExitStatus FROM Attendance_Record INNER JOIN CreateClass ON Attendance_Record.ClassID = CreateClass.ClassID INNER JOIN StudentsClass ON Attendance_Record.StudentClassID = StudentsClass.StudentClassID INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID WHERE (Student.Status = 'Active') AND (Attendance_Record.Attendance LIKE @Attendance) AND (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.EducationYearID = @EducationYearID) AND (CAST(Attendance_Record.AttendanceDate AS DATE) >= CAST(@FromDate AS DATE)) AND (CAST(Attendance_Record.AttendanceDate AS DATE) <= CAST(@ToDate AS DATE)) AND ((StudentsClass.ClassID = @ClassID AND @ClassID != 0) OR @ClassID = 0) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(Attendance_Record.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS INT) ELSE 0 END">
                                 <SelectParameters>
                                     <asp:ControlParameter ControlID="AttenDropDownList" Name="Attendance" PropertyName="SelectedValue" />
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -132,7 +160,7 @@
                                     <asp:ControlParameter ControlID="SectionDropDownList" DefaultValue="%" Name="SectionID" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="ShiftDropDownList" DefaultValue="%" Name="ShiftID" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="GroupDropDownList" DefaultValue="%" Name="SubjectGroupID" PropertyName="SelectedValue" />
-                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
+                                    <asp:Parameter Name="ScheduleIDs" DefaultValue="" ConvertEmptyStringToNull="False" Type="String" />
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="FromDate" PropertyName="Text" />
                                     <asp:ControlParameter ControlID="ToDateTextBox" Name="ToDate" PropertyName="Text" />
                                 </SelectParameters>
@@ -165,7 +193,7 @@
                                 </EmptyDataTemplate>
                                 <PagerStyle CssClass="pgr" />
                             </asp:GridView>
-                            <asp:SqlDataSource ID="SummerySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT StudentsClass.StudentID, StudentsClass.StudentClassID, Student.SMSPhoneNo, Student.StudentsName, StudentsClass.RollNo, Student.ID, dbo.F_Stu_WorkingDay(StudentsClass.SchoolID, StudentsClass.EducationYearID, StudentsClass.ClassID, @From_Date, @To_Date) AS WorkingDay, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Pre' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS Pre, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Abs' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS Abs, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Late' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS Late, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Leave' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS Leave, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Bunk' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS Bunk, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Late Abs' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS LateAbs FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (@ClassID = 0 OR StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) AND (@ScheduleID = 0 OR EXISTS (SELECT 1 FROM Attendance_Schedule_AssignStudent ass WHERE ass.SchoolID = StudentsClass.SchoolID AND ass.StudentID = Student.StudentID AND ass.ScheduleID = @ScheduleID)) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END"
+                            <asp:SqlDataSource ID="SummerySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT StudentsClass.StudentID, StudentsClass.StudentClassID, Student.SMSPhoneNo, Student.StudentsName, StudentsClass.RollNo, Student.ID, dbo.F_Stu_WorkingDay(StudentsClass.SchoolID, StudentsClass.EducationYearID, StudentsClass.ClassID, @From_Date, @To_Date) AS WorkingDay, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Pre' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS Pre, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Abs' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS Abs, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Late' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS Late, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Leave' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS Leave, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Bunk' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS Bunk, (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID = StudentsClass.SchoolID AND ar.EducationYearID = StudentsClass.EducationYearID AND ar.StudentClassID = StudentsClass.StudentClassID AND ar.Attendance = 'Late Abs' AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND (ISNULL(@ScheduleIDs, N'') = N'' OR CHARINDEX(N',' + CAST(ISNULL(ar.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) AS LateAbs FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (@ClassID = 0 OR StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) AND (ISNULL(@ScheduleIDs, N'') = N'' OR EXISTS (SELECT 1 FROM Attendance_Record arS WHERE arS.SchoolID = StudentsClass.SchoolID AND arS.EducationYearID = StudentsClass.EducationYearID AND arS.StudentClassID = StudentsClass.StudentClassID AND CAST(arS.AttendanceDate AS DATE) >= CAST(@From_Date AS DATE) AND CAST(arS.AttendanceDate AS DATE) <= CAST(@To_Date AS DATE) AND CHARINDEX(N',' + CAST(ISNULL(arS.Attendance_ScheduleID, 0) AS nvarchar(12)) + N',', @ScheduleIDs) > 0)) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END"
                                 CancelSelectOnNullParameter="False">
                                 <SelectParameters>
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
@@ -174,7 +202,7 @@
                                     <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" DefaultValue="%" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" DefaultValue="%" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="ShiftDropDownList" Name="ShiftID" DefaultValue="%" PropertyName="SelectedValue" />
-                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
+                                    <asp:Parameter Name="ScheduleIDs" DefaultValue="" ConvertEmptyStringToNull="False" Type="String" />
                                     <asp:Parameter DefaultValue="Active" Name="Status" />
                                     <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -200,6 +228,60 @@
         </ProgressTemplate>
     </asp:UpdateProgress>
 
+    <script type="text/javascript">
+        // multi-schedule picker: none / all ticked = all schedules
+        function schMsBoxes($r) { return $r.find('.sch-ms-list input[type=checkbox]'); }
+        function schMsState($r) {
+            var boxes = schMsBoxes($r), on = boxes.filter(':checked');
+            if (on.length === boxes.length) return '';
+            return on.map(function () { return this.value; }).get().join(',');
+        }
+        function schMsNames() {
+            var $r = $('.sch-ms').first(), boxes = schMsBoxes($r), on = boxes.filter(':checked');
+            if (on.length === 0 || on.length === boxes.length) return [];
+            return on.map(function () { return $.trim($r.find('label[for="' + this.id + '"]').text()); }).get();
+        }
+        function schMsUpdate() {
+            $('.sch-ms').each(function () {
+                var $r = $(this), boxes = schMsBoxes($r), on = boxes.filter(':checked'), t;
+                if (on.length === 0 || on.length === boxes.length) t = '[ ALL SCHEDULE ]';
+                else if (on.length === 1) t = $.trim($r.find('label[for="' + on[0].id + '"]').text());
+                else t = on.length + ' schedules selected';
+                $r.find('.sch-ms-text').text(t);
+                $r.find('.sch-ms-btn').attr('title', schMsNames().join(', '));
+                $r.find('.sch-ms-count').text(on.length + ' / ' + boxes.length);
+            });
+        }
+        function schMsToggle(btn) {
+            var $r = $(btn).closest('.sch-ms');
+            if ($r.hasClass('open')) { schMsClose(); return; }
+            $r.addClass('open').data('start', schMsState($r));
+        }
+        function schMsAll(a, on) {
+            schMsBoxes($(a).closest('.sch-ms')).prop('checked', on);
+            schMsUpdate();
+            return false;
+        }
+        function schMsClose() {
+            var changed = false;
+            $('.sch-ms.open').each(function () {
+                var $r = $(this);
+                $r.removeClass('open');
+                if (schMsState($r) !== $r.data('start')) changed = true;
+            });
+            if (changed) {
+                var b = document.querySelector('[id$="SubmitButton"]');
+                if (b) b.click();
+            }
+        }
+        $(document).on('change', '.sch-ms-list input[type=checkbox]', schMsUpdate);
+        $(document).on('mousedown touchstart', function (e) {
+            if ($('.sch-ms.open').length && !$(e.target).closest('.sch-ms').length) schMsClose();
+        });
+        $(document).on('keydown', function (e) { if (e.keyCode === 27 && $('.sch-ms.open').length) schMsClose(); });
+        $(function () { schMsUpdate(); });
+        Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () { schMsUpdate(); });
+    </script>
     <script>
         $(function () {
             $('.Datetime').datepicker({
@@ -273,15 +355,16 @@
                 Shift = ". Shift: " + $('[id*=ShiftDropDownList] :selected').text();
             }
 
-            var Schedule = "";
-            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
-                Schedule = ". Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
-            }
+            var schNames = schMsNames();
+            var Schedule = schNames.length ? ". Schedule: " + schNames.join(", ") : "";
 
             $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift + Schedule);
 
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
                 $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift + Schedule);
+            }
+            else {
+                $('.Att_Summary').text(schNames.length ? "Summary. Schedule: " + schNames.join(", ") : "");
             }
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
         });
@@ -372,15 +455,16 @@
                 Shift = ". Shift: " + $('[id*=ShiftDropDownList] :selected').text();
             }
 
-            var Schedule = "";
-            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
-                Schedule = ". Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
-            }
+            var schNames = schMsNames();
+            var Schedule = schNames.length ? ". Schedule: " + schNames.join(", ") : "";
 
             $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift + Schedule);
 
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
                 $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift + Schedule);
+            }
+            else {
+                $('.Att_Summary').text(schNames.length ? "Summary. Schedule: " + schNames.join(", ") : "");
             }
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
         });

@@ -8,9 +8,30 @@
         Width="1280"
         Height="800"
         WindowStartupLocation="CenterScreen">
-    <blazor:BlazorWebView HostPage="wwwroot\index.html" Services="{DynamicResource services}">
-        <blazor:BlazorWebView.RootComponents>
-            <blazor:RootComponent Selector="#app" ComponentType="{x:Type app:Routes}" />
-        </blazor:BlazorWebView.RootComponents>
-    </blazor:BlazorWebView>
+    <DockPanel LastChildFill="True">
+        <!-- Auto-update banner (hidden until the server offers a newer version) -->
+        <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Visibility="Collapsed"
+                Background="#FFF8E1" BorderBrush="#F2C94C" BorderThickness="0,0,0,1" Padding="14,8"
+                TextElement.FontFamily="Nirmala UI, Segoe UI" TextElement.FontSize="14">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="UpdateNowButton" Content="এখনই আপডেট করুন" Padding="14,5" Margin="10,0,0,0"
+                            Background="#1B7F3B" Foreground="White" BorderThickness="0" FontWeight="SemiBold"
+                            Cursor="Hand" Click="UpdateNowButton_Click" />
+                    <Button x:Name="UpdateLaterButton" Content="পরে" Padding="12,5" Margin="8,0,0,0"
+                            Cursor="Hand" Click="UpdateLaterButton_Click" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="UpdateText" FontWeight="SemiBold" Foreground="#5D4300" TextWrapping="Wrap" />
+                    <ProgressBar x:Name="UpdateProgress" Height="6" Margin="0,5,0,0" Minimum="0" Maximum="100"
+                                 Visibility="Collapsed" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <blazor:BlazorWebView HostPage="wwwroot\index.html" Services="{DynamicResource services}">
+            <blazor:BlazorWebView.RootComponents>
+                <blazor:RootComponent Selector="#app" ComponentType="{x:Type app:Routes}" />
+            </blazor:BlazorWebView.RootComponents>
+        </blazor:BlazorWebView>
+    </DockPanel>
 </Window>

@@ -50,6 +50,32 @@ public sealed partial class SyncEngine
     public string? LastError { get; private set; }
     public event Action? StateChanged;
 
+    /// <summary>True while a sync run holds the sync lock.</summary>
+    public bool IsSyncRunning => _runLock.CurrentCount == 0;
+
+    /// <summary>
+    /// Desktop auto-update: waits for a running sync to finish, then keeps the sync lock so no new sync starts until the
+    /// returned handle is disposed (the app exits for the installer). Null when the sync is still busy after the timeout.
+    /// Pending local changes stay in the local database and are pushed after the app starts again.
+    /// </summary>
+    public async Task<IDisposable?> PauseForUpdateAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        if (!await _runLock.WaitAsync(timeout, cancellationToken))
+            return null;
+        return new RunLockHandle(_runLock);
+    }
+
+    private sealed class RunLockHandle(SemaphoreSlim gate) : IDisposable
+    {
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+                gate.Release();
+        }
+    }
+
     public async Task RunOnceAsync(SessionSnapshot session, string accessToken, CancellationToken cancellationToken = default)
         => await RunOnceAsync(session, accessToken, force: false, cancellationToken);
 

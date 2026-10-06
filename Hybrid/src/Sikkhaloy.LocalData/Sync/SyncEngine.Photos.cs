@@ -141,6 +141,32 @@ public sealed partial class SyncEngine
         }
     }
 
+    /// <summary>
+    /// Photo data URLs for plain student ids (Guardian Contact cards). Same path and cache as the Student
+    /// List: the local photo cache first, then the school-scoped batch endpoint api/sync/student-info/photos
+    /// (40 ids per call), and fetched photos are written back to the cache. Students without a photo are
+    /// simply not in the result.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<int, string>> GetStudentPhotoUrlsAsync(
+        int schoolId,
+        IEnumerable<int> studentIds,
+        string? accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        var shims = studentIds
+            .Where(id => id > 0)
+            .Distinct()
+            .Select(id => new StudentDto { ServerId = id })
+            .ToList();
+        if (schoolId <= 0 || shims.Count == 0)
+            return new Dictionary<int, string>();
+
+        await EnsureStudentPhotosAsync(schoolId, shims, accessToken, cancellationToken);
+        return shims
+            .Where(x => !string.IsNullOrWhiteSpace(x.PhotoDataUrl))
+            .ToDictionary(x => x.ServerId!.Value, x => x.PhotoDataUrl!);
+    }
+
     private static string StudentPhotoPath(int schoolId, int studentId) =>
         Path.Combine(HybridFolder(), "photos", schoolId.ToString(), studentId + ".jpg");
 

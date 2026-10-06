@@ -1,0 +1,439 @@
+@page "/student-info/guardian-contact"
+@inherits LocaleAwareComponent
+@implements IDisposable
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+
+<div class="sms-ui-page gc-page">
+    <header class="sms-ui-hero">
+        <div class="sms-ui-hero-copy">
+            <span class="sms-ui-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">@PhonePath</svg>
+            </span>
+            <div>
+                <h1>@Locale.T("gc.title")</h1>
+                <p>@Locale.T("gc.lead")</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="sms-ui-card">
+        <div class="sms-ui-filters no-print">
+            <select @bind="classInput" @bind:after="OnClassAsync" disabled="@booting">
+                <option value="0">@Locale.T("gc.allClassOption")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+            @if (groups.Count > 0)
+            {
+                <select @bind="groupInput" @bind:after="ReloadAsync">
+                    <option value="0">@Locale.T("sms.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (sections.Count > 0)
+            {
+                <select @bind="sectionInput" @bind:after="ReloadAsync">
+                    <option value="0">@Locale.T("sms.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (shifts.Count > 0)
+            {
+                <select @bind="shiftInput" @bind:after="ReloadAsync">
+                    <option value="0">@Locale.T("sms.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+        </div>
+
+        <div class="gc-head">
+            <div class="gc-head-title">
+                <strong>@HeadTitle</strong>
+                @if (loaded)
+                {
+                    <span>@(Searching ? Locale.T("gc.found", total) : Locale.T("gc.total", total))</span>
+                }
+            </div>
+            <div class="gc-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="search" placeholder="@Locale.T("gc.searchHint")" value="@search"
+                       @oninput="OnSearchInput" @onkeydown="OnSearchKey" autocomplete="off" />
+                @if (search.Length > 0)
+                {
+                    <button type="button" class="gc-clear" title="@Locale.T("gc.clear")" aria-label="@Locale.T("gc.clear")" @onclick="ClearSearchAsync">&times;</button>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="sms-ui-alert is-warn">@error</div>
+        }
+
+        @if (busy && rows.Count == 0)
+        {
+            <div class="gc-empty">@Locale.T("sms.loading")</div>
+        }
+        else if (loaded && rows.Count == 0)
+        {
+            <div class="gc-empty">@Locale.T("gc.empty")</div>
+        }
+        else
+        {
+            <div class="gc-grid @(busy ? "is-busy" : null)">
+                @foreach (var row in rows)
+                {
+                    var tel = BdPhone.TelHref(row.Phone);
+                    var wa = BdPhone.WhatsAppHref(row.Phone);
+                    var local = BdPhone.Local(row.Phone);
+                    var father = Clean(row.FatherName);
+                    var roll = Clean(row.RollNo);
+                    var sectionName = Clean(row.SectionName);
+                    var showSection = sectionName is not null && (ShowClass || SectionId <= 0);
+                    var photo = photos.GetValueOrDefault(row.StudentID);
+                    <article class="gc-card" @key="row.StudentID">
+                        <div class="gc-card-top">
+                            <div class="gc-avatar @(photo is not null ? "has-photo" : null)" aria-hidden="true">
+                                <span class="gc-initial">@Initial(row.Name)</span>
+                                @if (photo is not null)
+                                {
+                                    <img class="gc-photo" src="@photo" alt="" loading="lazy" decoding="async"
+                                         @onerror="() => PhotoFailed(row.StudentID)" />
+                                }
+                            </div>
+                            <h3 class="gc-name">@(Clean(row.Name) ?? "-")</h3>
+                        </div>
+                        <ul class="gc-rows">
+                            <li>
+                                <span class="gc-ico is-father" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg></span>
+                                <span class="gc-row-text"><b>@Locale.T("gc.lblFather"):</b> @(father ?? "-")</span>
+                            </li>
+                            <li>
+                                <span class="gc-ico is-id" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg></span>
+                                <span class="gc-row-text">
+                                    <b>@Locale.T("gc.lblId"):</b> @(Clean(row.ID) ?? "-")
+                                    @if (roll is not null)
+                                    {
+                                        <span class="gc-sep">|</span><b>@Locale.T("gc.lblRoll"):</b> @roll
+                                    }
+                                </span>
+                            </li>
+                            @if (ShowClass || showSection)
+                            {
+                                <li>
+                                    <span class="gc-ico is-class" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+                                    <span class="gc-row-text">
+                                        @if (ShowClass)
+                                        {
+                                            <b>@Locale.T("gc.lblClass"):</b> @(Clean(row.ClassName) ?? "-")
+                                        }
+                                        @if (showSection)
+                                        {
+                                            @if (ShowClass) { <span class="gc-sep">|</span> }
+                                            <b>@Locale.T("gc.lblSection"):</b> @sectionName
+                                        }
+                                    </span>
+                                </li>
+                            }
+                            <li>
+                                <span class="gc-ico is-phone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">@PhonePath</svg></span>
+                                <span class="gc-row-text">
+                                    <b>@Locale.T("gc.lblPhone"):</b>
+                                    @if (local is not null)
+                                    {
+                                        <span class="gc-num">@local</span>
+                                    }
+                                    else if (Clean(row.Phone) is { } bad)
+                                    {
+                                        <span class="gc-num is-bad">@bad</span> <small class="gc-bad">@Locale.T("gc.invalid")</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="gc-num is-none">-</span>
+                                    }
+                                </span>
+                            </li>
+                        </ul>
+                        <div class="gc-foot">
+                            @if (tel is not null)
+                            {
+                                <a class="gc-act is-call" href="@tel" title="@Locale.T("gc.call")">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">@PhonePath</svg>
+                                    <span>@Locale.T("gc.callBtn")</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="gc-act is-call is-off" aria-disabled="true" title="@Locale.T("gc.noPhone")">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">@PhonePath</svg>
+                                    <span>@Locale.T("gc.callBtn")</span>
+                                </span>
+                            }
+                            @if (wa is not null)
+                            {
+                                <a class="gc-act is-wa" href="@wa" target="_blank" rel="noopener" title="@Locale.T("gc.whatsapp")">
+                                    @WhatsAppIcon<span>@Locale.T("gc.waBtn")</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="gc-act is-wa is-off" aria-disabled="true" title="@Locale.T("gc.noPhone")">
+                                    @WhatsAppIcon<span>@Locale.T("gc.waBtn")</span>
+                                </span>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+            @if (rows.Count < total)
+            {
+                <div class="gc-more no-print">
+                    <button type="button" class="sms-ui-btn is-ghost" disabled="@busy" @onclick="LoadMoreAsync">
+                        @(busy ? Locale.T("sms.loading") : Locale.T("gc.more", rows.Count, total))
+                    </button>
+                </div>
+            }
+        }
+    </section>
+</div>
+
+@code {
+    private const int PageSize = 60;
+    private static readonly MarkupString PhonePath = new(
+        "<path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/>");
+    private static readonly MarkupString WhatsAppIcon = new(
+        "<svg viewBox='0 0 24 24' aria-hidden='true'>"
+        + "<path fill='none' stroke='currentColor' stroke-width='1.9' stroke-linejoin='round' d='M3.4 20.6l1.3-4.3A8.6 8.6 0 1 1 8 19.5z'/>"
+        + "<path fill='currentColor' d='M9.1 7.9c.2-.4.4-.4.7-.4h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.1-.1.3 0 .5.6 1 1.4 1.8 2.4 2.3.2.1.4.1.5 0l.6-.6c.2-.2.4-.2.6-.1l1.6.7c.3.1.4.3.4.5v.5c0 .3-.1.6-.5.8-.7.4-1.7.6-3.1-.1-1.6-.8-3.1-2.3-3.9-3.9-.6-1.4-.5-2.4-.1-3.1z'/>"
+        + "</svg>");
+
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<GuardianContactDto> rows = [];
+    private readonly Dictionary<int, string> photos = new();   // StudentID -> photo data URL (shown rows only)
+    private readonly HashSet<int> photoTried = [];
+    private int photoEpoch;
+    private bool disposed;
+    private ClassStructureDto? structure;
+    private string classInput = "0", groupInput = "0", sectionInput = "0", shiftInput = "0";
+    private string search = "";
+    private string? error;
+    private int total, version;
+    private bool booting, busy, loaded;
+    private CancellationTokenSource? debounce;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private bool Searching => search.Trim().Length > 0;
+    private bool ShowClass => ClassId <= 0;
+
+    private string HeadTitle
+    {
+        get
+        {
+            if (ClassId <= 0)
+                return Searching ? Locale.T("gc.allClasses") : Locale.T("gc.allClassOption");
+            var name = classes.FirstOrDefault(x => x.ClassID == ClassId)?.Name ?? "";
+            var parts = new List<string> { name };
+            var section = sections.FirstOrDefault(x => x.ServerId == SectionId)?.Name;
+            if (SectionId > 0 && !string.IsNullOrWhiteSpace(section)) parts.Add(section);
+            var group = groups.FirstOrDefault(x => x.ServerId == GroupId)?.Name;
+            if (GroupId > 0 && !string.IsNullOrWhiteSpace(group)) parts.Add(group);
+            var shift = shifts.FirstOrDefault(x => x.ServerId == ShiftId)?.Name;
+            if (ShiftId > 0 && !string.IsNullOrWhiteSpace(shift)) parts.Add(shift);
+            return string.Join(" - ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        booting = true;
+        try
+        {
+            if (!Online()) return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { booting = false; }
+        await ReloadAsync();   // "সকল ক্লাস": all active students of the current session right away
+    }
+
+    private async Task OnClassAsync()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear(); sections.Clear(); shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        await ReloadAsync();
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        search = e.Value?.ToString() ?? "";
+        debounce?.Cancel();
+        debounce?.Dispose();
+        var cts = debounce = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(350, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        await ReloadAsync();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        debounce?.Cancel();
+        await ReloadAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        debounce?.Cancel();
+        search = "";
+        await ReloadAsync();
+    }
+
+    private Task ReloadAsync() => LoadAsync(reset: true);
+    private Task LoadMoreAsync() => LoadAsync(reset: false);
+
+    private async Task LoadAsync(bool reset)
+    {
+        var ticket = ++version;
+        error = null;
+        if (reset)
+        {
+            rows.Clear();
+            total = 0;
+            loaded = false;
+            photos.Clear();
+            photoTried.Clear();
+            photoEpoch++;
+        }
+        if (!Online()) return;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        List<GuardianContactDto> added = [];
+        try
+        {
+            var page = await Api.GetGuardianContactsAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId,
+                search.Trim(), rows.Count, PageSize);
+            if (ticket != version) return;   // a newer search/filter started meanwhile
+            var have = rows.Select(x => x.StudentID).ToHashSet();
+            added = page.Rows.Where(x => have.Add(x.StudentID)).ToList();
+            rows.AddRange(added);
+            if (page.Rows.Count > 0 || reset)
+                total = Math.Max(page.Total, rows.Count);
+            else
+                total = rows.Count;   // asked past the end: nothing more to load
+            loaded = true;
+        }
+        catch (Exception ex)
+        {
+            if (ticket == version) error = ex.Message;
+        }
+        finally
+        {
+            if (ticket == version) busy = false;
+        }
+        if (added.Count > 0)
+            _ = LoadPhotosAsync(added);   // the cards render first; photos arrive afterwards
+    }
+
+    /// <summary>
+    /// Student photos for the given cards, outside the list JSON: the local photo cache, then the
+    /// school-scoped batch endpoint (same mechanism as the Student List). Cards keep the initial
+    /// letter when there is no photo, the request fails or the image does not load.
+    /// </summary>
+    private async Task LoadPhotosAsync(IReadOnlyList<GuardianContactDto> batch)
+    {
+        var current = Session.Current;
+        if (current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        var epoch = photoEpoch;
+        var ids = batch.Select(x => x.StudentID).Where(id => id > 0 && photoTried.Add(id)).ToList();
+        if (ids.Count == 0)
+            return;
+        try
+        {
+            var found = await Sync.GetStudentPhotoUrlsAsync(current.SchoolID, ids, Session.AccessToken);
+            if (disposed || epoch != photoEpoch || found.Count == 0)
+                return;   // filter/search changed meanwhile, or nothing to show
+            foreach (var (id, url) in found)
+                photos[id] = url;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // photos are optional: keep the initials
+        }
+    }
+
+    private void PhotoFailed(int studentId)
+    {
+        if (photos.Remove(studentId))
+            StateHasChanged();
+    }
+
+    /// <summary>null for empty / placeholder values ("N/A", ".", "-", "0"), else trimmed text.</summary>
+    private static string? Clean(string? value)
+    {
+        var text = (value ?? "").Trim();
+        if (text.Length == 0 || text is "." or "-" or "--" or "0" || text.Equals("N/A", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("NA", StringComparison.OrdinalIgnoreCase) || text.Equals("null", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return text;
+    }
+
+    private static string Initial(string? name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "?";
+        var info = new System.Globalization.StringInfo(text);
+        return info.LengthInTextElements > 0 ? info.SubstringByTextElements(0, 1).ToUpperInvariant() : "?";
+    }
+
+    private bool Online()
+    {
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            return true;
+        error = Locale.T("subj.needOnline");
+        return false;
+    }
+
+    public override void Dispose()
+    {
+        disposed = true;
+        debounce?.Cancel();
+        debounce?.Dispose();
+        base.Dispose();
+    }
+}

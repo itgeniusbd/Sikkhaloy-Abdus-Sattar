@@ -5,7 +5,7 @@
 @inject IJSRuntime JS
 
 <div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-records-page">
-    <PrintHeader Subtitle="@Locale.T("att.recordsStu")" />
+    <PrintHeader Subtitle="@PrintSubtitle(Locale.T("att.recordsStu"))" />
     <header class="sa-head no-print">
         <div>
             <p class="sa-kicker">@Locale.T("nav.attendance")</p>
@@ -20,15 +20,9 @@
     }
 
     <div class="sal-bar no-print">
-        <section class="sal-box is-type">
+        <section class="sal-box is-type is-schedules">
             <span class="sal-box-h">@Locale.T("att.selectSchedule")</span>
-            <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("att.selectSchedule")</option>
-                @foreach (var item in schedules)
-                {
-                    <option value="@item.ScheduleID">@item.ScheduleName</option>
-                }
-            </select>
+            <ScheduleMultiSelect Items="schedules" Selected="scheduleIds" SelectedChanged="OnSchedulesChanged" Disabled="busy" />
         </section>
         <section class="sal-box is-class">
             <span class="sal-box-h">@Locale.T("si.class")</span>
@@ -141,13 +135,13 @@
                     <tr>
                         <td>@row.AttendanceDate.ToString("dd MMM yyyy")</td>
                         <td>@row.ID</td>
-                        <td class="si-name">@row.Name</td>
-                        <td>@row.ClassName</td>
+                        <td class="si-name att-wrap">@row.Name</td>
+                        <td class="att-wrap">@row.ClassName</td>
                         <td>@row.RollNo</td>
                         <td><span class="att-pill @Pill(row.Attendance)">@StatusLabel(row.Attendance)</span></td>
                         <td>@row.EntryTime</td>
                         <td>@row.ExitTime</td>
-                        <td>@row.Reason</td>
+                        <td class="att-wrap">@row.Reason</td>
                     </tr>
                 }
             }
@@ -181,7 +175,7 @@
                 {
                     <tr>
                         <td>@row.ID</td>
-                        <td class="si-name">@row.Name</td>
+                        <td class="si-name att-wrap">@row.Name</td>
                         <td>@row.RollNo</td>
                         <td>@row.Present</td>
                         <td>@row.Absent</td>
@@ -214,7 +208,7 @@
     private readonly List<StudentAttendanceRecordDto> records = [];
     private readonly List<StudentAttendanceSummaryDto> summary = [];
     private ClassStructureDto? structure;
-    private string scheduleInput = "0";
+    private List<int> scheduleIds = [];   // ticked schedules (empty = all)
     private string classInput = "0";
     private string groupInput = "0";
     private string sectionInput = "0";
@@ -229,7 +223,25 @@
     private bool popupError;
     private string? error;
 
-    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+    // schedules sent to the report: none ticked or every schedule ticked = all (as the old "[ SELECT SCHEDULE ]")
+    private List<int> ReportScheduleIds =>
+        scheduleIds.Count == 0 || schedules.All(x => scheduleIds.Contains(x.ScheduleID)) ? [] : scheduleIds;
+    // old single-schedule parameter (kept for an older SyncApi): the one schedule, else 0
+    private int ScheduleId => ReportScheduleIds.Count == 1 ? ReportScheduleIds[0] : 0;
+    private string ScheduleNames => string.Join(", ",
+        schedules.Where(x => ReportScheduleIds.Contains(x.ScheduleID)).Select(x => x.ScheduleName));
+    // print header: title, date range and the chosen schedules
+    private string PrintSubtitle(string title)
+    {
+        var text = title + " (" + from.ToString("dd MMM yyyy") + (to.Date != from.Date ? " - " + to.ToString("dd MMM yyyy") : "") + ")";
+        return ReportScheduleIds.Count == 0 ? text : text + " | " + Locale.T("att.scheduleLabel") + ": " + ScheduleNames;
+    }
+
+    private Task OnSchedulesChanged(IReadOnlyList<int> ids)
+    {
+        scheduleIds = ids.ToList();
+        return LoadAsync();
+    }
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
     private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
     private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
@@ -309,12 +321,13 @@
         records.Clear();
         summary.Clear();
         records.AddRange(await Api.GetStudentAttendanceRecordsAsync(
-            Session.AccessToken!, status, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+            Session.AccessToken!, status, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to, ReportScheduleIds));
         summary.AddRange(await Api.GetStudentAttendanceSummaryAsync(
-            Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+            Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to, ReportScheduleIds));
     }
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
+    // no forced page size / orientation: the print dialog decides
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "", false).AsTask();
 
     private string StatusLabel(string value) => value switch
     {

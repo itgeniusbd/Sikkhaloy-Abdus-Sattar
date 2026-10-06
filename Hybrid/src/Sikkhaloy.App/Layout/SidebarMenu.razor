@@ -36,40 +36,20 @@
                         <div class="menu-leaves">
                             @foreach (var link in sub.Links)
                             {
-                                @if (NeedsReload(link))
-                                {
-                                    <a href="@Href(link)" class="@LeafClass(link)" @onclick="() => Reload(link)" @onclick:preventDefault="true">
-                                        <span class="menu-dot"></span>
-                                        <span>@Locale.Menu(link.Title)</span>
-                                    </a>
-                                }
-                                else
-                                {
-                                    <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
-                                        <span class="menu-dot"></span>
-                                        <span>@Locale.Menu(link.Title)</span>
-                                    </NavLink>
-                                }
+                                <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                                    <span class="menu-dot"></span>
+                                    <span>@Locale.Menu(link.Title)</span>
+                                </NavLink>
                             }
                         </div>
                     </details>
                 }
                 @foreach (var link in category.Links)
                 {
-                    @if (NeedsReload(link))
-                    {
-                        <a href="@Href(link)" class="@LeafClass(link)" @onclick="() => Reload(link)" @onclick:preventDefault="true">
-                            <span class="menu-dot"></span>
-                            <span>@Locale.Menu(link.Title)</span>
-                        </a>
-                    }
-                    else
-                    {
-                        <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
-                            <span class="menu-dot"></span>
-                            <span>@Locale.Menu(link.Title)</span>
-                        </NavLink>
-                    }
+                    <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                        <span class="menu-dot"></span>
+                        <span>@Locale.Menu(link.Title)</span>
+                    </NavLink>
                 }
             </div>
         </details>
@@ -168,23 +148,6 @@
     }
 
     private static string Href(MenuLinkDto link) => (link.Route ?? "").TrimStart('/');
-
-    private static bool NeedsReload(MenuLinkDto link)
-    {
-        var href = Href(link);
-        return href.Equals("accounts/expense", StringComparison.OrdinalIgnoreCase)
-            || href.Equals("accounts/expense-edit", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private void Reload(MenuLinkDto link) => Nav.NavigateTo(Href(link), forceLoad: true);
-
-    private string? LeafClass(MenuLinkDto link)
-    {
-        var extra = LinkClass(link);
-        var on = Href(link).Equals(CurrentPath, StringComparison.OrdinalIgnoreCase);
-        if (on) return string.IsNullOrEmpty(extra) ? "active" : $"active {extra}";
-        return extra;
-    }
 
     private static string? LinkClass(MenuLinkDto link) => link.Ready ? null : "soon-link";
 

@@ -1,5 +1,16 @@
 namespace Sikkhaloy.Shared.Menu;
 
+/// <summary>Receipt types guarded by parent-page permission (client route guard + SyncApi).</summary>
+public static class ReceiptKind
+{
+    public const string Money = "money";
+    public const string Expense = "expense";
+    public const string Others = "others";
+    public const string Committee = "committee";
+    public const string InventoryPurchase = "inventory-purchase";
+    public const string InventorySale = "inventory-sale";
+}
+
 public sealed class MenuTreeDto
 {
     public List<MenuCategoryDto> Categories { get; set; } = [];
@@ -24,6 +35,29 @@ public sealed class MenuTreeDto
                         return true;
                 }
             }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Exact menu route, or a receipt page implied by a parent permission:
+    /// any page that creates or lists that receipt type grants opening/printing it.
+    /// </summary>
+    public bool CanOpenRoute(string? route)
+    {
+        if (ContainsRoute(route))
+            return true;
+        var kind = HybridMenuRoutes.ReceiptKindOf(route);
+        return kind is not null && HasReceiptParent(kind);
+    }
+
+    /// <summary>True when the user holds any parent page for this receipt type (see <see cref="ReceiptKind"/>).</summary>
+    public bool HasReceiptParent(string kind)
+    {
+        foreach (var parent in HybridMenuRoutes.ReceiptParents(kind))
+        {
+            if (ContainsRoute(parent))
+                return true;
         }
         return false;
     }
@@ -67,10 +101,119 @@ public sealed class MenuLinkDto
 
 public static class HybridMenuRoutes
 {
+    // ---- Receipt access: receipt page/API allowed when the user holds any page that creates or lists it ----
+
+    private static readonly string[] MoneyReceiptParents =
+    [
+        "accounts/collect",                 // Payment Collection (creates)
+        "accounts/collect-by-date",         // Payment Collection By Date (creates)
+        "accounts/concession",              // Fee Concession (print after paid)
+        "accounts/receipt-check",           // Money Receipt Check
+        "accounts/unpaid-receipt",          // Unpaid Money Receipt
+        "accounts/reports/income",          // Income Report (receipt link)
+        "accounts/reports/paid"             // Student Paid Details (lists receipt no)
+    ];
+
+    private static readonly string[] ExpenseReceiptParents =
+    [
+        "accounts/expense",                 // Expense (creates, receipt column)
+        "accounts/expense-edit",            // Edit Expense
+        "accounts/reports/expense-report",  // Expense Report (receipt link)
+        "accounts/reports/income"           // Income Report (expense receipt link)
+    ];
+
+    private static readonly string[] OthersReceiptParents =
+    [
+        "accounts/others"                   // Others Income (creates, receipt column)
+    ];
+
+    private static readonly string[] CommitteeReceiptParents =
+    [
+        "committee/collect",                // Collect Donation (creates)
+        "committee/donation-add",           // Add Donation (creates)
+        "committee/payments",               // Payment Record (receipt link)
+        "committee/unpaid",                 // Unpaid Receipt
+        "accounts/reports/income"           // Income Report (lists committee receipt no)
+    ];
+
+    private static readonly string[] InventoryPurchaseReceiptParents =
+    [
+        "inventory/purchase",               // Purchase (creates)
+        "inventory/purchase-report",        // Purchase Report (receipt link)
+        "inventory/suppliers"               // Supplier Pay (purchase receipt link)
+    ];
+
+    private static readonly string[] InventorySaleReceiptParents =
+    [
+        "inventory/sale",                   // Sale (creates)
+        "inventory/sale-report"             // Sale Report (receipt link)
+    ];
+
+    private sealed record ReceiptRule(string Kind, string Prefix, bool NumericTail, string[] Parents);
+
+    private static readonly ReceiptRule[] ReceiptRules =
+    [
+        new(ReceiptKind.Money, "accounts/receipt/", false, MoneyReceiptParents),
+        new(ReceiptKind.Money, "accounts/receipt-by-date/", false, MoneyReceiptParents),
+        new(ReceiptKind.Expense, "accounts/expense/", true, ExpenseReceiptParents),
+        new(ReceiptKind.Others, "accounts/others/", true, OthersReceiptParents),
+        new(ReceiptKind.Committee, "committee/receipt/", true, CommitteeReceiptParents),
+        new(ReceiptKind.InventoryPurchase, "inventory/receipt/purchase/", true, InventoryPurchaseReceiptParents),
+        new(ReceiptKind.InventorySale, "inventory/receipt/sale/", true, InventorySaleReceiptParents)
+    ];
+
+    /// <summary>Receipt type of a client route (e.g. "accounts/others/6489" -> Others), or null if not a receipt page.</summary>
+    public static string? ReceiptKindOf(string? route)
+    {
+        var path = (route ?? "").Trim().TrimStart('/');
+        var cut = path.IndexOfAny(['?', '#']);
+        if (cut >= 0)
+            path = path[..cut];
+        foreach (var rule in ReceiptRules)
+        {
+            if (path.Length <= rule.Prefix.Length || !path.StartsWith(rule.Prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var tail = path[rule.Prefix.Length..];
+            if (tail.Contains('/'))
+                continue;
+            if (rule.NumericTail && !tail.All(char.IsAsciiDigit))
+                continue;
+            return rule.Kind;
+        }
+        return null;
+    }
+
+    /// <summary>Menu routes that grant a receipt type.</summary>
+    public static IReadOnlyList<string> ReceiptParents(string kind)
+    {
+        foreach (var rule in ReceiptRules)
+        {
+            if (string.Equals(rule.Kind, kind, StringComparison.OrdinalIgnoreCase))
+                return rule.Parents;
+        }
+        return [];
+    }
+
     public static void Apply(MenuLinkDto link)
     {
         var url = (link.PageUrl ?? "").Replace("~", "", StringComparison.Ordinal).Trim();
         var lower = url.ToLowerInvariant();
+
+        // Hybrid-only page injected by EnsureAttendanceGuideline (LinkID -9301). The app re-runs Apply on the
+        // stored menu, so without this rule that link turned into "/coming-soon/-9301" and a second copy was added.
+        if (lower.Contains("attendance/guideline"))
+        {
+            link.Route = AttendanceGuidelineRoute;
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("student-info/guardian-contact"))
+        {
+            link.Route = GuardianContactRoute;
+            link.Ready = true;
+            return;
+        }
 
         if (lower.Contains("create_sub_admin.aspx") || lower.Contains("signup_subadmin.aspx"))
         {
@@ -1323,9 +1466,37 @@ public static class HybridMenuRoutes
 
         EnsureInventory(tree);
         EnsureAttendanceGuideline(tree);
+        EnsureGuardianContact(tree);
+    }
+
+    private const string GuardianContactRoute = "/student-info/guardian-contact";
+
+    /// <summary>
+    /// Hybrid-only page "Guardian Contact" (অভিভাবকের সাথে যোগাযোগ, no legacy .aspx menu row): added right
+    /// after "Student List" for every user who sees the student list (else after "Send SMS"), so it
+    /// follows the existing per-page access and lets sub-admins pass MainLayout's page check.
+    /// </summary>
+    private static void EnsureGuardianContact(MenuTreeDto tree)
+    {
+        var lists = tree.Categories
+            .SelectMany(c => (c.Subs ?? []).Select(s => s.Links ?? []).Prepend(c.Links ?? []))
+            .ToList();
+        if (lists.Any(links => links.Any(link => RouteIs(link, GuardianContactRoute))))
+            return;
+
+        foreach (var anchor in new[] { "/students", "/sms/send" })
+        {
+            var target = lists.FirstOrDefault(links => links.Any(link => RouteIs(link, anchor)));
+            if (target is null)
+                continue;
+            var at = target.FindIndex(link => RouteIs(link, anchor));
+            target.Insert(at + 1, Link(-9401, "Guardian Contact", GuardianContactRoute));
+            return;
+        }
     }
 
     private const string AttendanceGuidelineRoute = "/attendance/guideline";
+    private const int AttendanceGuidelineLinkId = -9301;
 
     /// <summary>
     /// Hybrid-only page (no legacy .aspx menu row): add "Punch Guideline" right after the student
@@ -1337,6 +1508,9 @@ public static class HybridMenuRoutes
         var lists = tree.Categories
             .SelectMany(c => (c.Subs ?? []).Select(s => s.Links ?? []).Prepend(c.Links ?? []))
             .ToList();
+        // drop a stale copy of this injected link that lost its route (old "/coming-soon/-9301" duplicate)
+        foreach (var links in lists)
+            links.RemoveAll(link => link.LinkID == AttendanceGuidelineLinkId && !RouteIs(link, AttendanceGuidelineRoute));
         if (lists.Any(links => links.Any(link => RouteIs(link, AttendanceGuidelineRoute))))
             return;
 
@@ -1345,7 +1519,7 @@ public static class HybridMenuRoutes
             return;
 
         var at = target.FindLastIndex(IsStudentAttendanceLink);
-        target.Insert(at + 1, Link(-9301, "Punch Guideline", AttendanceGuidelineRoute));
+        target.Insert(at + 1, Link(AttendanceGuidelineLinkId, "Punch Guideline", AttendanceGuidelineRoute));
     }
 
     private static bool IsStudentAttendanceLink(MenuLinkDto link) =>

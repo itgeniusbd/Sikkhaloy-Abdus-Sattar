@@ -208,8 +208,17 @@ namespace AttendanceDevice.Config_Class
         /// </summary>
         internal const int AutoPushWindowDays = 7;
 
-        /// <summary>Device-data backups that were never applied are kept this long before auto-removal.</summary>
-        internal const int UnappliedBackupRetentionDays = 60;
+        /// <summary>
+        /// Device-data backups that were never applied are kept this long before auto-removal.
+        /// Sync Record now backs up the full device history, so retention is long (years).
+        /// </summary>
+        internal const int UnappliedBackupRetentionDays = 3650;
+
+        /// <summary>How far back Sync Record re-reads the device when the user asks for every log.</summary>
+        internal const int FullDeviceHistoryDays = 3650;
+
+        /// <summary>Upload batch size for website sync (keeps memory and request size safe).</summary>
+        internal const int WebsiteSyncBatchSize = 200;
 
         /// <summary>Same duplicate-punch rule the punch handlers use (minutes).</summary>
         internal const int DuplicatePunchMinutes = 10;
@@ -1042,7 +1051,6 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 var list = (await logs.ToListAsync())
-                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .ToList();
 
                 var changed = false;
@@ -1071,7 +1079,6 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 return (await logs.ToListAsync())
-                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .Where(a =>
                         !ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime) ||
                         string.Equals(a.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
@@ -1091,7 +1098,6 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 var list = (await logs.ToListAsync())
-                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .ToList();
 
                 var changed = false;
@@ -1120,7 +1126,6 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 return (await logs.ToListAsync())
-                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .Where(a =>
                         !ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime) ||
                         string.Equals(a.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
@@ -1284,9 +1289,9 @@ namespace AttendanceDevice.Config_Class
         }
 
         /// <summary>
-        /// Rows older than the auto-push window leave the pending list: synced rows are removed locally;
-        /// unsynced rows are copied to Device Logs for manual sync. Rows inside the window are kept so
-        /// pending ones still auto-sync and recovered device punches can be merged into them.
+        /// Housekeeping for old local rows: fully-synced rows older than the auto-push window are removed.
+        /// Unsynced rows of ANY date stay in attendance_Records (and the Pending list) until the website
+        /// confirms them — they are also mirrored into Device Logs for durable backup after a power cut.
         /// </summary>
         public int ArchiveExpiredAttendanceRecords()
         {
@@ -1310,6 +1315,7 @@ namespace AttendanceDevice.Config_Class
                         continue;
                     }
 
+                    // Keep the pending attendance row; only ensure a Device Logs copy exists.
                     if (!string.IsNullOrWhiteSpace(row.EntryTime) ||
                         string.Equals(row.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(row.AttendanceStatus, "Late Abs", StringComparison.OrdinalIgnoreCase))
@@ -1318,20 +1324,25 @@ namespace AttendanceDevice.Config_Class
                             ? entryDate.ToString("dddd")
                             : string.Empty;
 
-                        db.attendanceLog_Backups.Add(new AttendanceLog_Backup
+                        var already = db.attendanceLog_Backups.AsEnumerable().Any(b =>
+                            b.DeviceID == row.DeviceID &&
+                            DatesMatch(b.Entry_Date, row.AttendanceDate) &&
+                            string.Equals(b.Entry_Time ?? string.Empty, row.EntryTime ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+                        if (!already)
                         {
-                            DeviceID = row.DeviceID,
-                            Entry_Time = row.EntryTime ?? string.Empty,
-                            Entry_Date = row.AttendanceDate,
-                            Entry_Day = entryDay,
-                            Backup_Reason = string.IsNullOrWhiteSpace(row.EntryTime)
-                                ? $"Expired: {row.AttendanceStatus}"
-                                : "Expired pending sync"
-                        });
-                        archived++;
+                            db.attendanceLog_Backups.Add(new AttendanceLog_Backup
+                            {
+                                DeviceID = row.DeviceID,
+                                Entry_Time = row.EntryTime ?? string.Empty,
+                                Entry_Date = row.AttendanceDate,
+                                Entry_Day = entryDay,
+                                Backup_Reason = string.IsNullOrWhiteSpace(row.EntryTime)
+                                    ? $"Pending: {row.AttendanceStatus}"
+                                    : "Pending sync backup"
+                            });
+                            archived++;
+                        }
                     }
-
-                    db.attendance_Records.Remove(row);
                 }
 
                 db.SaveChanges();
@@ -1341,18 +1352,15 @@ namespace AttendanceDevice.Config_Class
 
         public int GetPendingAttendanceCount()
         {
-            var today = GetAttendanceDateString();
             using (var db = new ModelContext())
             {
-                return db.attendance_Records
-                    .AsEnumerable()
-                    .Count(a => IsInAutoPushWindow(a.AttendanceDate) && !IsFullySynced(a));
+                // Every unsynced row of any date (Pending list + badge).
+                return db.attendance_Records.Count(a => !a.Is_Sent || !a.Is_Updated);
             }
         }
 
         public List<Attendance_Record_View> Get_Pending_Attendance_Record()
         {
-            var today = GetAttendanceDateString();
             using (var db = new ModelContext())
             {
                 var logs = from a in db.attendance_Records
@@ -1373,9 +1381,11 @@ namespace AttendanceDevice.Config_Class
                                Is_Student = u.Is_Student
                            };
 
+                // Show ALL unsynced dates — not only the auto-push window.
                 return logs
                     .AsEnumerable()
-                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
+                    .OrderByDescending(a => a.dtAttendanceDate)
+                    .ThenBy(a => a.Name)
                     .ToList();
             }
         }
@@ -1608,17 +1618,11 @@ namespace AttendanceDevice.Config_Class
                 var backups = db.attendanceLog_Backups.ToList();
                 var logs = db.attendance_Records.ToList();
                 var remove = new List<AttendanceLog_Backup>();
-                var retentionCutoff = GetAttendanceDate().Date.AddDays(-UnappliedBackupRetentionDays);
 
                 foreach (var b in backups)
                 {
+                    // Keep every unapplied backup (full device history). Drop only after website confirm.
                     if (IsBackupReflectedInRecord(b, logs, requireSynced: true))
-                    {
-                        remove.Add(b);
-                        continue;
-                    }
-
-                    if (AttendanceDateHelper.TryParse(b.Entry_Date, out var entryDate) && entryDate < retentionCutoff)
                         remove.Add(b);
                 }
 

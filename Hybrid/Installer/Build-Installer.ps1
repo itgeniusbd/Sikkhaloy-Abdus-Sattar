@@ -75,10 +75,14 @@ if (-not (Test-Path $exe)) {
 }
 
 $productionApi = "https://hybridapi.sikkhaloy.com/"
+$updateInfoUrl = "https://sikkhaloy.com/Handeler/Desktop_App_Update.ashx"
 $appSettings = @"
 {
   "SyncApi": {
     "BaseUrl": "$productionApi"
+  },
+  "Update": {
+    "InfoUrl": "$updateInfoUrl"
   }
 }
 "@
@@ -123,9 +127,16 @@ if (-not (Test-Path $setup)) {
     throw "Installer was not created: $setup"
 }
 
+# Auto-update manifest (version, size, SHA-256) for the server
+$manifest = & (Join-Path $installerDir "New-UpdateManifest.ps1") -Setup $setup -Version $appVersion | Select-Object -Last 1
+
 Write-Host ""
 Write-Host "Installer ready:" -ForegroundColor Green
 Write-Host "  $setup"
+Write-Host ""
+Write-Host "Release (auto-update): upload BOTH files to SIKKHALOY V2\Home\App_For_Download\ on the server:" -ForegroundColor Cyan
+Write-Host "  1. $setup   (first)"
+Write-Host "  2. $manifest   (last, overwrite)"
 Write-Host ""
 Write-Host "Install this Setup.exe. It puts the app in Program Files, creates a Desktop shortcut,"
 Write-Host "and can be removed from Windows Settings > Apps (Add/Remove Programs)."

@@ -478,7 +478,8 @@ else
         var path = Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
         if (IsPublicOfficePath(path))
             return;
-        if (menu.ContainsRoute(path))
+        // CanOpenRoute = exact menu route, or a receipt page implied by a page that creates/lists that receipt type.
+        if (menu.CanOpenRoute(path))
             return;
 
         enforcingAccess = true;
@@ -486,22 +487,39 @@ else
         enforcingAccess = false;
     }
 
+    /// <summary>
+    /// Pages every logged-in office user may open regardless of page-access permission
+    /// (not menu items, so the exact-menu-route check would bounce them to the dashboard).
+    /// </summary>
+    private static readonly string[] PublicOfficeRoots =
+    [
+        "dashboard",           // home after login
+        "feedback",            // header bell / sidebar: complaints & suggestions inbox
+        "profile",             // profile/update-info, profile/password (header profile menu)
+        "support",             // sidebar "Need Help? Contact Support Team / Contact Now"
+        "invoice",             // school bill: invoice, invoice/due, invoice/paid, invoice/receipt/{id}
+        "attendance/display",  // attendance display screen
+        "payment/callback",    // online payment return (redirects to API callback)
+        "payment/cancel",      // online payment cancelled
+        "payment-result"       // online payment result
+    ];
+
     private static bool IsPublicOfficePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
             return true;
-        if (path.Equals("dashboard", StringComparison.OrdinalIgnoreCase))
+        var cut = path.IndexOfAny(['?', '#']);
+        if (cut >= 0)
+            path = path[..cut];
+        path = path.Trim('/');
+        if (path.Length == 0)
             return true;
-        if (path.Equals("feedback", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("feedback/", StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (path.Equals("profile", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("profile/", StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (path.Equals("attendance/display", StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (IsInvoiceDuePath(path) || path.StartsWith("invoice/", StringComparison.OrdinalIgnoreCase))
-            return true;
+        foreach (var root in PublicOfficeRoots)
+        {
+            if (path.Equals(root, StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
         return false;
     }
 

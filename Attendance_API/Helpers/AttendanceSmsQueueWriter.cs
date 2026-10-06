@@ -59,12 +59,17 @@ namespace Attendance_API.Helpers
             int studentId,
             int employeeId,
             DateTime attendanceDate,
-            string attendanceStatus)
+            string attendanceStatus,
+            TimeSpan? scheduleTime = null)
         {
             if (string.IsNullOrWhiteSpace(attendanceStatus))
                 return false;
 
             var date = attendanceDate.Date;
+            // Optional scheduleTime: Abs / Late Abs once per student (or employee) per day per schedule.
+            int? schedMin = scheduleTime.HasValue
+                ? (int?)(scheduleTime.Value.Hours * 60 + scheduleTime.Value.Minutes)
+                : null;
 
             if (studentId > 0)
             {
@@ -72,7 +77,8 @@ namespace Attendance_API.Helpers
                     s.SchoolID == schoolId &&
                     s.StudentID == studentId &&
                     s.AttendanceDate == date &&
-                    s.AttendanceStatus == attendanceStatus);
+                    s.AttendanceStatus == attendanceStatus &&
+                    (schedMin == null || (s.ScheduleTime.Hours * 60 + s.ScheduleTime.Minutes) == schedMin.Value));
             }
 
             if (employeeId > 0)
@@ -81,7 +87,8 @@ namespace Attendance_API.Helpers
                     s.SchoolID == schoolId &&
                     s.EmployeeID == employeeId &&
                     s.AttendanceDate == date &&
-                    s.AttendanceStatus == attendanceStatus);
+                    s.AttendanceStatus == attendanceStatus &&
+                    (schedMin == null || (s.ScheduleTime.Hours * 60 + s.ScheduleTime.Minutes) == schedMin.Value));
             }
 
             return false;
@@ -118,9 +125,10 @@ namespace Attendance_API.Helpers
             int employeeId,
             DateTime attendanceDate,
             string attendanceStatus,
-            string smsText)
+            string smsText,
+            TimeSpan? scheduleTime = null)
         {
-            return HasQueuedSmsToday(db, schoolId, studentId, employeeId, attendanceDate, attendanceStatus)
+            return HasQueuedSmsToday(db, schoolId, studentId, employeeId, attendanceDate, attendanceStatus, scheduleTime)
                 || HasSentAttendanceSmsToday(db, schoolId, studentId, employeeId, attendanceDate, smsText);
         }
 
