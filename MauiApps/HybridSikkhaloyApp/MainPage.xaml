@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HybridSikkhaloyApp.MainPage"
+             NavigationPage.HasNavigationBar="False"
+             SafeAreaEdges="Container"
+             BackgroundColor="#0B6E2E">
+
+    <Grid RowDefinitions="*,Auto" RowSpacing="0">
+        <Grid Grid.Row="0" BackgroundColor="White">
+            <RefreshView x:Name="Refresher"
+                         RefreshColor="#02A22E"
+                         Refreshing="OnRefreshing">
+                <WebView x:Name="Browser"
+                         HorizontalOptions="Fill"
+                         VerticalOptions="Fill"
+                         Navigating="OnNavigating"
+                         Navigated="OnNavigated" />
+                <!-- (the WebView is recreated in code if Android kills its renderer) -->
+            </RefreshView>
+
+            <!-- thin page-load progress bar (the WebView itself is always visible underneath) -->
+            <ProgressBar x:Name="PageProgress"
+                         VerticalOptions="Start"
+                         HeightRequest="4"
+                         Progress="0"
+                         IsVisible="False"
+                         ProgressColor="#02A22E" />
+
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="True"
+                               IsVisible="True"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Color="#02A22E" />
+
+            <!-- Offline / load error page -->
+            <Grid x:Name="OfflineView"
+                  IsVisible="False"
+                  BackgroundColor="White"
+                  Padding="28">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="14">
+                    <Border WidthRequest="96"
+                            HeightRequest="96"
+                            StrokeThickness="0"
+                            BackgroundColor="#FDECEC"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="48" />
+                        </Border.StrokeShape>
+                        <Label Text="!"
+                               FontSize="52"
+                               FontAttributes="Bold"
+                               TextColor="#E31B23"
+                               HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center" />
+                    </Border>
+                    <Label x:Name="OfflineTitle"
+                           Text="ইন্টারনেট সংযোগ নেই"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="#0B6E2E"
+                           HorizontalTextAlignment="Center" />
+                    <Label x:Name="OfflineMessage"
+                           Text="অনুগ্রহ করে মোবাইল ডেটা বা Wi-Fi চালু করে আবার চেষ্টা করুন।&#10;No internet connection. Please check your connection and try again."
+                           FontSize="15"
+                           TextColor="#4B5563"
+                           HorizontalTextAlignment="Center" />
+                    <Button Text="আবার চেষ্টা করুন / Retry"
+                            Clicked="OnRetryClicked"
+                            BackgroundColor="#0B6E2E"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="24"
+                            Padding="24,12"
+                            Margin="0,8,0,0"
+                            HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Native Contact page (mirrors hybrid.sikkhaloy.com/#contact) -->
+            <ScrollView x:Name="ContactView"
+                        IsVisible="False"
+                        BackgroundColor="#064D20">
+                <VerticalStackLayout Padding="20,28,20,32" Spacing="16">
+                    <Label Text="IT GENIUS"
+                           FontSize="12"
+                           CharacterSpacing="2"
+                           TextColor="#A7F3D0"
+                           FontAttributes="Bold" />
+                    <Label Text="Contact us"
+                           FontSize="32"
+                           FontAttributes="Bold"
+                           TextColor="White" />
+                    <Label Text="যোগাযোগ করুন"
+                           FontSize="18"
+                           TextColor="#BBF7D0"
+                           Margin="0,-8,0,0" />
+
+                    <Border StrokeThickness="0"
+                            BackgroundColor="#1AFFFFFF"
+                            Padding="14,10"
+                            HorizontalOptions="Start">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                            <Image Aspect="AspectFit" WidthRequest="22" HeightRequest="22" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource FontFamily="FASolid" Glyph="&#xf590;" Color="White" Size="20" />
+                                </Image.Source>
+                            </Image>
+                            <Label Text="10:00 AM to 5:00 PM support available"
+                                   FontSize="13"
+                                   TextColor="White"
+                                   VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <Label Text="TALK TO US NOW"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           CharacterSpacing="1.5"
+                           TextColor="#A7F3D0"
+                           Margin="0,10,0,0" />
+
+                    <!-- Office phone -->
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#0D9488" VerticalOptions="Center" HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource FontFamily="FASolid" Glyph="&#xf095;" Color="White" Size="26" />
+                                </Image.Source>
+                            </Image>
+                        </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="OFFICE PHONE" FontSize="11" FontAttributes="Bold" TextColor="#A7F3D0" CharacterSpacing="1" />
+                                <Label Text="09638 66 99 66" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#02A22E" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCallOffice" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Call now" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Mobile -->
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#3B82F6" VerticalOptions="Center" HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource FontFamily="FASolid" Glyph="&#xf3cd;" Color="White" Size="26" />
+                                </Image.Source>
+                            </Image>
+                        </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="MOBILE SUPPORT" FontSize="11" FontAttributes="Bold" TextColor="#A7F3D0" CharacterSpacing="1" />
+                                <Label Text="01739 144 141" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#3B82F6" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCallMobile" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Call mobile" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- WhatsApp -->
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#25D366" VerticalOptions="Center" HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource FontFamily="FABrands" Glyph="&#xf232;" Color="White" Size="26" />
+                                </Image.Source>
+                            </Image>
+                        </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="WHATSAPP SUPPORT" FontSize="11" FontAttributes="Bold" TextColor="#A7F3D0" CharacterSpacing="1" />
+                                <Label Text="01739 144 141" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#25D366" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnWhatsApp" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Chat now" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="সকাল ১০টা থেকে বিকেল ৫টা পর্যন্ত সাপোর্ট পাওয়া যায়।"
+                           FontSize="13"
+                           TextColor="#BBF7D0"
+                           Margin="0,8,0,0"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Powered by IT Genius · sikkhaloy.com"
+                           FontSize="12"
+                           TextColor="#6EE7B7"
+                           HorizontalTextAlignment="Center"
+                           Opacity="0.85" />
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid x:Name="MoreSheet"
+                  IsVisible="False"
+                  RowDefinitions="*,Auto"
+                  BackgroundColor="#99000000">
+                <BoxView Grid.Row="0" Color="Transparent">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCloseMore" />
+                    </BoxView.GestureRecognizers>
+                </BoxView>
+                <VerticalStackLayout Grid.Row="1"
+                                     BackgroundColor="White"
+                                     Padding="16,14,16,18"
+                                     Spacing="8">
+                    <Label Text="আরো"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#0B6E2E" />
+                    <VerticalStackLayout x:Name="MoreLinks" Spacing="8" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <!-- Bottom tab bar: Home / Login / Contact / More -->
+        <Border Grid.Row="1"
+                x:Name="TabBarBorder"
+                StrokeThickness="0"
+                BackgroundColor="#0B6E2E"
+                Padding="8,10,8,12">
+            <Grid x:Name="TabBar"
+                  ColumnDefinitions="*,*,*,*"
+                  ColumnSpacing="6">
+                <Border x:Name="TabHome" Grid.Column="0" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconHome" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf015;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblHome" Text="হোম" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabLogin" Grid.Column="1" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconLogin" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf2f6;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblLogin" Text="লগইন" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabContact" Grid.Column="2" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconContact" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf2b9;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblContact" Text="যোগাযোগ" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabMore" Grid.Column="3" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconMore" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf0c9;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblMore" Text="আরো" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentPage>

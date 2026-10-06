@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths for WebView camera uploads (MunaWebChromeClient). Captures live in the app cache only. -->
+<paths>
+	<cache-path name="camera_captures" path="camera/" />
+</paths>

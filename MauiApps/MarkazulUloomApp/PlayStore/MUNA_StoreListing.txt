@@ -1,0 +1,218 @@
+﻿MUNA – Google Play Store listing & policy answers
+App: MUNA (com.sikkhaloy.markazululoom) · version 1.0.1 (versionCode 2)
+Prepared: 4 October 2026 (based on the actual app code: a WebView that opens
+https://sikkhaloy.com/Home/MarkazulUloomApp.html and https://hybrid.sikkhaloy.com/login;
+no analytics, no ads, no push notifications, no Firebase, no location/storage permissions;
+permissions = INTERNET + ACCESS_NETWORK_STATE + CAMERA. The camera is used only when the user
+chooses to take a photo for an upload on a Sikkhaloy page, or for a live-camera request from
+sikkhaloy.com / hybrid.sikkhaloy.com; captures stay in the app cache until uploaded)
+
+======================================================================
+A. STORE LISTING – ENGLISH (en-US)
+======================================================================
+
+App name (max 30) [21 chars]:
+MUNA - Markazul Uloom
+
+Short description (max 80) [78 chars]:
+Results, attendance, fees, routines & notices of Markazul Uloom Nurani Academy
+
+Full description (max 4000):
+MUNA is the mobile app of Markazul Uloom Nurani Academy (মারকাজুল উলুম নূরানী একাডেমী), Chattogram, for its students, guardians and teachers. Powered by the Sikkhaloy education-management platform, it brings the academy's information to your phone in one place.
+
+After logging in with the account provided by the academy, you can see:
+• Dashboard – a quick overview of your account
+• Detailed information – student profile and class details
+• Individual exam & cumulative exam results
+• My Report – progress reports
+• Accounts – fee status and online fee payment
+• Attendance – daily attendance records
+• Class routine and exam routine
+• SMS inbox – messages sent by the academy
+• Notices and homework
+• Complaints & suggestions – send feedback to the academy
+• Change password
+• Photo upload – take a photo with the camera or pick one from the gallery wherever the portal asks for it
+
+Why MUNA?
+• Simple, fast and easy to use, in Bangla and English
+• Secure login over an encrypted (HTTPS) connection
+• No ads
+• Your data is never sold
+
+Login accounts are created by the academy. If you don't have a username or password, please contact the academy office.
+
+Contact
+Markazul Uloom Nurani Academy
+Monir Monjil, 90, Hazi Nasumalum Lane, East Madarbari, Chattogram
+Phone: 01916179333
+Email: markazululoomnuraniacademy@gmail.com
+
+======================================================================
+B. STORE LISTING – BANGLA (bn-BD)
+======================================================================
+
+অ্যাপের নাম (সর্বোচ্চ ৩০) [20 অক্ষর]:
+MUNA - মারকাজুল উলুম
+
+সংক্ষিপ্ত বিবরণ (সর্বোচ্চ ৮০) [72 অক্ষর]:
+মারকাজুল উলুম নূরানী একাডেমীর ফলাফল, হাজিরা, ফি, রুটিন ও নোটিশ এক অ্যাপে
+
+পূর্ণ বিবরণ (সর্বোচ্চ ৪০০০):
+MUNA হলো চট্টগ্রামের মারকাজুল উলুম নূরানী একাডেমীর শিক্ষার্থী, অভিভাবক ও শিক্ষকদের জন্য মোবাইল অ্যাপ। শিক্ষালয় (Sikkhaloy) শিক্ষা-ব্যবস্থাপনা প্ল্যাটফর্মের মাধ্যমে একাডেমীর সব তথ্য এখন এক জায়গায়, আপনার হাতের মুঠোয়।
+
+একাডেমী থেকে দেওয়া অ্যাকাউন্ট দিয়ে লগইন করার পর যা পাবেন:
+• ড্যাশবোর্ড – অ্যাকাউন্টের সংক্ষিপ্ত চিত্র
+• বিস্তারিত তথ্য – শিক্ষার্থীর প্রোফাইল ও শ্রেণির তথ্য
+• একক পরীক্ষা ও ক্রমিক পরীক্ষার ফলাফল
+• আমার রিপোর্ট – অগ্রগতি প্রতিবেদন
+• হিসাব – ফি-এর অবস্থা ও অনলাইন পেমেন্ট
+• উপস্থিতি – দৈনিক হাজিরা
+• ক্লাস রুটিন ও পরীক্ষার রুটিন
+• এসএমএস ইনবক্স – একাডেমীর পাঠানো বার্তা
+• নোটিশ ও হোমওয়ার্ক
+• অভিযোগ ও পরামর্শ – একাডেমীকে মতামত পাঠান
+• পাসওয়ার্ড পরিবর্তন
+• ছবি আপলোড – পোর্টালে প্রয়োজন হলে ক্যামেরা দিয়ে ছবি তুলুন বা গ্যালারি থেকে বেছে নিন
+
+কেন MUNA?
+• সহজ, দ্রুত ও ব্যবহারবান্ধব – বাংলা ও ইংরেজিতে
+• এনক্রিপ্টেড (HTTPS) সংযোগে নিরাপদ লগইন
+• কোনো বিজ্ঞাপন নেই
+• আপনার তথ্য কখনো বিক্রি করা হয় না
+
+লগইন অ্যাকাউন্ট একাডেমী তৈরি করে দেয়। ইউজারনেম বা পাসওয়ার্ড না থাকলে একাডেমীর অফিসে যোগাযোগ করুন।
+
+যোগাযোগ
+মারকাজুল উলুম নূরানী একাডেমী
+Monir Monjil, 90, Hazi Nasumalum Lane, East Madarbari, Chattogram
+ফোন: 01916179333
+ইমেইল: markazululoomnuraniacademy@gmail.com
+
+======================================================================
+C. OTHER LISTING FIELDS
+======================================================================
+App or game: App · Free
+Category: Education
+Tags (pick up to 5): Education, School management (or similar offered)
+Contact email: markazululoomnuraniacademy@gmail.com
+Contact phone (optional): +8801916179333
+Website (optional): https://sikkhaloy.com/Home/MarkazulUloomApp.html
+Privacy policy URL: https://sikkhaloy.com/Home/MarkazulUloomPrivacy.html
+   (upload SIKKHALOY V2\Home\MarkazulUloomPrivacy.html first – it returns 404 until uploaded)
+Graphics (in this folder):
+   App icon 512x512 ........ MUNA_icon_512.png
+   Feature graphic 1024x500  MUNA_feature_1024x500.png
+   Phone screenshots ....... screenshots\01..04 (1080x1920, rendered from the live pages)
+
+======================================================================
+D. APP ACCESS (Policy > App content > App access)
+======================================================================
+Select: "All or some functionality in my app is restricted".
+Add instructions, e.g.:
+  Name: Demo login
+  Username: <DEMO USERNAME>      Password: <DEMO PASSWORD>
+  Instructions: "Open the app, tap Login (লগইন), enter the username and password
+  above on the Sikkhaloy login page. The account is a demo student/guardian account."
+-> YOU MUST CREATE A WORKING DEMO ACCOUNT in Sikkhaloy for Markazul Uloom
+   (no expiry, no OTP / 2-step, sample data is fine). Without it the review fails.
+
+======================================================================
+E. ADS
+======================================================================
+Does your app contain ads?  -> No
+Advertising ID (AD_ID) usage -> No (the app does not use the advertising ID;
+   the manifest has no AD_ID permission)
+
+======================================================================
+F. CONTENT RATING QUESTIONNAIRE (IARC)
+======================================================================
+Email: markazululoomnuraniacademy@gmail.com (or your own)
+Category: "Reference, News, or Educational"
+Violence ................................. No
+Fear / horror ............................ No
+Sexuality / nudity ....................... No
+Language (profanity) ..................... No
+Controlled substances (drugs/alcohol/tobacco) No
+Crude humour ............................. No
+Gambling / simulated gambling ............ No
+Users can interact or exchange content with other users (chat, social) -> No
+   (complaints/suggestions go only to the institution; there is no user-to-user chat)
+Shares the user's current physical location with other users -> No
+Allows users to purchase digital goods ... No
+   (fee payment is for school fees, not digital goods)
+Unrestricted internet access / web browser  -> No
+(Camera use for photo uploads does not change any rating answer.) (only the academy's Sikkhaloy pages)
+Expected result: Everyone / 3+ (Bangladesh/Google Play generic: "Rated for 3+")
+
+======================================================================
+G. TARGET AUDIENCE AND CONTENT
+======================================================================
+Recommended: Target age group "18 and over" – the app is meant for guardians,
+teachers and staff who hold the Sikkhaloy accounts.
+"Could the app unintentionally appeal to children?" -> No (it is a school
+administration app with no games/characters).
+NOTE: if students under 13 will log in themselves, you must truthfully also tick
+the younger age groups. Then Google's Families policy applies (it is still fine:
+no ads, privacy policy present, no unnecessary data), and the review may ask more
+questions. Choose what is true for this academy.
+
+======================================================================
+H. DATA SAFETY FORM
+======================================================================
+Google requires disclosing data collected through a WebView that loads your own
+(controlled) content. The app code collects nothing itself, but the Sikkhaloy
+pages it opens do, so declare the following:
+
+Does your app collect or share any of the required user data types? -> Yes
+Is all of the user data collected by your app encrypted in transit? -> Yes (HTTPS only; cleartext is disabled)
+Which ways can users request that their data is deleted?
+   -> "Users can request that data be deleted" by contacting the academy
+      (markazululoomnuraniacademy@gmail.com / 01916179333).
+   Account creation inside the app: No (accounts are created by the institution),
+   so the "delete account URL" requirement for in-app sign-up does not apply. If
+   the console still asks for a URL, use the privacy policy URL (section 7 there
+   explains how to request deletion).
+
+Data types to tick (all: Collected = Yes, Shared = No, Processed ephemerally = No,
+Required (users can't opt out) = Yes):
+ 1. Personal info > Name
+      Purpose: App functionality, Account management
+ 2. Personal info > User IDs   (username / student ID used to log in)
+      Purpose: App functionality, Account management
+ 3. Personal info > Phone number   (guardian phone in the student record / SMS inbox)
+      Purpose: App functionality, Account management
+ 4. Financial info > Purchase history   (fee payment records)
+      Purpose: App functionality
+ 5. App activity > Other user-generated content   (complaints & suggestions)
+      Purpose: App functionality   · Optional (users choose whether to submit) instead of Required
+ 6. Photos and videos > Photos   (photo taken with the camera or picked from the gallery
+    when the user uploads it on a portal page, e.g. student/guardian photo)
+      Collected: Yes · Shared: No · Processed ephemerally: No
+      Optional (users choose whether to upload a photo) · Purpose: App functionality
+ 7. Files and docs – tick ONLY if the Sikkhaloy portal accepts document uploads
+    (e.g. PDF); then: Collected, not shared, Optional, App functionality.
+Note: Name and Phone number are what the Sikkhaloy account/record holds and sends
+back and forth; declaring them is the safe choice (over-declaring is not penalised,
+under-declaring is).
+
+Do NOT tick: Location, Videos, Audio, Contacts, Calendar,
+Health/fitness, Messages (SMS/email from the phone), Web browsing history,
+Device or other IDs, App info & performance (no analytics/crash SDK).
+"Shared": No – data goes only to the academy and its service provider Sikkhaloy
+(service-provider transfers are not "sharing" under Play's definition).
+Card / mobile-wallet details are entered on the payment gateway's own pages and
+are not stored by the app or Sikkhaloy, so "Payment info" is not ticked.
+(If you know the Sikkhaloy portal stores more – e.g. student photos uploaded by
+users or email addresses – add those types too.)
+
+======================================================================
+I. OTHER DECLARATIONS (Policy > App content)
+======================================================================
+Government apps ........... No (not developed by or on behalf of a government)
+Financial features ........ "My app doesn't provide any financial features"
+Health apps ............... "My app does not have any health features"
+News app .................. No
+COVID-19 contact tracing .. No
+Data safety ............... see section H
+Advertising ID ............ No

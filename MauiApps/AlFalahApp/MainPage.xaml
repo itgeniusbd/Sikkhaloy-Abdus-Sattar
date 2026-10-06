@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlFalahApp.MainPage"
+             NavigationPage.HasNavigationBar="False"
+             SafeAreaEdges="Container"
+             BackgroundColor="#0c4a2a">
+
+    <Grid RowDefinitions="*,Auto" RowSpacing="0">
+        <Grid Grid.Row="0" BackgroundColor="White">
+            <RefreshView x:Name="Refresher"
+                         RefreshColor="#136b43"
+                         Refreshing="OnRefreshing">
+                <WebView x:Name="Browser"
+                         HorizontalOptions="Fill"
+                         VerticalOptions="Fill"
+                         Navigating="OnNavigating"
+                         Navigated="OnNavigated" />
+            </RefreshView>
+
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="True"
+                               IsVisible="True"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Color="#136b43" />
+
+            <Grid x:Name="MoreSheet"
+                  IsVisible="False"
+                  RowDefinitions="*,Auto"
+                  BackgroundColor="#99000000">
+                <BoxView Grid.Row="0" Color="Transparent">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCloseMore" />
+                    </BoxView.GestureRecognizers>
+                </BoxView>
+                <VerticalStackLayout Grid.Row="1"
+                                     BackgroundColor="White"
+                                     Padding="16,14,16,18"
+                                     Spacing="8">
+                    <Label Text="আরো"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#0c4a2a" />
+                    <VerticalStackLayout x:Name="MoreLinks" Spacing="8" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <Grid x:Name="TabBar"
+              Grid.Row="1"
+              ColumnDefinitions="*,*,*"
+              BackgroundColor="#0c4a2a"
+              Padding="4,6,4,10"
+              ColumnSpacing="4">
+            <Label x:Name="TabHome" Grid.Column="0" Text="হোম" />
+            <Label x:Name="TabLogin" Grid.Column="1" Text="লগইন" />
+            <Label x:Name="TabMore" Grid.Column="2" Text="আরো" />
+        </Grid>
+    </Grid>
+
+</ContentPage>

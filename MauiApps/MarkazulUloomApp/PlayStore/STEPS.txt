@@ -1,0 +1,87 @@
+﻿MUNA অ্যাপ Google Play-তে প্রকাশের ধাপসমূহ
+(ফোল্ডার: F:\SIKKHALOY-maui-webview\MauiApps\MarkazulUloomApp\PlayStore)
+=====================================================================
+
+শুরুর আগে যা লাগবে
+---------------------
+১. প্রাইভেসি পলিসি আপলোড: "SIKKHALOY V2\Home\MarkazulUloomPrivacy.html" ফাইলটি
+   sikkhaloy.com সার্ভারের /Home ফোল্ডারে আপলোড করুন (লোগো আগেই আছে)।
+   ব্রাউজারে খুলে দেখুন: https://sikkhaloy.com/Home/MarkazulUloomPrivacy.html
+২. ডেমো অ্যাকাউন্ট: Sikkhaloy-তে মারকাজুল উলুমের জন্য একটি ডেমো শিক্ষার্থী/অভিভাবক
+   অ্যাকাউন্ট তৈরি করুন (মেয়াদ শেষ হবে না, OTP লাগবে না, কিছু নমুনা তথ্য থাকবে)।
+   Google রিভিউয়ার এটি দিয়ে লগইন করবে।
+৩. পুরোনো ডেভেলপার অ্যাকাউন্ট: https://play.google.com/console এ লগইন করুন।
+   - "Account details"-এ নাম, ঠিকানা, ফোন, ইমেইল হালনাগাদ করুন এবং পরিচয় যাচাই
+     (identity verification) বাকি থাকলে তা শেষ করুন – না হলে অ্যাপ প্রকাশ করা যাবে না।
+   - ২০২৩-এর নভেম্বরের আগে খোলা ব্যক্তিগত অ্যাকাউন্টে সাধারণত "১২ জন টেস্টার / ১৪ দিন"
+     ক্লোজড টেস্টিংয়ের শর্ত লাগে না। যদি কনসোলে Production বন্ধ দেখায়, তাহলে আগে
+     Closed testing করে শর্ত পূরণ করতে হবে।
+৪. অনুমতিপত্র (প্রয়োজনে): অ্যাপে প্রতিষ্ঠানের নাম ও লোগো ব্যবহার হচ্ছে। Google
+   জানতে চাইলে প্রতিষ্ঠানের প্যাডে "Sikkhaloy-কে অ্যাপ প্রকাশের অনুমতি দেওয়া হলো"
+   ধরনের একটি চিঠি দেখাতে হতে পারে – আগেই সংগ্রহ করে রাখুন।
+
+ধাপ ১ – অ্যাপ তৈরি
+---------------------
+Play Console > "Create app"
+- App name: MUNA - Markazul Uloom
+- Default language: English (United States) – en-US  (বাংলা অনুবাদ পরে যোগ করবেন)
+- App or game: App      - Free or paid: Free
+- Declarations-এর দুটি টিক দিন (Developer Program Policies, US export laws) > Create app
+
+ধাপ ২ – AAB আপলোড (Production)
+--------------------------------
+বাম মেনু > Test and release > Production > "Create new release"
+- Play App Signing চাইলে "Use Google-generated key" (ডিফল্ট) রাখুন। আমাদের
+  markazululoom.keystore হলো "upload key" – এটি ও এর পাসওয়ার্ড ফাইল
+  (F:\Keystores\MarkazulUloomApp) নিরাপদে ব্যাকআপ রাখুন, প্রতিটি আপডেটে লাগবে।
+- "Upload" > PlayStore\MUNA.aab ফাইলটি দিন।
+- Release name: 1.0.1 (2)
+- Release notes (en-US): First release of the MUNA app.
+  বাংলা: MUNA অ্যাপের প্রথম সংস্করণ।
+- Countries/regions: Bangladesh (চাইলে আরও দেশ)
+- এখনই "Save" করুন; Review/রোলআউট শেষে করবেন।
+নোট: ফোনে আগে থেকে ইনস্টল করা MUNA.apk (নিজের key-তে সাইন করা) Play-এর
+ভার্সনের সাথে মিলবে না – Play থেকে ইনস্টলের আগে পুরোনোটা আনইনস্টল করুন।
+
+ধাপ ৩ – স্টোর লিস্টিং
+-----------------------
+Grow users > Store presence > Main store listing
+- MUNA_StoreListing.txt (A অংশ) থেকে App name, Short description, Full description কপি করুন।
+- App icon: MUNA_icon_512.png
+- Feature graphic: MUNA_feature_1024x500.png
+- Phone screenshots: screenshots ফোল্ডারের ৪টি ছবি (চাইলে নিজের ফোনের স্ক্রিনশটও দিন,
+  বিশেষ করে লগইনের পরের ড্যাশবোর্ড/ফলাফল – এতে রিভিউ ও ডাউনলোড দুটোই ভালো হয়)।
+- বাংলা অনুবাদ: "Manage translations" > Bengali (bn-BD) যোগ করে B অংশ পেস্ট করুন।
+- Store settings: Category = Education; Contact email ও ফোন C অংশ থেকে দিন।
+
+ধাপ ৪ – App content (Policy > App content) – প্রতিটি "Start" করে পূরণ করুন
+------------------------------------------------------------------------------
+ক) Privacy policy: https://sikkhaloy.com/Home/MarkazulUloomPrivacy.html
+খ) App access: "All or some functionality is restricted" > ডেমো ইউজারনেম/পাসওয়ার্ড ও
+   নির্দেশনা দিন (লিস্টিং ফাইলের D অংশ)।
+গ) Ads: "No, my app does not contain ads"।
+ঘ) Content rating: প্রশ্নাবলি শুরু করুন > ইমেইল > Category "Reference, News, or
+   Educational" > সব প্রশ্নে No (F অংশ দেখুন) > Save > Submit। ফল: Everyone/3+।
+ঙ) Target audience: G অংশ অনুযায়ী – সাধারণত "18 and over" (অভিভাবক/শিক্ষক)।
+   শিশুরা নিজে লগইন করলে সত্যভাবে ছোট বয়সও টিক দিন।
+চ) Data safety: H অংশ অনুযায়ী Yes > Encrypted in transit: Yes > ডেটা টাইপগুলো
+   (Name, User IDs, Phone number, Purchase history, Other user-generated content, Photos)
+   টিক দিন, Shared = No > Preview > Submit।
+ছ) Government apps: No।
+জ) Financial features: "My app doesn't provide any financial features"।
+ঝ) Health apps: কোনো health feature নেই। News app: No। Advertising ID: No।
+
+ধাপ ৫ – জমা দেওয়া (Submit)
+---------------------------
+- Dashboard-এ সব "Set up your app" কাজ সবুজ টিক হয়েছে কিনা দেখুন।
+- Production > আগের release খুলে "Next" > "Save" > "Go to overview" >
+  Publishing overview > "Send changes for review"।
+- রিভিউতে সাধারণত কয়েক দিন (নতুন অ্যাপে ৭ দিন বা বেশি) লাগে। ইমেইলে ফল জানাবে।
+- রিজেক্ট হলে কারণসহ ইমেইল আসবে (যেমন ডেমো লগইন কাজ করেনি, প্রাইভেসি লিংক খোলে না,
+  বা "WebView/minimum functionality")। কারণ ঠিক করে আবার জমা দিন।
+
+পরবর্তী আপডেট
+---------------
+MarkazulUloomApp.csproj-এ ApplicationVersion (2, 3, ...) ও ApplicationDisplayVersion
+(1.0.1 ...) বাড়িয়ে একই keystore দিয়ে AAB বানান (কমান্ড keystore-এর PASSWORD.txt-এ,
+শুধু -p:AndroidPackageFormat=aab যোগ করুন) এবং Production-এ নতুন release দিন।

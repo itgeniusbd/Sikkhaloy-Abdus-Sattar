@@ -1,0 +1,65 @@
+﻿MUNA – Android developer verification (প্যাকেজ নেম রেজিস্ট্রেশন)
+তৈরি: 4 October 2026
+=====================================================================
+
+ফর্মে যা দেবেন
+---------------
+Package name   : com.sikkhaloy.markazululoom
+Friendly name  : MUNA
+SHA-256 certificate fingerprint (upload / নিজস্ব key):
+7B:25:C1:0D:9B:BD:01:2E:FE:25:49:D4:81:67:01:67:56:2D:60:C7:C8:EC:82:57:FF:C0:B5:02:CE:4B:F4:07
+
+(এক লাইনে, কোলন ছাড়া – কোনো ফর্ম এভাবে চাইলে:
+7B25C10D9BBD012EFE2549D481670167562D60C7C8EC8257FFC0B502CE4BF407)
+
+এই fingerprint কোথা থেকে
+-------------------------
+- Keystore : F:\Keystores\MarkazulUloomApp\markazululoom.keystore
+- Alias    : markazululoom   (পাসওয়ার্ড পাশের markazululoom-keystore-PASSWORD.txt-এ)
+- Certificate: CN=MARKAZUL ULOOM, O=Markazul Uloom Noorani Academy, L=Chattogram, C=BD
+  (RSA 2048, SHA256withRSA, মেয়াদ 19 Feb 2054 পর্যন্ত)
+- keytool (VS-এর OpenJDK 17) দিয়ে পড়া হয়েছে এবং apksigner দিয়ে মিলিয়ে দেখা হয়েছে:
+  PlayStore\MUNA.apk (v1.0.1, versionCode 2)-এর signer-এর SHA-256 হুবহু একই।
+- নিজে আবার দেখতে চাইলে:
+  "C:\Program Files (x86)\Android\openjdk\jdk-17.0.14\bin\keytool.exe" -list -v -keystore "F:\Keystores\MarkazulUloomApp\markazululoom.keystore" -alias markazululoom
+  (পাসওয়ার্ড চাইলে PASSWORD.txt থেকে দিন; "SHA256:" লাইনটি দেখুন)
+
+জরুরি নোট
+----------
+১. এই SHA-256 হলো আমাদের নিজস্ব key – Play Store-এর বাইরে যে APK শেয়ার করা হয়
+   (যেমন PlayStore\MUNA.apk সরাসরি ফোনে ইনস্টল) সেটি এই key দিয়ে সাইন করা।
+   তাই রেজিস্ট্রেশনে এটিই দিন। Play Console-এ AAB আপলোডের সময়ও এটিই "upload key"।
+২. AAB Play-তে আপলোড করার পর Play App Signing একটি আলাদা "app signing key" বানাবে।
+   তার SHA-256 দেখা যাবে: Play Console > Test and release > App integrity >
+   Play app signing ("App signing key certificate")। Play থেকে বিতরণ হওয়া অ্যাপ এই key-তে
+   সাইন হয় এবং Google এটি নিজে থেকেই রেজিস্টার করে নেয় – আলাদা কিছু করতে হবে না।
+   (আমাদের upload key-এর SHA-256 একই পেজে "Upload key certificate"-এ দেখাবে – তা উপরের
+   মানের সাথে মিলবে।)
+৩. keystore ফাইল ও পাসওয়ার্ড হারালে এই key দিয়ে আর APK সাইন করা যাবে না – ব্যাকআপ রাখুন।
+
+মালিকানা প্রমাণ চাইলে (Upload APK / snippet)
+--------------------------------------------
+প্যাকেজটি নতুন হলে সাধারণত শুধু SHA-256 দিলেই হয়। যদি ফর্ম "Upload APK" দিয়ে key-এর
+মালিকানা প্রমাণ করতে বলে এবং একটি snippet (টোকেন) দেয়:
+ 1. snippet-টি কপি করুন।
+ 2. প্রজেক্টে এই ফাইলটি তৈরি করুন (নাম হুবহু এটাই):
+      F:\SIKKHALOY-maui-webview\MauiApps\MarkazulUloomApp\Resources\Raw\adi-registration.properties
+    ফাইলে শুধু snippet-টি পেস্ট করে সেভ করুন (Notepad > Save, Encoding: UTF-8)।
+    MAUI এই Resources\Raw ফোল্ডারের ফাইল APK-এর assets\ ফোল্ডারে বসায়, অর্থাৎ APK-তে
+    এটি assets/adi-registration.properties হবে – Google ঠিক এটাই চায়।
+ 3. একই keystore দিয়ে Release APK বানান (PowerShell, প্রজেক্ট ফোল্ডার থেকে):
+      cd F:\SIKKHALOY-maui-webview\MauiApps\MarkazulUloomApp
+      $env:MU_KS_PASS = '<PASSWORD.txt-এর Store password>'
+      dotnet publish -f net10.0-android -c Release -p:AndroidPackageFormat=apk -p:AndroidKeyStore=true `
+        -p:AndroidSigningKeyStore="F:\Keystores\MarkazulUloomApp\markazululoom.keystore" -p:AndroidSigningKeyAlias=markazululoom `
+        -p:AndroidSigningStorePass=env:MU_KS_PASS -p:AndroidSigningKeyPass=env:MU_KS_PASS `
+        "-p:JavaSdkDirectory=C:\Program Files (x86)\Android\openjdk\jdk-17.0.14" "-p:AndroidSdkDirectory=$env:LOCALAPPDATA\Android\Sdk" `
+        -o C:\Temp\MUNA_verify
+    সাইন করা ফাইল: C:\Temp\MUNA_verify\com.sikkhaloy.markazululoom-Signed.apk
+ 4. (ঐচ্ছিক যাচাই) APK-তে ফাইলটি আছে কিনা:
+      tar -tf C:\Temp\MUNA_verify\com.sikkhaloy.markazululoom-Signed.apk | findstr adi-registration
+    → assets/adi-registration.properties দেখাবে।
+ 5. ফর্মে "Upload" দিয়ে এই -Signed.apk আপলোড করুন। Google সাইন ও snippet মিলিয়ে
+    মালিকানা রেজিস্টার করবে।
+ 6. কাজ শেষে adi-registration.properties ফাইলটি মুছে দিন (রেখে দিলেও ক্ষতি নেই) এবং
+    C:\Temp\MUNA_verify ফোল্ডার মুছে ফেলুন। এই APK কাউকে বিতরণের জন্য নয়।

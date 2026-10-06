@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SradcApp.MainPage"
+             NavigationPage.HasNavigationBar="False"
+             SafeAreaEdges="Container"
+             BackgroundColor="#1A2A9C">
+
+    <Grid RowDefinitions="*,Auto" RowSpacing="0">
+        <Grid Grid.Row="0" BackgroundColor="White">
+            <RefreshView x:Name="Refresher"
+                         RefreshColor="#F58220"
+                         Refreshing="OnRefreshing">
+                <WebView x:Name="Browser"
+                         HorizontalOptions="Fill"
+                         VerticalOptions="Fill"
+                         Navigating="OnNavigating"
+                         Navigated="OnNavigated" />
+                <!-- (the WebView is recreated in code if Android kills its renderer) -->
+            </RefreshView>
+
+            <!-- thin page-load progress bar (the WebView itself is always visible underneath) -->
+            <ProgressBar x:Name="PageProgress"
+                         VerticalOptions="Start"
+                         HeightRequest="4"
+                         Progress="0"
+                         IsVisible="False"
+                         ProgressColor="#F58220" />
+
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="True"
+                               IsVisible="True"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Color="#F58220" />
+
+            <!-- Offline / load error page -->
+            <Grid x:Name="OfflineView"
+                  IsVisible="False"
+                  BackgroundColor="White"
+                  Padding="28">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="14">
+                    <Border WidthRequest="96"
+                            HeightRequest="96"
+                            StrokeThickness="0"
+                            BackgroundColor="#FDECEC"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="48" />
+                        </Border.StrokeShape>
+                        <Label Text="!"
+                               FontSize="52"
+                               FontAttributes="Bold"
+                               TextColor="#E31B23"
+                               HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center" />
+                    </Border>
+                    <Label x:Name="OfflineTitle"
+                           Text="ইন্টারনেট সংযোগ নেই"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="#1A2A9C"
+                           HorizontalTextAlignment="Center" />
+                    <Label x:Name="OfflineMessage"
+                           Text="অনুগ্রহ করে মোবাইল ডেটা বা Wi-Fi চালু করে আবার চেষ্টা করুন।&#10;No internet connection. Please check your connection and try again."
+                           FontSize="15"
+                           TextColor="#4B5563"
+                           HorizontalTextAlignment="Center" />
+                    <Button Text="আবার চেষ্টা করুন / Retry"
+                            Clicked="OnRetryClicked"
+                            BackgroundColor="#1A2A9C"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="24"
+                            Padding="24,12"
+                            Margin="0,8,0,0"
+                            HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Native Contact page (mirrors the "Need Help?" block on sradc.edu.bd/contact) -->
+            <ScrollView x:Name="ContactView"
+                        IsVisible="False"
+                        BackgroundColor="#111C6E">
+                <VerticalStackLayout Padding="20,28,20,32" Spacing="16">
+                    <Label Text="সানারপাড় রওশন আরা ডিগ্রি কলেজ"
+                           FontSize="14"
+                           TextColor="#FDBA74"
+                           FontAttributes="Bold" />
+                    <Label Text="সাহায্য লাগবে?"
+                           FontSize="32"
+                           FontAttributes="Bold"
+                           TextColor="White" />
+                    <Label Text="Need help? Call, WhatsApp or e-mail us."
+                           FontSize="15"
+                           TextColor="#C7D2FE"
+                           Margin="0,-8,0,0" />
+
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#F58220" VerticalOptions="Center" HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource FontFamily="FASolid" Glyph="&#xf095;" Color="White" Size="26" />
+                                    </Image.Source>
+                                </Image>
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="ফোন / PHONE" FontSize="11" FontAttributes="Bold" TextColor="#FDBA74" CharacterSpacing="1" />
+                                <Label Text="01309112476" FontSize="20" FontAttributes="Bold" TextColor="White" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#F58220" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCall" />
+                                </Border.GestureRecognizers>
+                                <Label Text="কল করুন" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#25D366" VerticalOptions="Center" HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource FontFamily="FABrands" Glyph="&#xf232;" Color="White" Size="26" />
+                                    </Image.Source>
+                                </Image>
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="হোয়াটসঅ্যাপ / WHATSAPP" FontSize="11" FontAttributes="Bold" TextColor="#FDBA74" CharacterSpacing="1" />
+                                <Label Text="01309112476" FontSize="20" FontAttributes="Bold" TextColor="White" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#25D366" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnWhatsApp" />
+                                </Border.GestureRecognizers>
+                                <Label Text="চ্যাট" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#E0393E" VerticalOptions="Center" HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource FontFamily="FASolid" Glyph="&#xf3c5;" Color="White" Size="26" />
+                                    </Image.Source>
+                                </Image>
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="ঠিকানা / ADDRESS" FontSize="11" FontAttributes="Bold" TextColor="#FDBA74" CharacterSpacing="1" />
+                                <Label Text="Shanarpar, Siddhirganj, Narayanganj, Code #2509, EIIN #112476" FontSize="15" FontAttributes="Bold" TextColor="White" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <Border StrokeThickness="0" BackgroundColor="#1AFFFFFF" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0" WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="#3B5BDB" VerticalOptions="Center" HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Image Aspect="AspectFit" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource FontFamily="FASolid" Glyph="&#xf0e0;" Color="White" Size="26" />
+                                    </Image.Source>
+                                </Image>
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="ইমেইল / E-MAIL" FontSize="11" FontAttributes="Bold" TextColor="#FDBA74" CharacterSpacing="1" />
+                                <Label Text="rowshanaracollege7@gmail.com" FontSize="15" FontAttributes="Bold" TextColor="White" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#3B5BDB" Padding="14,10" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnEmail" />
+                                </Border.GestureRecognizers>
+                                <Label Text="ইমেইল" FontSize="13" FontAttributes="Bold" TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="শিক্ষাই আলো · প্রতিষ্ঠিত ১৯৯৭"
+                           FontSize="13"
+                           TextColor="#C7D2FE"
+                           Margin="0,8,0,0"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Powered by Sikkhaloy"
+                           FontSize="11"
+                           TextColor="#A5B4FC"
+                           HorizontalTextAlignment="Center"
+                           Opacity="0.8" />
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid x:Name="MoreSheet"
+                  IsVisible="False"
+                  RowDefinitions="*,Auto"
+                  BackgroundColor="#99000000">
+                <BoxView Grid.Row="0" Color="Transparent">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCloseMore" />
+                    </BoxView.GestureRecognizers>
+                </BoxView>
+                <Border Grid.Row="1"
+                        StrokeThickness="0"
+                        BackgroundColor="White"
+                        Padding="14,12,14,16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="22,22,0,0" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <BoxView WidthRequest="44" HeightRequest="5" CornerRadius="3" Color="#D1D5DB" HorizontalOptions="Center" />
+                        <Label Text="আরো"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#1A2A9C" />
+                        <ScrollView MaximumHeightRequest="440">
+                            <Grid x:Name="MoreLinks" ColumnDefinitions="*,*" ColumnSpacing="8" RowSpacing="8" />
+                        </ScrollView>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Bottom tab bar: Home / Login / Contact / More -->
+        <Border Grid.Row="1"
+                x:Name="TabBarBorder"
+                StrokeThickness="0"
+                BackgroundColor="#1A2A9C"
+                Padding="8,10,8,12">
+            <Grid x:Name="TabBar"
+                  ColumnDefinitions="*,*,*,*"
+                  ColumnSpacing="6">
+                <Border x:Name="TabHome" Grid.Column="0" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconHome" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf015;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblHome" Text="হোম" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabLogin" Grid.Column="1" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconLogin" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf2f6;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblLogin" Text="লগইন" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabContact" Grid.Column="2" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconContact" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf2b9;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblContact" Text="যোগাযোগ" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border x:Name="TabMore" Grid.Column="3" StrokeThickness="0" BackgroundColor="Transparent" Padding="2,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="3">
+                        <Image x:Name="IconMore" Aspect="AspectFit" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource FontFamily="FASolid" Glyph="&#xf0c9;" Color="White" Size="22" />
+                            </Image.Source>
+                        </Image>
+                        <Label x:Name="LblMore" Text="আরো" FontSize="11" HorizontalTextAlignment="Center" TextColor="White" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentPage>

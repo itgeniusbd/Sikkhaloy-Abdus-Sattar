@@ -1,0 +1,12 @@
+# build outputs / store packages - never commit
+*.apk
+*.aab
+*.apks
+
+
+# signing keys / local logs - never commit
+*.keystore
+*.jks
+*PASSWORD*.txt
+*.log
+*.log.err
